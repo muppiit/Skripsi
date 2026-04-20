@@ -92,7 +92,7 @@ public class CheatDetectionRepository {
                 cheatDetection.getIdPeserta() != null ? cheatDetection.getIdPeserta() : "");
         client.insertRecord(table, rowKey, "main", "idUjian",
                 cheatDetection.getIdUjian() != null ? cheatDetection.getIdUjian() : "");
-        client.insertRecord(table, rowKey, "main", "idSchool",
+        client.insertRecord(table, rowKey, "main", "studyProgramId",
                 cheatDetection.getIdSchool() != null ? cheatDetection.getIdSchool() : "");
 
         // Detection details
@@ -208,10 +208,10 @@ public class CheatDetectionRepository {
             }
         }
 
-        // Save School relationship - use school column family
+        // Save study_program relationship - use study_program column family
         if (cheatDetection.getSchool() != null && cheatDetection.getSchool().getIdSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", cheatDetection.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool",
+            client.insertRecord(table, rowKey, "study_program", "idSchool", cheatDetection.getSchool().getIdSchool());
+            client.insertRecord(table, rowKey, "study_program", "nameSchool",
                     cheatDetection.getSchool().getNameSchool() != null ? cheatDetection.getSchool().getNameSchool()
                             : "");
         }
@@ -358,7 +358,7 @@ public class CheatDetectionRepository {
                 indexedFields);
     }
 
-    public List<CheatDetection> findBySchoolId(String idSchool) throws IOException {
+    public List<CheatDetection> findByStudyProgramId(String idStudyProgram) throws IOException {
         TableName tableCheatDetection = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
@@ -369,11 +369,15 @@ public class CheatDetectionRepository {
                 tableCheatDetection.toString(),
                 columnMapping,
                 "main",
-                "idSchool",
-                idSchool,
+                "studyProgramId",
+                idStudyProgram,
                 CheatDetection.class,
                 1000,
                 indexedFields);
+    }
+
+    public List<CheatDetection> findBySchoolId(String idSchool) throws IOException {
+        return findByStudyProgramId(idSchool);
     }
 
     public List<CheatDetection> findByTypeViolation(String typeViolation) throws IOException {
@@ -510,7 +514,7 @@ public class CheatDetectionRepository {
         columnMapping.put("sessionId", "sessionId");
         columnMapping.put("idPeserta", "idPeserta");
         columnMapping.put("idUjian", "idUjian");
-        columnMapping.put("idSchool", "idSchool");
+        columnMapping.put("studyProgramId", "idSchool");
         columnMapping.put("typeViolation", "typeViolation");
         columnMapping.put("severity", "severity");
         columnMapping.put("violationCount", "violationCount");
@@ -570,8 +574,10 @@ public class CheatDetectionRepository {
                                                      // 'ujianNama'
         columnMapping.put("durasiMenit", "ujianDurasiMenit"); // Maps 'durasiMenit' qualifier (from 'ujian:durasiMenit')
                                                               // to 'ujianDurasiMenit'
-        columnMapping.put("idSchool", "schoolId"); // Maps 'idSchool' qualifier (from 'school:idSchool') to 'schoolId'
-        columnMapping.put("nameSchool", "schoolName"); // Maps 'nameSchool' qualifier (from 'school:nameSchool') to
+        columnMapping.put("idSchool", "schoolId"); // Maps 'idSchool' qualifier (from 'study_program:idSchool') to
+                                                   // 'schoolId'
+        columnMapping.put("nameSchool", "schoolName"); // Maps 'nameSchool' qualifier (from 'study_program:nameSchool')
+                                                       // to
                                                        // 'schoolName'
 
         // Additional fields if they are always in 'detail', 'detection', 'status' and
@@ -698,14 +704,14 @@ public class CheatDetectionRepository {
     }
 
     public long countBySchoolAndSeverity(String idSchool, String severity) throws IOException {
-        List<CheatDetection> schoolViolations = findBySchoolId(idSchool);
+        List<CheatDetection> schoolViolations = findByStudyProgramId(idSchool);
         return schoolViolations.stream()
                 .filter(violation -> severity == null || severity.equals(violation.getSeverity()))
                 .count();
     }
 
     public long countUnresolvedBySchool(String idSchool) throws IOException {
-        List<CheatDetection> schoolViolations = findBySchoolId(idSchool);
+        List<CheatDetection> schoolViolations = findByStudyProgramId(idSchool);
         return schoolViolations.stream()
                 .filter(violation -> violation.getResolved() == null || !violation.getResolved())
                 .count();

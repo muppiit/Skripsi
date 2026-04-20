@@ -1,4 +1,5 @@
 package com.doyatama.university.model;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -12,17 +13,16 @@ public class Lecture {
     private String status;
     private String address;
     private String phone;
-    
+
     private Religion religion;
-    private BidangKeahlian bidangKeahlian;
-    private ProgramKeahlian programKeahlian;
-    private KonsentrasiKeahlian konsentrasiKeahlian;
+    private StudyProgram study_program;
+
     public Lecture() {
     }
 
-    public Lecture(String id, String nip, String name, String place_born, String date_born, 
-            String gender, String status, String address, String phone, Religion religion, 
-            BidangKeahlian bidangKeahlian, ProgramKeahlian programKeahlian, KonsentrasiKeahlian konsentrasiKeahlian) {
+    public Lecture(String id, String nip, String name, String place_born, String date_born,
+            String gender, String status, String address, String phone, Religion religion,
+            StudyProgram study_program) {
         this.id = id;
         this.nip = nip;
         this.name = name;
@@ -33,9 +33,7 @@ public class Lecture {
         this.address = address;
         this.phone = phone;
         this.religion = religion;
-        this.bidangKeahlian = bidangKeahlian;
-        this.programKeahlian = programKeahlian;
-        this.konsentrasiKeahlian = konsentrasiKeahlian;
+        this.study_program = study_program;
     }
 
     public String getId() {
@@ -118,42 +116,24 @@ public class Lecture {
         this.religion = religion;
     }
 
-    public BidangKeahlian getBidangKeahlian() {
-        return bidangKeahlian;
+    public StudyProgram getStudyProgram() {
+        return study_program;
     }
 
-    public void setBidangKeahlian(BidangKeahlian bidangKeahlian) {
-        this.bidangKeahlian = bidangKeahlian;
+    public void setStudyProgram(StudyProgram study_program) {
+        this.study_program = study_program;
     }
-
-    public ProgramKeahlian getProgramKeahlian() {
-        return programKeahlian;
-    }
-
-    public void setProgramKeahlian(ProgramKeahlian programKeahlian) {
-        this.programKeahlian = programKeahlian;
-    }
-
-    public KonsentrasiKeahlian getKonsentrasiKeahlian() {
-        return konsentrasiKeahlian;
-    }
-
-    public void setKonsentrasiKeahlian(KonsentrasiKeahlian konsentrasiKeahlian) {
-        this.konsentrasiKeahlian = konsentrasiKeahlian;
-    }
-
-    
 
     public boolean isValid() {
-        return this.id != null && 
-               this.nip != null && 
-               this.name != null && 
-               this.place_born != null && 
-               this.date_born != null && 
-               this.gender != null && 
-               this.status != null && 
-               this.address != null && 
-               this.phone != null;
+        return this.id != null &&
+                this.nip != null &&
+                this.name != null &&
+                this.place_born != null &&
+                this.date_born != null &&
+                this.gender != null &&
+                this.status != null &&
+                this.address != null &&
+                this.phone != null;
     }
 
     public void set(String fieldName, String value) {

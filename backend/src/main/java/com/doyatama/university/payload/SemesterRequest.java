@@ -3,15 +3,29 @@ package com.doyatama.university.payload;
 public class SemesterRequest {
     private String idSemester;
     private String namaSemester;
+    private String idStudyProgram;
     private String idSekolah;
 
     public SemesterRequest() {
     }
 
-    public SemesterRequest(String idSemester, String namaSemester, String idSekolah) {
+    public SemesterRequest(String idSemester, String namaSemester, String idStudyProgram, String idSekolah) {
         this.idSemester = idSemester;
         this.namaSemester = namaSemester;
+        this.idStudyProgram = idStudyProgram;
         this.idSekolah = idSekolah;
+    }
+
+    public String getIdStudyProgram() {
+        return idStudyProgram;
+    }
+
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
+    }
+
+    public String getEffectiveStudyProgramId() {
+        return idStudyProgram != null ? idStudyProgram : idSekolah;
     }
 
     public String getIdSemester() {
@@ -45,6 +59,9 @@ public class SemesterRequest {
                 break;
             case "namaSemester":
                 this.namaSemester = value;
+                break;
+            case "idStudyProgram":
+                this.idStudyProgram = value;
                 break;
             case "idSekolah":
                 this.idSekolah = value;

@@ -117,6 +117,8 @@ public class HasilUjianController {
             @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @RequestParam(value = "includeAnalytics", defaultValue = "false") Boolean includeAnalytics,
+            @RequestParam(value = "kelasId", required = false) String kelasId,
+            @RequestParam(value = "seasonId", required = false) String seasonId,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
         String schoolId = currentUser.getSchoolId();
@@ -124,7 +126,8 @@ public class HasilUjianController {
         // TODO: Add validation to ensure ujian belongs to current school
         // This is critical for multi-school security
 
-        return hasilUjianService.getHasilByUjian(idUjian, page, size, includeAnalytics, schoolId);
+        return hasilUjianService.getHasilByUjian(idUjian, page, size, includeAnalytics, schoolId, kelasId,
+                seasonId);
     }
 
     /**
@@ -357,9 +360,11 @@ public class HasilUjianController {
     @GetMapping("/statistics/ujian/{idUjian}")
     public ResponseEntity<?> getUjianStatistics(
             @PathVariable String idUjian,
+            @RequestParam(value = "kelasId", required = false) String kelasId,
+            @RequestParam(value = "seasonId", required = false) String seasonId,
             @CurrentUser UserPrincipal currentUser) throws IOException {
         try {
-            Map<String, Object> statistics = hasilUjianService.getUjianStatistics(idUjian);
+            Map<String, Object> statistics = hasilUjianService.getUjianStatistics(idUjian, kelasId, seasonId);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

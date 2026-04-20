@@ -39,10 +39,12 @@ public class UjianController {
             @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @RequestParam(value = "userID", defaultValue = "*") String userID,
+            @RequestParam(value = "semesterId", defaultValue = "") String semesterId,
+            @RequestParam(value = "kelasId", defaultValue = "") String kelasId,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
         String schoolID = currentUser.getSchoolId();
-        return ujianService.getAllUjian(page, size, userID, schoolID);
+        return ujianService.getAllUjian(page, size, userID, schoolID, semesterId, kelasId);
     }
 
     /**
@@ -423,6 +425,7 @@ public class UjianController {
         try {
             // Set creator ID from current user
             ujianRequest.setIdCreatedBy(currentUser.getId());
+            ujianRequest.setIdStudyProgram(currentUser.getSchoolId());
             ujianRequest.setIdSchool(currentUser.getSchoolId());
 
             // Create ujian

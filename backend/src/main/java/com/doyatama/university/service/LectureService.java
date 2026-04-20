@@ -16,9 +16,7 @@ import java.util.List;
 public class LectureService {
     private LectureRepository lectureRepository = new LectureRepository();
     private ReligionRepository religionRepository = new ReligionRepository();
-    private BidangKeahlianRepository bidangKeahlianRepository = new BidangKeahlianRepository();
-    private ProgramKeahlianRepository programKeahlianRepository = new ProgramKeahlianRepository();
-    private KonsentrasiKeahlianRepository konsentrasiKeahlianRepository = new KonsentrasiKeahlianRepository();
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
 
     // private static final Logger logger =
     // LoggerFactory.getLogger(LectureService.class);
@@ -32,14 +30,11 @@ public class LectureService {
     }
 
     public Lecture createLecture(LectureRequest lectureRequest) throws IOException {
-        BidangKeahlian bidang = bidangKeahlianRepository.findById(lectureRequest.getBidangKeahlian_id());
-        ProgramKeahlian program = programKeahlianRepository.findById(lectureRequest.getProgramKeahlian_id());
-        KonsentrasiKeahlian konsentrasi = konsentrasiKeahlianRepository
-                .findById(lectureRequest.getKonsentrasiKeahlian_id());
+        StudyProgram studyProgram = studyProgramRepository.findById(lectureRequest.getIdStudyProgram());
         Religion religionResponse = religionRepository
                 .findById(lectureRequest.getReligion_id() != "" ? lectureRequest.getReligion_id() : "0");
         Lecture lecture = new Lecture();
-        if (religionResponse.getName() != null) {
+        if (religionResponse.getName() != null && studyProgram.getId() != null) {
             lecture.setNip(lectureRequest.getNip());
             lecture.setName(lectureRequest.getName());
             lecture.setPlace_born(lectureRequest.getPlace_born());
@@ -49,9 +44,7 @@ public class LectureService {
             lecture.setPhone(lectureRequest.getPhone());
             lecture.setAddress(lectureRequest.getAddress());
             lecture.setReligion(religionResponse);
-            lecture.setBidangKeahlian(bidang);
-            lecture.setProgramKeahlian(program);
-            lecture.setKonsentrasiKeahlian(konsentrasi);
+            lecture.setStudyProgram(studyProgram);
             return lectureRepository.save(lecture);
         } else {
             return null;
@@ -66,14 +59,11 @@ public class LectureService {
     }
 
     public Lecture updateLecture(String lectureId, LectureRequest lectureRequest) throws IOException {
-        BidangKeahlian bidang = bidangKeahlianRepository.findById(lectureRequest.getBidangKeahlian_id());
-        ProgramKeahlian program = programKeahlianRepository.findById(lectureRequest.getProgramKeahlian_id());
-        KonsentrasiKeahlian konsentrasi = konsentrasiKeahlianRepository
-                .findById(lectureRequest.getKonsentrasiKeahlian_id());
+        StudyProgram studyProgram = studyProgramRepository.findById(lectureRequest.getIdStudyProgram());
         Religion religionResponse = religionRepository
                 .findById(lectureRequest.getReligion_id() != "" ? lectureRequest.getReligion_id() : "0");
         Lecture lecture = new Lecture();
-        if (religionResponse.getName() != null) {
+        if (religionResponse.getName() != null && studyProgram.getId() != null) {
             lecture.setNip(lectureRequest.getNip());
             lecture.setName(lectureRequest.getName());
             lecture.setPlace_born(lectureRequest.getPlace_born());
@@ -83,9 +73,7 @@ public class LectureService {
             lecture.setPhone(lectureRequest.getPhone());
             lecture.setAddress(lectureRequest.getAddress());
             lecture.setReligion(religionResponse);
-            lecture.setBidangKeahlian(bidang);
-            lecture.setProgramKeahlian(program);
-            lecture.setKonsentrasiKeahlian(konsentrasi);
+            lecture.setStudyProgram(studyProgram);
             return lectureRepository.update(lectureId, lecture);
         } else {
             return null;

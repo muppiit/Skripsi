@@ -38,9 +38,9 @@ public class KelasController {
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String studyProgramId = currentUser.getSchoolId();
 
-        return kelasService.getAllKelas(page, size, schoolID);
+        return kelasService.getAllKelas(page, size, studyProgramId);
     }
 
     @PostMapping

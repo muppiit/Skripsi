@@ -1,0 +1,5 @@
+id,name,sks,semester,cpl_prodi,cpl_mk,subject_id,study_program_id
+RPS001,Algoritma Pemrograman,3,1,CP1,CP1-1,SUBJ001,PROG001
+RPS002,Struktur Data,3,2,CP2,CP2-1,SUBJ002,PROG001
+RPS003,Basis Data,4,3,CP3,CP3-1,SUBJ003,PROG001
+RPS004,Web Development,3,4,CP4,CP4-1,SUBJ004,PROG001

@@ -8,10 +8,11 @@ export function addBankSoal(data) {
   });
 }
 
-export function getBankSoal() {
+export function getBankSoal(params) {
   return request({
     url: "/bankSoal",
     method: "get",
+    params,
   });
 }
 

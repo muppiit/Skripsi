@@ -158,9 +158,21 @@ const Student = () => {
           <Column title="NISN" dataIndex="nisn" key="nisn" align="center" />
           <Column title="Nama" dataIndex="name" key="name" align="center" />
           <Column
-            title="Konsentrasi Keahlian"
-            dataIndex="konsentrasiKeahlian.konsentrasi"
-            key="konsentrasiKeahlian.konsentrasi"
+            title="Program Studi"
+            dataIndex="studyProgram.name"
+            key="studyProgram.name"
+            align="center"
+          />
+          <Column
+            title="Kelas"
+            dataIndex="kelas.namaKelas"
+            key="kelas.namaKelas"
+            align="center"
+          />
+          <Column
+            title="Angkatan"
+            dataIndex="angkatan"
+            key="angkatan"
             align="center"
           />
           <Column

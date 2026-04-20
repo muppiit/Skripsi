@@ -73,7 +73,7 @@ public class UjianAnalysisService {
         if (schoolID.equalsIgnoreCase("*")) {
             analysisResponse = ujianAnalysisRepository.findAll(size);
         } else {
-            analysisResponse = ujianAnalysisRepository.findBySchoolId(schoolID, size);
+            analysisResponse = ujianAnalysisRepository.findByStudyProgramId(schoolID, size);
         }
 
         return new PagedResponse<>(analysisResponse, analysisResponse.size(), "Successfully get data", 200);
@@ -94,7 +94,7 @@ public class UjianAnalysisService {
             analysisResponse = ujianAnalysisRepository.findByUjianId(ujianId, size);
         } else {
             logger.info("Getting analysis with school filter: {}", schoolID);
-            analysisResponse = ujianAnalysisRepository.findByUjianIdAndSchoolId(ujianId, schoolID, size);
+            analysisResponse = ujianAnalysisRepository.findByUjianIdAndStudyProgramId(ujianId, schoolID, size);
         }
 
         logger.info("Found {} analyses for ujian: {}", analysisResponse.size(), ujianId);
@@ -114,7 +114,8 @@ public class UjianAnalysisService {
         if (schoolID.equalsIgnoreCase("*")) {
             analysisResponse = ujianAnalysisRepository.findByAnalysisType(analysisType, size);
         } else {
-            analysisResponse = ujianAnalysisRepository.findByAnalysisTypeAndSchoolId(analysisType, schoolID, size);
+            analysisResponse = ujianAnalysisRepository.findByAnalysisTypeAndStudyProgramId(analysisType, schoolID,
+                    size);
         }
 
         return new PagedResponse<>(analysisResponse, analysisResponse.size(), "Successfully get data", 200);
@@ -160,7 +161,7 @@ public class UjianAnalysisService {
             if (ujianId != null && !ujianId.trim().isEmpty()) {
                 hasilUjianList = hasilUjianRepository.findByUjian(ujianId);
             } else {
-                hasilUjianList = hasilUjianRepository.findBySchool(schoolID); // Get results for school
+                hasilUjianList = hasilUjianRepository.findByStudyProgram(schoolID); // Get results for study program
             }
 
             // Filter by search if provided
@@ -1238,7 +1239,7 @@ public class UjianAnalysisService {
         Map<String, Object> stats = new HashMap<>();
 
         List<UjianAnalysis> allAnalyses = schoolId.equals("*") ? ujianAnalysisRepository.findAll(1000)
-                : ujianAnalysisRepository.findBySchoolId(schoolId, 1000);
+                : ujianAnalysisRepository.findByStudyProgramId(schoolId, 1000);
 
         stats.put("totalAnalyses", allAnalyses.size());
 

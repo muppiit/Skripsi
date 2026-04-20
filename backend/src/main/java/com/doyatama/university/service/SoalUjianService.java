@@ -5,7 +5,6 @@ import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.SoalUjian;
 import com.doyatama.university.model.Taksonomi;
 import com.doyatama.university.model.User;
-import com.doyatama.university.model.KonsentrasiKeahlianSekolah;
 import com.doyatama.university.model.School;
 import com.doyatama.university.payload.SoalUjianRequest;
 import com.doyatama.university.payload.DefaultResponse;
@@ -13,7 +12,6 @@ import com.doyatama.university.payload.PagedResponse;
 import com.doyatama.university.repository.SoalUjianRepository;
 import com.doyatama.university.repository.TaksonomiRepository;
 import com.doyatama.university.repository.UserRepository;
-import com.doyatama.university.repository.KonsentrasiKeahlianSekolahRepository;
 import com.doyatama.university.repository.SchoolRepository;
 import com.doyatama.university.util.AppConstants;
 import java.io.IOException;
@@ -29,18 +27,17 @@ public class SoalUjianService {
     private UserRepository userRepository = new UserRepository();
     private TaksonomiRepository taksonomiRepository = new TaksonomiRepository();
     private SchoolRepository schoolRepository = new SchoolRepository();
-    private KonsentrasiKeahlianSekolahRepository konsentrasiKeahlianSekolahRepository = new KonsentrasiKeahlianSekolahRepository();
 
-    public PagedResponse<SoalUjian> getAllSoalUjian(int page, int size, String userID, String schoolID)
+    public PagedResponse<SoalUjian> getAllSoalUjian(int page, int size, String userID, String studyProgramID)
             throws IOException {
         validatePageNumberAndSize(page, size);
 
         List<SoalUjian> soalUjianResponse;
 
-        if (schoolID.equalsIgnoreCase("*")) {
+        if (studyProgramID.equalsIgnoreCase("*")) {
             soalUjianResponse = soalUjianRepository.findAll(size);
         } else {
-            soalUjianResponse = soalUjianRepository.findSoalUjianBySekolah(schoolID, size);
+            soalUjianResponse = soalUjianRepository.findSoalUjianByStudyProgram(studyProgramID, size);
         }
 
         return new PagedResponse<>(soalUjianResponse, soalUjianResponse.size(), "Successfully get data", 200);
@@ -69,9 +66,13 @@ public class SoalUjianService {
         // Get related entities
         User userResponse = userRepository.findById(soalUjianRequest.getIdUser());
         Taksonomi taksonomiResponse = taksonomiRepository.findById(soalUjianRequest.getIdTaksonomi());
-        KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolahResponse = konsentrasiKeahlianSekolahRepository
-                .findById(soalUjianRequest.getIdKonsentrasiSekolah());
-        School schoolResponse = schoolRepository.findById(soalUjianRequest.getIdSchool());
+        String studyProgramId = soalUjianRequest.getIdStudyProgram() != null ? soalUjianRequest.getIdStudyProgram()
+                : soalUjianRequest.getIdSchool();
+        if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Study program wajib diisi");
+        }
+
+        School schoolResponse = schoolRepository.findById(studyProgramId);
 
         // Validate question type
         if (soalUjianRequest.getJenisSoal() == null) {
@@ -88,7 +89,6 @@ public class SoalUjianService {
         soal.setCreatedAt(soalUjianRequest.getCreatedAt() != null ? soalUjianRequest.getCreatedAt() : Instant.now());
         soal.setUser(userResponse);
         soal.setTaksonomi(taksonomiResponse);
-        soal.setKonsentrasiKeahlianSekolah(konsentrasiKeahlianSekolahResponse);
         soal.setSchool(schoolResponse);
 
         // Handle different question types
@@ -130,32 +130,34 @@ public class SoalUjianService {
         System.out.println("Validating PG question...");
         System.out.println("Opsi received: " + request.getOpsi());
         System.out.println("JawabanBenar received: " + request.getJawabanBenar());
-        
+
         if (request.getOpsi() == null || request.getOpsi().isEmpty()) {
             throw new IllegalArgumentException("Opsi wajib diisi untuk soal Pilihan Ganda (PG)");
         }
-        
+
         if (request.getOpsi().size() < 2) {
             throw new IllegalArgumentException("Soal PG harus memiliki minimal 2 opsi jawaban");
         }
-        
+
         if (request.getJawabanBenar() == null || request.getJawabanBenar().isEmpty()) {
             throw new IllegalArgumentException("Jawaban benar wajib diisi untuk PG");
         }
-        
+
         if (request.getJawabanBenar().size() != 1) {
-            throw new IllegalArgumentException("Soal PG harus memiliki tepat satu jawaban benar. Ditemukan: " + request.getJawabanBenar().size() + " jawaban");
+            throw new IllegalArgumentException("Soal PG harus memiliki tepat satu jawaban benar. Ditemukan: "
+                    + request.getJawabanBenar().size() + " jawaban");
         }
-        
+
         String jawabanBenar = request.getJawabanBenar().get(0);
         if (jawabanBenar == null || jawabanBenar.trim().isEmpty()) {
             throw new IllegalArgumentException("Jawaban benar tidak boleh kosong");
         }
-        
+
         if (!request.getOpsi().containsKey(jawabanBenar)) {
-            throw new IllegalArgumentException("Jawaban benar '" + jawabanBenar + "' harus ada dalam opsi. Opsi yang tersedia: " + request.getOpsi().keySet());
+            throw new IllegalArgumentException("Jawaban benar '" + jawabanBenar
+                    + "' harus ada dalam opsi. Opsi yang tersedia: " + request.getOpsi().keySet());
         }
-        
+
         // Validate that all option keys are not empty
         for (Map.Entry<String, String> entry : request.getOpsi().entrySet()) {
             if (entry.getKey() == null || entry.getKey().trim().isEmpty()) {
@@ -165,7 +167,7 @@ public class SoalUjianService {
                 throw new IllegalArgumentException("Nilai opsi '" + entry.getKey() + "' tidak boleh kosong");
             }
         }
-        
+
         System.out.println("PG validation passed successfully");
     }
 
@@ -289,7 +291,8 @@ public class SoalUjianService {
         if (soalUjianRequest.getIdUser() != null && !soalUjianRequest.getIdUser().trim().isEmpty()) {
             userResponse = userRepository.findById(soalUjianRequest.getIdUser());
             if (userResponse == null || !userResponse.isValid()) {
-                throw new IllegalArgumentException("User dengan ID " + soalUjianRequest.getIdUser() + " tidak ditemukan");
+                throw new IllegalArgumentException(
+                        "User dengan ID " + soalUjianRequest.getIdUser() + " tidak ditemukan");
             }
         }
 
@@ -297,24 +300,21 @@ public class SoalUjianService {
         if (soalUjianRequest.getIdTaksonomi() != null && !soalUjianRequest.getIdTaksonomi().trim().isEmpty()) {
             taksonomiResponse = taksonomiRepository.findById(soalUjianRequest.getIdTaksonomi());
             if (taksonomiResponse == null || !taksonomiResponse.isValid()) {
-                throw new IllegalArgumentException("Taksonomi dengan ID " + soalUjianRequest.getIdTaksonomi() + " tidak ditemukan");
-            }
-        }
-
-        KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolahResponse = null;
-        if (soalUjianRequest.getIdKonsentrasiSekolah() != null && !soalUjianRequest.getIdKonsentrasiSekolah().trim().isEmpty()) {
-            konsentrasiKeahlianSekolahResponse = konsentrasiKeahlianSekolahRepository
-                    .findById(soalUjianRequest.getIdKonsentrasiSekolah());
-            if (konsentrasiKeahlianSekolahResponse == null || !konsentrasiKeahlianSekolahResponse.isValid()) {
-                throw new IllegalArgumentException("Konsentrasi Keahlian Sekolah dengan ID " + soalUjianRequest.getIdKonsentrasiSekolah() + " tidak ditemukan");
+                throw new IllegalArgumentException(
+                        "Taksonomi dengan ID " + soalUjianRequest.getIdTaksonomi() + " tidak ditemukan");
             }
         }
 
         School schoolResponse = null;
-        if (soalUjianRequest.getIdSchool() != null && !soalUjianRequest.getIdSchool().trim().isEmpty()) {
-            schoolResponse = schoolRepository.findById(soalUjianRequest.getIdSchool());
+        String studyProgramId = soalUjianRequest.getIdStudyProgram() != null ? soalUjianRequest.getIdStudyProgram()
+                : soalUjianRequest.getIdSchool();
+        if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Study program wajib diisi");
+        }
+        if (studyProgramId != null && !studyProgramId.trim().isEmpty()) {
+            schoolResponse = schoolRepository.findById(studyProgramId);
             if (schoolResponse == null || !schoolResponse.isValid()) {
-                throw new IllegalArgumentException("School dengan ID " + soalUjianRequest.getIdSchool() + " tidak ditemukan");
+                throw new IllegalArgumentException("Study program dengan ID " + studyProgramId + " tidak ditemukan");
             }
         }
 
@@ -328,7 +328,6 @@ public class SoalUjianService {
         updatedSoal.setCreatedAt(existingSoal.getCreatedAt()); // Keep original creation date
         updatedSoal.setUser(userResponse);
         updatedSoal.setTaksonomi(taksonomiResponse);
-        updatedSoal.setKonsentrasiKeahlianSekolah(konsentrasiKeahlianSekolahResponse);
         updatedSoal.setSchool(schoolResponse);
 
         // Handle different question types
@@ -342,7 +341,8 @@ public class SoalUjianService {
                 // Clear fields not used by PG
                 updatedSoal.setPasangan(null);
                 updatedSoal.setToleransiTypo(null);
-                System.out.println("PG question processed successfully. Opsi: " + soalUjianRequest.getOpsi() + ", Jawaban: " + soalUjianRequest.getJawabanBenar());
+                System.out.println("PG question processed successfully. Opsi: " + soalUjianRequest.getOpsi()
+                        + ", Jawaban: " + soalUjianRequest.getJawabanBenar());
                 break;
 
             case "MULTI":
@@ -376,11 +376,12 @@ public class SoalUjianService {
                 break;
 
             default:
-                throw new IllegalArgumentException("Jenis soal tidak dikenali: '" + soalUjianRequest.getJenisSoal() + "'. Jenis soal yang valid: PG, MULTI, COCOK, ISIAN");
+                throw new IllegalArgumentException("Jenis soal tidak dikenali: '" + soalUjianRequest.getJenisSoal()
+                        + "'. Jenis soal yang valid: PG, MULTI, COCOK, ISIAN");
         }
 
         System.out.println("About to update soal with cascade. ID: " + soalUjianId);
-        
+
         try {
             // Use updateWithCascade to automatically update corresponding BankSoal entries
             SoalUjian result = soalUjianRepository.updateWithCascade(soalUjianId, updatedSoal);

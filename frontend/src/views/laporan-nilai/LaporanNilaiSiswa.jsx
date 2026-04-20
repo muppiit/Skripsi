@@ -74,11 +74,10 @@ const LaporanNilaiSiswa = () => {
       // Untuk setiap ujian, ambil hasil ujiannya
       for (const ujian of ujianList) {
         try {
-          const hasilResponse = await getHasilByUjian(
-            ujian.idUjian,
-            true,
-            1000
-          );
+          const hasilResponse = await getHasilByUjian(ujian.idUjian, {
+            includeAnalytics: true,
+            size: 1000,
+          });
           if (hasilResponse.data.statusCode === 200) {
             const hasilData = hasilResponse.data.content || [];
 
@@ -297,8 +296,8 @@ const LaporanNilaiSiswa = () => {
               (record.persentase || 0) >= 75
                 ? "success"
                 : (record.persentase || 0) >= 60
-                ? "normal"
-                : "exception"
+                  ? "normal"
+                  : "exception"
             }
             showInfo={false}
           />
@@ -498,7 +497,7 @@ const LaporanNilaiSiswa = () => {
             icon={<FileExcelOutlined />}
             loading={
               downloadLoading[
-                `${selectedStudent?.idPeserta}-${selectedStudent?.idUjian}`
+              `${selectedStudent?.idPeserta}-${selectedStudent?.idUjian}`
               ]
             }
             onClick={() => {
@@ -662,8 +661,8 @@ const LaporanNilaiSiswa = () => {
                               violation.severity === "HIGH"
                                 ? "red"
                                 : violation.severity === "MEDIUM"
-                                ? "orange"
-                                : "blue"
+                                  ? "orange"
+                                  : "blue"
                             }
                           >
                             {violation.severity}

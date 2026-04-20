@@ -116,7 +116,10 @@ const Ujian = () => {
       // Fetch participant counts in parallel for active ujians only
       const promises = activeUjians.map(async (ujian) => {
         try {
-          const result = await getHasilByUjian(ujian.idUjian, true, 1000); // Get all results
+          const result = await getHasilByUjian(ujian.idUjian, {
+            includeAnalytics: true,
+            size: 1000,
+          }); // Get all results
           const hasilData = result.data?.content || [];
 
           counts[ujian.idUjian] = {
@@ -983,8 +986,8 @@ const Ujian = () => {
             <Descriptions.Item label="Waktu Selesai">
               {currentRowData.waktuSelesaiOtomatis
                 ? moment(currentRowData.waktuSelesaiOtomatis).format(
-                    "DD MMMM YYYY, HH:mm"
-                  )
+                  "DD MMMM YYYY, HH:mm"
+                )
                 : "Tidak ditentukan"}
             </Descriptions.Item>
             <Descriptions.Item label="Durasi">

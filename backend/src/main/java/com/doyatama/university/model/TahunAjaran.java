@@ -3,15 +3,15 @@ package com.doyatama.university.model;
 public class TahunAjaran {
     private String idTahun;
     private String tahunAjaran;
-    private School school;
+    private StudyProgram study_program;
 
     public TahunAjaran() {
     }
 
-    public TahunAjaran(String idTahun, String tahunAjaran, School school) {
+    public TahunAjaran(String idTahun, String tahunAjaran, StudyProgram study_program) {
         this.idTahun = idTahun;
         this.tahunAjaran = tahunAjaran;
-        this.school = school;
+        this.study_program = study_program;
     }
 
     public String getIdTahun() {
@@ -30,16 +30,16 @@ public class TahunAjaran {
         this.tahunAjaran = tahunAjaran;
     }
 
-    public School getSchool() {
-        return school;
+    public StudyProgram getStudyProgram() {
+        return study_program;
     }
 
-    public void setSchool(School school) {
-        this.school = school;
+    public void setStudyProgram(StudyProgram study_program) {
+        this.study_program = study_program;
     }
 
     public boolean isValid() {
-        return this.idTahun != null && this.tahunAjaran != null && this.school != null;
+        return this.idTahun != null && this.tahunAjaran != null && this.study_program != null;
     }
 
     public void set(String fieldName, String value) {

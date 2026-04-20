@@ -31,7 +31,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
         return client.showListTable(tableUserFind.toString(), columnMapping, User.class, size);
     }
@@ -48,7 +48,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
 
         // Get the list of all users
@@ -90,7 +90,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
 
         return client.getDataByColumn(tableUsers.toString(), columnMapping, "main", "username", username, User.class);
@@ -108,7 +108,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
 
         return client.showDataTable(tableUsers.toString(), columnMapping, id, User.class);
@@ -126,7 +126,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
 
         List<User> users = client.getDataListByColumn(tableUsers.toString(), columnMapping, "school", "idSchool",
@@ -147,7 +147,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
 
         User user = client.getDataByColumn(tableUsers.toString(), columnMapping, "main", "username", username,
@@ -171,7 +171,7 @@ public class UserRepository {
         columnMapping.put("username", "username");
         columnMapping.put("email", "email");
         columnMapping.put("password", "password");
-        columnMapping.put("school", "school");
+        columnMapping.put("school", "study_program");
         columnMapping.put("roles", "roles");
 
         User user = client.getDataByColumn(tableUsers.toString(), columnMapping, "main", "email", email, User.class);
@@ -194,10 +194,10 @@ public class UserRepository {
         client.insertRecord(tableUsers, rowKey, "main", "password", user.getPassword());
         client.insertRecord(tableUsers, rowKey, "main", "roles", user.getRoles());
 
-        // Sekolah
+        // Study program context
         if (user.getSchool() != null) {
-            client.insertRecord(tableUsers, rowKey, "school", "idSchool", user.getSchool().getIdSchool());
-            client.insertRecord(tableUsers, rowKey, "school", "nameSchool", user.getSchool().getNameSchool());
+            client.insertRecord(tableUsers, rowKey, "study_program", "idSchool", user.getSchool().getIdSchool());
+            client.insertRecord(tableUsers, rowKey, "study_program", "nameSchool", user.getSchool().getNameSchool());
         }
 
         client.insertRecord(tableUsers, rowKey, "main", "created_at", user.getCreatedAt().toString());
@@ -230,10 +230,10 @@ public class UserRepository {
             client.insertRecord(tableUsers, userId, "main", "roles", user.getRoles());
         }
 
-        // Sekolah
+        // Study program context
         if (user.getSchool() != null) {
-            client.insertRecord(tableUsers, userId, "school", "idSchool", user.getSchool().getIdSchool());
-            client.insertRecord(tableUsers, userId, "school", "nameSchool", user.getSchool().getNameSchool());
+            client.insertRecord(tableUsers, userId, "study_program", "idSchool", user.getSchool().getIdSchool());
+            client.insertRecord(tableUsers, userId, "study_program", "nameSchool", user.getSchool().getNameSchool());
         }
 
         return user;

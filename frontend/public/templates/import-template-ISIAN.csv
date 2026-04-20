@@ -1,2 +1,2 @@
-﻿namaUjian,pertanyaan,bobot,jawabanBenar,toleransiTypo,idSchool,tahunAjaran,namaSemester,namaKelas,namaMapel,namaElemen,namaAcp,namaAtp,namaKonsentrasiSekolah,namaTaksonomi
-UTS Geografi,Ibu kota negara Indonesia adalah...,5,Jakarta,1,RWK001,2025/2026,Ganjil,X,Geografi,Wilayah Indonesia,Pengetahuan Ibu Kota,Identifikasi Wilayah,Desain Komunikasi Visual,C1
+﻿namaUjian,pertanyaan,bobot,jawabanBenar,toleransiTypo,idStudyProgram,tahunAjaran,namaSemester,subject,rps_detail,idSubject,idRpsDetail,namaTaksonomi
+UTS Jaringan Komputer,Protokol yang digunakan untuk mengakses halaman web secara aman adalah...,5,HTTPS,1,RWK001,2025/2026,Ganjil,Jaringan Komputer,CP MK 4,SUB004,RPD004,C1

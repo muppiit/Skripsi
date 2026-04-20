@@ -2,9 +2,7 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect } from "react";
 import { Form, Input, Modal, DatePicker, Select } from "antd";
-import { getBidangKeahlian } from "@/api/bidangKeahlian";
-import { getProgramByBidang } from "@/api/programKeahlian";
-import { getKonsentrasiByProgram } from "@/api/konsentrasiKeahlian";
+import { getKelas } from "@/api/kelas";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -17,65 +15,34 @@ const AddStudentForm = ({
   religion,
 }) => {
   const [form] = Form.useForm();
-  const [bidangList, setBidangList] = useState([]);
-  const [filteredProgramList, setFilteredProgramList] = useState([]);
-  const [filteredKonsentrasiList, setFilteredKonsentrasiList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [filteredKelasList, setFilteredKelasList] = useState([]);
 
-  const fetchBidangKeahlianList = async () => {
+  const fetchKelasList = async () => {
     try {
-      const result = await getBidangKeahlian();
+      const result = await getKelas();
       const { content, statusCode } = result.data;
       if (statusCode === 200) {
-        const bidangList = content.map((bidang) => ({
-          id: bidang.id,
-          bidang: bidang.bidang,
-        }));
-        setBidangList(bidangList);
+        setKelasList(content || []);
       }
     } catch (error) {
-      console.error("Error fetching bidang data: ", error);
+      console.error("Error fetching kelas data: ", error);
     }
   };
 
-  const handleBidangChange = async (value) => {
-    try {
-      const result = await getProgramByBidang(value);
-      const { content, statusCode } = result.data;
-
-      if (statusCode === 200) {
-        setFilteredProgramList(content);
-        setFilteredKonsentrasiList([]);
-      } else {
-        setFilteredProgramList([]);
-        setFilteredKonsentrasiList([]);
-      }
-
-      form.setFieldsValue({
-        programKeahlian_id: undefined,
-        konsentrasiKeahlian_id: undefined,
-      });
-    } catch (error) {
-      console.error("Error fetching program data: ", error);
-    }
+  const handleStudyProgramChange = (studyProgramId) => {
+    const nextKelas = (kelasList || []).filter(
+      (kelas) => kelas?.studyProgram?.id === studyProgramId
+    );
+    setFilteredKelasList(nextKelas);
+    form.setFieldsValue({ idKelas: undefined, angkatan: undefined });
   };
 
-  const handleProgramChange = async (value) => {
-    try {
-      const result = await getKonsentrasiByProgram(value);
-      const { content, statusCode } = result.data;
-
-      if (statusCode === 200) {
-        setFilteredKonsentrasiList(content);
-      } else {
-        setFilteredKonsentrasiList([]);
-      }
-
-      form.setFieldsValue({
-        konsentrasiKeahlian_id: undefined,
-      });
-    } catch (error) {
-      console.error("Error fetching konsentrasi data: ", error);
-    }
+  const handleKelasChange = (kelasId) => {
+    const selectedKelas = (filteredKelasList || []).find(
+      (kelas) => kelas.idKelas === kelasId
+    );
+    form.setFieldsValue({ angkatan: selectedKelas?.angkatan || undefined });
   };
 
   const handleSubmit = () => {
@@ -90,7 +57,7 @@ const AddStudentForm = ({
   };
 
   useEffect(() => {
-    fetchBidangKeahlianList();
+    fetchKelasList();
   }, []);
 
   const formItemLayout = {
@@ -197,57 +164,42 @@ const AddStudentForm = ({
         </Form.Item>
 
         <Form.Item
-          label="Bidang Keahlian:"
-          name="bidangKeahlian_id"
-          rules={[
-            { required: true, message: "Silahkan isi konsentrasi keahlian" },
-          ]}
+          label="Program Studi:"
+          name="idStudyProgram"
+          rules={[{ required: true, message: "Silahkan pilih program studi" }]}
         >
           <Select
-            placeholder="Pilih Bidang Keahlian"
-            onChange={handleBidangChange}
+            placeholder="Pilih Program Studi"
+            onChange={handleStudyProgramChange}
           >
-            {bidangList.map((bidang) => (
-              <Option key={bidang.id} value={bidang.id}>
-                {bidang.bidang}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label="Program Keahlian:"
-          name="programKeahlian_id"
-          rules={[
-            { required: true, message: "Silahkan isi konsentrasi keahlian" },
-          ]}
-        >
-          <Select
-            placeholder="Pilih Program Keahlian"
-            onChange={handleProgramChange}
-          >
-            {filteredProgramList.map((program) => (
+            {(studyProgram || []).map((program) => (
               <Option key={program.id} value={program.id}>
-                {program.program}
+                {program.name}
               </Option>
             ))}
           </Select>
         </Form.Item>
 
         <Form.Item
-          label="Konsentrasi Keahlian:"
-          name="konsentrasiKeahlian_id"
-          rules={[
-            { required: true, message: "Silahkan isi konsentrasi keahlian" },
-          ]}
+          label="Kelas:"
+          name="idKelas"
+          rules={[{ required: true, message: "Silahkan pilih kelas" }]}
         >
-          <Select placeholder="Pilih Konsentrasi Keahlian">
-            {filteredKonsentrasiList.map((konsentrasi) => (
-              <Option key={konsentrasi.id} value={konsentrasi.id}>
-                {konsentrasi.konsentrasi}
+          <Select placeholder="Pilih Kelas" onChange={handleKelasChange}>
+            {(filteredKelasList || []).map((kelas) => (
+              <Option key={kelas.idKelas} value={kelas.idKelas}>
+                {kelas.namaKelas}
               </Option>
             ))}
           </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Angkatan:"
+          name="angkatan"
+          rules={[{ required: true, message: "Silahkan pilih kelas terlebih dahulu" }]}
+        >
+          <Input placeholder="Angkatan" disabled />
         </Form.Item>
       </Form>
     </Modal>

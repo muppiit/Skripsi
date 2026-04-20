@@ -70,15 +70,14 @@ const BankSoal = () => {
   const [collapsePageSize] = useState(5); // 5 collapse panels per page
   const [mappingData, setMappingData] = useState({
     semesterList: [],
-    mapelList: [],
-    tahunAjaranList: [],
-    elemenList: [],
     kelasList: [],
-    acpList: [],
-    atpList: [],
-    konsentrasiSekolahList: [],
+    tahunAjaranList: [],
+    subjectList: [],
+    rpsDetailList: [],
     taksonomiList: [],
   });
+  const [selectedSemesterId, setSelectedSemesterId] = useState();
+  const [selectedKelasId, setSelectedKelasId] = useState();
 
   // Fungsi Helper Table Search
   const { getColumnSearchProps } = useTableSearch();
@@ -104,37 +103,26 @@ const BankSoal = () => {
     try {
       const [
         semesterRes,
-        mapelRes,
-        tahunRes,
-        elemenRes,
         kelasRes,
-        acpRes,
-        atpRes,
-        konsentrasiRes,
+        tahunRes,
+        subjectRes,
+        rpsDetailRes,
         taksonomiRes,
       ] = await Promise.all([
         import("@/api/semester").then((m) => m.getSemester()),
-        import("@/api/mapel").then((m) => m.getMapel()),
-        import("@/api/tahun-ajaran").then((m) => m.getTahunAjaran()),
-        import("@/api/elemen").then((m) => m.getElemen()),
         import("@/api/kelas").then((m) => m.getKelas()),
-        import("@/api/acp").then((m) => m.getACP()),
-        import("@/api/atp").then((m) => m.getATP()),
-        import("@/api/konsentrasiKeahlianSekolah").then((m) =>
-          m.getKonsentrasiSekolah()
-        ),
+        import("@/api/tahun-ajaran").then((m) => m.getTahunAjaran()),
+        import("@/api/subject").then((m) => m.getSubjects()),
+        import("@/api/rpsDetail").then((m) => m.getRPSDetail()),
         import("@/api/taksonomi").then((m) => m.getTaksonomi()),
       ]);
 
       setMappingData({
         semesterList: semesterRes.data.content || [],
-        mapelList: mapelRes.data.content || [],
-        tahunAjaranList: tahunRes.data.content || [],
-        elemenList: elemenRes.data.content || [],
         kelasList: kelasRes.data.content || [],
-        acpList: acpRes.data.content || [],
-        atpList: atpRes.data.content || [],
-        konsentrasiSekolahList: konsentrasiRes.data.content || [],
+        tahunAjaranList: tahunRes.data.content || [],
+        subjectList: subjectRes.data.content || [],
+        rpsDetailList: rpsDetailRes.data.content || [],
         taksonomiList: taksonomiRes.data.content || [],
       });
     } catch (error) {
@@ -159,7 +147,10 @@ const BankSoal = () => {
   const fetchBankSoals = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getBankSoal();
+      const result = await getBankSoal({
+        semesterId: selectedSemesterId,
+        kelasId: selectedKelasId,
+      });
       const { content, statusCode } = result.data;
       if (statusCode === 200) {
         setBankSoals(content);
@@ -174,7 +165,7 @@ const BankSoal = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedSemesterId, selectedKelasId]);
 
   useEffect(() => {
     fetchBankSoals();
@@ -363,25 +354,12 @@ const BankSoal = () => {
 
   const mapSemesterNameToId = (name) =>
     mapNameToId(name, mappingData.semesterList, "namaSemester", "idSemester");
-  const mapMapelNameToId = (name) =>
-    mapNameToId(name, mappingData.mapelList, "name", "idMapel");
+  const mapSubjectNameToId = (name) =>
+    mapNameToId(name, mappingData.subjectList, "name", "id");
   const mapTahunAjaranToId = (tahun) =>
     mapNameToId(tahun, mappingData.tahunAjaranList, "tahunAjaran", "idTahun");
-  const mapElemenNameToId = (name) =>
-    mapNameToId(name, mappingData.elemenList, "namaElemen", "idElemen");
-  const mapKelasNameToId = (name) =>
-    mapNameToId(name, mappingData.kelasList, "namaKelas", "idKelas");
-  const mapAcpNameToId = (name) =>
-    mapNameToId(name, mappingData.acpList, "namaAcp", "idAcp");
-  const mapAtpNameToId = (name) =>
-    mapNameToId(name, mappingData.atpList, "namaAtp", "idAtp");
-  const mapKonsentrasiNameToId = (name) =>
-    mapNameToId(
-      name,
-      mappingData.konsentrasiSekolahList,
-      "namaKonsentrasiSekolah",
-      "idKonsentrasiSekolah"
-    );
+  const mapRpsDetailNameToId = (name) =>
+    mapNameToId(name, mappingData.rpsDetailList, "sub_cp_mk", "id");
   const mapTaksonomiNameToId = (name) =>
     mapNameToId(
       name,
@@ -420,13 +398,11 @@ const BankSoal = () => {
             // Map names to IDs using the mapping functions
             const tahunAjaranId = mapTahunAjaranToId(row[idx("tahunAjaran")]);
             const semesterId = mapSemesterNameToId(row[idx("namaSemester")]);
-            const kelasId = mapKelasNameToId(row[idx("namaKelas")]);
-            const mapelId = mapMapelNameToId(row[idx("namaMapel")]);
-            const elemenId = mapElemenNameToId(row[idx("namaElemen")]);
-            const acpId = mapAcpNameToId(row[idx("namaAcp")]);
-            const atpId = mapAtpNameToId(row[idx("namaAtp")]);
-            const konsentrasiId = mapKonsentrasiNameToId(
-              row[idx("namaKonsentrasiSekolah")]
+            const subjectId = mapSubjectNameToId(
+              row[idx("subject")] || row[idx("namaSubject")]
+            );
+            const rpsDetailId = mapRpsDetailNameToId(
+              row[idx("rps_detail")] || row[idx("rpsDetail")] || row[idx("sub_cp_mk")]
             );
             const taksonomiId = mapTaksonomiNameToId(row[idx("namaTaksonomi")]);
 
@@ -444,16 +420,12 @@ const BankSoal = () => {
             if (
               !tahunAjaranId ||
               !semesterId ||
-              !kelasId ||
-              !mapelId ||
-              !elemenId ||
-              !acpId ||
-              !atpId ||
-              !konsentrasiId ||
+              !subjectId ||
+              !rpsDetailId ||
               !taksonomiId
             ) {
               throw new Error(
-                "Gagal mapping nama ke ID. Periksa data: tahunAjaran, namaSemester, namaKelas, namaMapel, namaElemen, namaAcp, namaAtp, namaKonsentrasiSekolah, namaTaksonomi"
+                "Gagal mapping nama ke ID. Periksa data: tahunAjaran, namaSemester, subject, rps_detail, namaTaksonomi"
               );
             }
 
@@ -462,15 +434,12 @@ const BankSoal = () => {
               pertanyaan: cleanText(row[idx("pertanyaan")]),
               bobot: row[idx("bobot")].toString(),
               jenisSoal: questionType,
-              idSchool: row[idx("idSchool")] || "RWK001", // Read from Excel but default to RWK001
+              idStudyProgram:
+                row[idx("idStudyProgram")] || row[idx("idSchool")] || user?.school_id || null,
               idTahun: tahunAjaranId,
               idSemester: semesterId,
-              idKelas: kelasId,
-              idMapel: mapelId,
-              idElemen: elemenId,
-              idAcp: acpId,
-              idAtp: atpId,
-              idKonsentrasiSekolah: konsentrasiId,
+              idSubject: subjectId,
+              idRpsDetail: rpsDetailId,
               idTaksonomi: taksonomiId, // Map from namaTaksonomi
             };
 
@@ -624,8 +593,8 @@ const BankSoal = () => {
               jenisSoal: questionType,
               idUser: user?.id, // Gunakan ID user yang login
               idTaksonomi: taksonomiId,
-              idKonsentrasiSekolah: konsentrasiId,
-              idSchool: row[idx("idSchool")] || "RWK001",
+              idStudyProgram:
+                row[idx("idStudyProgram")] || row[idx("idSchool")] || user?.school_id || null,
               jawabanBenar: bankSoalData.jawabanBenar || [],
             };
 
@@ -653,11 +622,9 @@ const BankSoal = () => {
             );
             console.log("  idUser:", soalUjianData.idUser);
             console.log("  idTaksonomi:", soalUjianData.idTaksonomi);
-            console.log(
-              "  idKonsentrasiSekolah:",
-              soalUjianData.idKonsentrasiSekolah
-            );
-            console.log("  idSchool:", soalUjianData.idSchool);
+            console.log("  idSubject:", soalUjianData.idSubject);
+            console.log("  idRpsDetail:", soalUjianData.idRpsDetail);
+            console.log("  idStudyProgram:", soalUjianData.idStudyProgram);
             console.log("  jawabanBenar:", soalUjianData.jawabanBenar);
             if (soalUjianData.opsi) console.log("  opsi:", soalUjianData.opsi);
             if (soalUjianData.pasangan)
@@ -749,10 +716,9 @@ const BankSoal = () => {
               console.error("Error Message:", soalUjianResult.data?.message);
               console.error("Error Details:", soalUjianResult.data?.errors);
               throw new Error(
-                `Gagal menyimpan ke soal ujian: ${
-                  soalUjianResult.data?.message ||
-                  soalUjianResult.data?.error ||
-                  "Unknown error"
+                `Gagal menyimpan ke soal ujian: ${soalUjianResult.data?.message ||
+                soalUjianResult.data?.error ||
+                "Unknown error"
                 }`
               );
             }
@@ -839,8 +805,8 @@ const BankSoal = () => {
         (item) =>
           item.namaUjian?.toLowerCase().includes(query) ||
           item.pertanyaan?.toLowerCase().includes(query) ||
-          item.mapel?.name?.toLowerCase().includes(query) ||
-          item.atp?.namaAtp?.toLowerCase().includes(query) ||
+          item.subject?.name?.toLowerCase().includes(query) ||
+          item.rps_detail?.sub_cp_mk?.toLowerCase().includes(query) ||
           item.jenisSoal?.toLowerCase().includes(query)
       );
 
@@ -910,10 +876,10 @@ const BankSoal = () => {
               <strong>Bobot:</strong> {item.bobot}
             </div>
             <div>
-              <strong>Mata Pelajaran:</strong> {item.mapel?.name || "N/A"}
+              <strong>Subject:</strong> {item.subject?.name || "N/A"}
             </div>
             <div>
-              <strong>ATP:</strong> {item.atp?.namaAtp || "N/A"}
+              <strong>RPS Detail:</strong> {item.rps_detail?.sub_cp_mk || "N/A"}
             </div>
           </div>
         }
@@ -990,34 +956,28 @@ const BankSoal = () => {
       width: 80,
     },
     {
-      title: "Kelas",
-      dataIndex: ["kelas", "namaKelas"],
-      key: "namaKelas",
+      title: "Subject",
+      dataIndex: ["subject", "name"],
+      key: "subjectName",
       align: "center",
       width: 150,
       render: (text) => text || "N/A",
     },
     {
-      title: "Mata Pelajaran",
-      dataIndex: ["mapel", "name"],
-      key: "mapelName",
+      title: "RPS Detail",
+      dataIndex: ["rps_detail", "sub_cp_mk"],
+      key: "rpsDetailName",
       align: "center",
       width: 150,
       render: (text) => text || "N/A",
     },
     {
-      title: "Konsentrasi Keahlian",
-      dataIndex: ["konsentrasiKeahlianSekolah", "namaKonsentrasiSekolah"],
-      key: "namaKonsentrasiSekolah",
+      title: "Tahun Ajaran",
+      dataIndex: ["tahunAjaran", "tahunAjaran"],
+      key: "tahunAjaran",
       align: "center",
       width: 200,
-      render: (text) => (
-        <Tooltip title={text}>
-          <span>
-            {text?.length > 20 ? `${text.substring(0, 20)}...` : text || "N/A"}
-          </span>
-        </Tooltip>
-      ),
+      render: (text) => text || "N/A",
     },
     {
       title: "Operasi",
@@ -1235,15 +1195,39 @@ const BankSoal = () => {
 
             {/* Kolom Pencarian */}
             <Col>
-              <Input.Search
-                key="search"
-                placeholder="Cari ujian, pertanyaan, mapel..."
-                allowClear
-                enterButton
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: 350 }}
-              />
+              <Space wrap>
+                <Select
+                  placeholder="Filter Semester"
+                  allowClear
+                  value={selectedSemesterId}
+                  onChange={(value) => setSelectedSemesterId(value)}
+                  style={{ width: 200 }}
+                  options={(mappingData.semesterList || []).map((item) => ({
+                    label: item.namaSemester,
+                    value: item.idSemester,
+                  }))}
+                />
+                <Select
+                  placeholder="Filter Kelas"
+                  allowClear
+                  value={selectedKelasId}
+                  onChange={(value) => setSelectedKelasId(value)}
+                  style={{ width: 220 }}
+                  options={(mappingData.kelasList || []).map((item) => ({
+                    label: item.namaKelas,
+                    value: item.idKelas,
+                  }))}
+                />
+                <Input.Search
+                  key="search"
+                  placeholder="Cari ujian, pertanyaan, subject..."
+                  allowClear
+                  enterButton
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width: 350 }}
+                />
+              </Space>
             </Col>
           </Row>
 
@@ -1298,8 +1282,10 @@ const BankSoal = () => {
                       <strong>Bobot:</strong> {viewModalData.bobot}
                     </Col>
                     <Col span={12}>
-                      <strong>Sekolah:</strong>{" "}
-                      {viewModalData.school?.nameSchool || "N/A"}
+                      <strong>Study Program:</strong>{" "}
+                      {viewModalData.study_program?.name ||
+                        viewModalData.school?.nameSchool ||
+                        "N/A"}
                     </Col>
                   </Row>
                 </Card>
@@ -1327,29 +1313,16 @@ const BankSoal = () => {
                       {viewModalData.semester?.namaSemester || "N/A"}
                     </Col>
                     <Col span={12}>
-                      <strong>Kelas:</strong>{" "}
-                      {viewModalData.kelas?.namaKelas || "N/A"}
+                      <strong>Subject:</strong>{" "}
+                      {viewModalData.subject?.name || "N/A"}
                     </Col>
                     <Col span={12}>
-                      <strong>Mata Pelajaran:</strong>{" "}
-                      {viewModalData.mapel?.name || "N/A"}
+                      <strong>RPS Detail:</strong>{" "}
+                      {viewModalData.rps_detail?.sub_cp_mk || "N/A"}
                     </Col>
                     <Col span={12}>
-                      <strong>Elemen:</strong>{" "}
-                      {viewModalData.elemen?.namaElemen || "N/A"}
-                    </Col>
-                    <Col span={12}>
-                      <strong>Konsentrasi Keahlian:</strong>{" "}
-                      {viewModalData.konsentrasiKeahlianSekolah
-                        ?.namaKonsentrasiSekolah || "N/A"}
-                    </Col>
-                    <Col span={12}>
-                      <strong>ACP:</strong>{" "}
-                      {viewModalData.acp?.namaAcp || "N/A"}
-                    </Col>
-                    <Col span={12}>
-                      <strong>ATP:</strong>{" "}
-                      {viewModalData.atp?.namaAtp || "N/A"}
+                      <strong>Taksonomi:</strong>{" "}
+                      {viewModalData.taksonomi?.namaTaksonomi || "N/A"}
                     </Col>
                     <Col span={12}>
                       <strong>Taksonomi:</strong>{" "}
@@ -1447,8 +1420,8 @@ const BankSoal = () => {
                         <strong>Tanggal Dibuat:</strong>{" "}
                         {viewModalData.soalUjian.createdAt
                           ? new Date(
-                              viewModalData.soalUjian.createdAt
-                            ).toLocaleDateString("id-ID")
+                            viewModalData.soalUjian.createdAt
+                          ).toLocaleDateString("id-ID")
                           : "N/A"}
                       </Col>
                     </Row>
@@ -1562,10 +1535,10 @@ const BankSoal = () => {
               {selectedQuestionType === "PG"
                 ? "Pilihan Ganda"
                 : selectedQuestionType === "MULTI"
-                ? "Multi Jawaban"
-                : selectedQuestionType === "COCOK"
-                ? "Mencocokkan"
-                : "Isian"}
+                  ? "Multi Jawaban"
+                  : selectedQuestionType === "COCOK"
+                    ? "Mencocokkan"
+                    : "Isian"}
             </div>
           )}
         </div>
@@ -1587,15 +1560,14 @@ const BankSoal = () => {
           <br />• <strong>Tahap 1:</strong> Data disimpan ke Soal Ujian
           <br />• <strong>Tahap 2:</strong> Otomatis dikaitkan ke Bank Soal
           <br />• <strong>Multiple Soal:</strong> Nama ujian sama = Banyak soal
-          (contoh: 20 soal &quot;UTS IPA&quot;)
+          (contoh: 20 soal &quot;UTS Pemrograman Dasar&quot;)
           <br />
           <br />
           <strong>Format CSV yang diperlukan:</strong>
           <br />
           <strong>Kolom Wajib:</strong> namaUjian, pertanyaan, bobot,
-          jawabanBenar, tahunAjaran, namaSemester, namaKelas, namaMapel,
-          namaElemen, namaAcp, namaAtp, namaKonsentrasiSekolah, idSchool,
-          namaTaksonomi
+          jawabanBenar, tahunAjaran, namaSemester, subject, rps_detail,
+          idStudyProgram, idSubject, idRpsDetail, namaTaksonomi
           <br />
           <br />
           <strong>Kolom berdasarkan Jenis Soal:</strong>
@@ -1615,25 +1587,28 @@ const BankSoal = () => {
           <strong>📝 Contoh soal realistis dalam template:</strong>
           <br />• <strong>PG:</strong> &quot;Hasil dari 15 + 27 adalah...&quot;
           dengan opsi A: 40, B: 41, C: 42, D: 43
-          <br />• <strong>MULTI:</strong> &quot;Manakah yang termasuk planet
-          dalam tata surya?&quot; (jawaban: A,B,D)
-          <br />• <strong>COCOK:</strong> &quot;Cocokkan rumus kimia dengan nama
-          senyawa&quot; (H2O=Air, CO2=Karbon dioksida)
-          <br />• <strong>ISIAN:</strong> &quot;Ibu kota negara Indonesia
-          adalah...&quot; (jawaban: Jakarta)
+          <br />• <strong>MULTI:</strong> &quot;Manakah yang termasuk karakteristik
+          algoritma yang baik?&quot; (jawaban: A,B,D)
+          <br />• <strong>COCOK:</strong> &quot;Cocokkan istilah basis data dengan
+          deskripsinya&quot; (Primary Key=Kunci unik tabel, Foreign Key=Relasi antar
+          tabel)
+          <br />• <strong>ISIAN:</strong> &quot;Protokol aman untuk mengakses web
+          adalah...&quot; (jawaban: HTTPS)
           <br />
           <br />
           <strong>📋 Format data umum:</strong>
-          <br />• <strong>namaUjian:</strong> &quot;UTS Matematika&quot;,
-          &quot;UTS IPA&quot;, &quot;UTS Kimia&quot;
+          <br />• <strong>namaUjian:</strong> &quot;UTS Pemrograman Dasar&quot;,
+          &quot;UTS Algoritma&quot;, &quot;UTS Basis Data&quot;
           <br />• <strong>pertanyaan:</strong> Gunakan kalimat lengkap dan jelas
           seperti contoh di template
           <br />• <strong>tahunAjaran:</strong> &quot;2025/2026&quot;
           <br />• <strong>namaSemester:</strong> &quot;Ganjil&quot; atau
           &quot;Genap&quot;
-          <br />• <strong>namaMapel:</strong> &quot;Matematika&quot;,
-          &quot;IPA&quot;, &quot;Kimia&quot;, &quot;Geografi&quot;
-          <br />• <strong>idSchool:</strong> &quot;RWK001&quot; (nilai tetap)
+          <br />• <strong>subject:</strong> &quot;Pemrograman Dasar&quot;,
+          &quot;Algoritma dan Struktur Data&quot;, &quot;Basis Data&quot;, &quot;Jaringan Komputer&quot;
+          <br />• <strong>rps_detail:</strong> &quot;CP MK 1&quot;,
+          &quot;CP MK 2&quot; (sesuaikan dengan data RPS Teknik Informatika)
+          <br />• <strong>idStudyProgram:</strong> &quot;RWK001&quot; (nilai tetap)
           <br />
           <br />
           <strong>Download Template:</strong>

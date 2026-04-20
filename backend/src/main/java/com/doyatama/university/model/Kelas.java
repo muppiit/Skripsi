@@ -7,15 +7,17 @@ package com.doyatama.university.model;
 public class Kelas {
     private String idKelas;
     private String namaKelas;
-    private School school;
+    private String angkatan;
+    private StudyProgram study_program;
 
     public Kelas() {
     }
 
-    public Kelas(String idKelas, String namaKelas, School school) {
+    public Kelas(String idKelas, String namaKelas, String angkatan, StudyProgram study_program) {
         this.idKelas = idKelas;
         this.namaKelas = namaKelas;
-        this.school = school;
+        this.angkatan = angkatan;
+        this.study_program = study_program;
     }
 
     public String getIdKelas() {
@@ -34,16 +36,24 @@ public class Kelas {
         this.namaKelas = namaKelas;
     }
 
-    public School getSchool() {
-        return school;
+    public String getAngkatan() {
+        return angkatan;
     }
 
-    public void setSchool(School school) {
-        this.school = school;
+    public void setAngkatan(String angkatan) {
+        this.angkatan = angkatan;
+    }
+
+    public StudyProgram getStudyProgram() {
+        return study_program;
+    }
+
+    public void setStudyProgram(StudyProgram study_program) {
+        this.study_program = study_program;
     }
 
     public boolean isValid() {
-        return this.idKelas != null && this.namaKelas != null && this.school != null;
+        return this.idKelas != null && this.namaKelas != null && this.angkatan != null && this.study_program != null;
     }
 
     public void set(String fieldName, String value) {
@@ -53,6 +63,9 @@ public class Kelas {
                 break;
             case "namaKelas":
                 this.namaKelas = value;
+                break;
+            case "angkatan":
+                this.angkatan = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

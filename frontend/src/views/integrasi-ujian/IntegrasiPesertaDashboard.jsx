@@ -60,7 +60,10 @@ const IntegrasiPesertaDashboard = () => {
       console.log(`Loading participant data for ujian: ${ujian.idUjian}`);
 
       // Fetch hasil ujian (participant results)
-      const hasilResponse = await getHasilByUjian(ujian.idUjian, true, 1000);
+      const hasilResponse = await getHasilByUjian(ujian.idUjian, {
+        includeAnalytics: true,
+        size: 1000,
+      });
       const hasilData = hasilResponse.data?.content || [];
 
       console.log("Participant results count:", hasilData.length);
@@ -353,11 +356,11 @@ const IntegrasiPesertaDashboard = () => {
                     <div style={{ fontSize: "16px", fontWeight: "bold" }}>
                       {enrichedParticipants.length > 0
                         ? (
-                            enrichedParticipants.reduce(
-                              (sum, p) => sum + p.integrityScore,
-                              0
-                            ) / enrichedParticipants.length
-                          ).toFixed(1)
+                          enrichedParticipants.reduce(
+                            (sum, p) => sum + p.integrityScore,
+                            0
+                          ) / enrichedParticipants.length
+                        ).toFixed(1)
                         : 0}
                     </div>
                     <div style={{ color: "#52c41a", fontSize: "12px" }}>
@@ -368,11 +371,11 @@ const IntegrasiPesertaDashboard = () => {
                     <div style={{ fontSize: "16px", fontWeight: "bold" }}>
                       {enrichedParticipants.length > 0
                         ? (
-                            (enrichedParticipants.filter((p) => p.lulus)
-                              .length /
-                              enrichedParticipants.length) *
-                            100
-                          ).toFixed(1)
+                          (enrichedParticipants.filter((p) => p.lulus)
+                            .length /
+                            enrichedParticipants.length) *
+                          100
+                        ).toFixed(1)
                         : 0}
                       %
                     </div>
@@ -433,8 +436,8 @@ const IntegrasiPesertaDashboard = () => {
                               score >= 80
                                 ? "#52c41a"
                                 : score >= 60
-                                ? "#fa8c16"
-                                : "#ff4d4f",
+                                  ? "#fa8c16"
+                                  : "#ff4d4f",
                           }}
                         >
                           {score || 0}
@@ -472,10 +475,10 @@ const IntegrasiPesertaDashboard = () => {
                             count > 10
                               ? "red"
                               : count > 5
-                              ? "orange"
-                              : count > 0
-                              ? "yellow"
-                              : "green"
+                                ? "orange"
+                                : count > 0
+                                  ? "yellow"
+                                  : "green"
                           }
                         >
                           {count} pelanggaran
@@ -498,8 +501,8 @@ const IntegrasiPesertaDashboard = () => {
                           level === "HIGH"
                             ? "red"
                             : level === "MEDIUM"
-                            ? "orange"
-                            : "green"
+                              ? "orange"
+                              : "green"
                         }
                       >
                         {level}
@@ -522,8 +525,8 @@ const IntegrasiPesertaDashboard = () => {
                           pattern === "High Risk"
                             ? "red"
                             : pattern === "Suspicious"
-                            ? "orange"
-                            : "blue"
+                              ? "orange"
+                              : "blue"
                         }
                       >
                         {pattern}
@@ -540,8 +543,8 @@ const IntegrasiPesertaDashboard = () => {
                           style === "Quick"
                             ? "blue"
                             : style === "Careful"
-                            ? "green"
-                            : "purple"
+                              ? "green"
+                              : "purple"
                         }
                       >
                         {style}
@@ -561,8 +564,8 @@ const IntegrasiPesertaDashboard = () => {
                               score >= 80
                                 ? "#52c41a"
                                 : score >= 60
-                                ? "#fa8c16"
-                                : "#ff4d4f",
+                                  ? "#fa8c16"
+                                  : "#ff4d4f",
                           }}
                         >
                           {score || 0}
@@ -588,8 +591,8 @@ const IntegrasiPesertaDashboard = () => {
                               score >= 80
                                 ? "#52c41a"
                                 : score >= 60
-                                ? "#fa8c16"
-                                : "#ff4d4f",
+                                  ? "#fa8c16"
+                                  : "#ff4d4f",
                           }}
                         >
                           {score || 0}
@@ -671,8 +674,8 @@ const IntegrasiPesertaDashboard = () => {
                             participant.riskLevel === "HIGH"
                               ? "#fff2f0"
                               : participant.riskLevel === "MEDIUM"
-                              ? "#fff7e6"
-                              : "#f6ffed",
+                                ? "#fff7e6"
+                                : "#f6ffed",
                         }}
                       >
                         <strong>
@@ -691,8 +694,8 @@ const IntegrasiPesertaDashboard = () => {
                                   violation.severityLevel === "HIGH"
                                     ? "red"
                                     : violation.severityLevel === "MEDIUM"
-                                    ? "orange"
-                                    : "yellow"
+                                      ? "orange"
+                                      : "yellow"
                                 }
                               >
                                 {violation.violationType}:{" "}

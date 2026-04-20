@@ -162,7 +162,7 @@ const Lecture = () => {
           setAddLectureModalLoading(false);
           message.error(
             "Gagal menambahkan: " +
-              (error.response?.data?.message || error.message)
+            (error.response?.data?.message || error.message)
           );
         });
     });
@@ -193,11 +193,17 @@ const Lecture = () => {
       <br />
       <Card title={title}>
         <Table variant rowKey="id" dataSource={lectures} pagination={false}>
-          <Column title="NIDN" dataIndex="nidn" key="nidn" align="center" />
+          <Column title="NIP" dataIndex="nip" key="nip" align="center" />
           <Column
             title="Nama Depan"
             dataIndex="name"
             key="name"
+            align="center"
+          />
+          <Column
+            title="Program Studi"
+            dataIndex="studyProgram.name"
+            key="studyProgram.name"
             align="center"
           />
           <Column

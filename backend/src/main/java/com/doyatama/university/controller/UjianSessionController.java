@@ -95,6 +95,10 @@ public class UjianSessionController {
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("sessionId", session.getSessionId());
             responseData.put("idSession", session.getIdSession());
+            responseData.put("idKelas", session.getIdKelas());
+            responseData.put("kelas", session.getKelas());
+            responseData.put("idSeason", session.getIdSeason());
+            responseData.put("seasons", session.getSeasons());
             responseData.put("timeRemaining", session.getTimeRemaining());
             responseData.put("currentSoalIndex", session.getCurrentSoalIndex());
             responseData.put("totalQuestions", session.getTotalQuestions());
@@ -342,6 +346,10 @@ public class UjianSessionController {
                 sessionData.put("sessionId", session.getSessionId());
                 sessionData.put("idSession", session.getIdSession());
                 sessionData.put("status", session.getStatus());
+                sessionData.put("idKelas", session.getIdKelas());
+                sessionData.put("kelas", session.getKelas());
+                sessionData.put("idSeason", session.getIdSeason());
+                sessionData.put("seasons", session.getSeasons());
                 sessionData.put("currentSoalIndex", session.getCurrentSoalIndex());
                 sessionData.put("timeRemaining", session.getTimeRemaining());
                 sessionData.put("answeredQuestions", session.getAnsweredQuestions());

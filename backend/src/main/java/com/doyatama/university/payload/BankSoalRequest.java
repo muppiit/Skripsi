@@ -18,11 +18,15 @@ public class BankSoalRequest {
     private Instant createdAt; // kapan soal dibuat
 
     private String idTaksonomi;
+    private String idStudyProgram;
+    private String idSubject;
+    private String idRpsDetail;
     private String idAtp;
     private String idMapel;
     private String idTahun;
     private String idSemester;
     private String idKelas;
+    private String idSeason;
     private String idKonsentrasiSekolah;
     private String idElemen;
     private String idAcp;
@@ -50,6 +54,9 @@ public class BankSoalRequest {
         this.jawabanBenar = jawabanBenar;
         this.toleransiTypo = toleransiTypo;
         this.idTaksonomi = idTaksonomi;
+        this.idStudyProgram = idStudyProgram;
+        this.idSubject = idSubject;
+        this.idRpsDetail = idRpsDetail;
         this.idAtp = idAtp;
         this.idMapel = idMapel;
         this.idTahun = idTahun;
@@ -157,6 +164,30 @@ public class BankSoalRequest {
         this.idTaksonomi = idTaksonomi;
     }
 
+    public String getIdStudyProgram() {
+        return idStudyProgram;
+    }
+
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
+    }
+
+    public String getIdSubject() {
+        return idSubject;
+    }
+
+    public void setIdSubject(String idSubject) {
+        this.idSubject = idSubject;
+    }
+
+    public String getIdRpsDetail() {
+        return idRpsDetail;
+    }
+
+    public void setIdRpsDetail(String idRpsDetail) {
+        this.idRpsDetail = idRpsDetail;
+    }
+
     public String getIdAtp() {
         return idAtp;
     }
@@ -195,6 +226,14 @@ public class BankSoalRequest {
 
     public void setIdKelas(String idKelas) {
         this.idKelas = idKelas;
+    }
+
+    public String getIdSeason() {
+        return idSeason;
+    }
+
+    public void setIdSeason(String idSeason) {
+        this.idSeason = idSeason;
     }
 
     public String getIdKonsentrasiSekolah() {

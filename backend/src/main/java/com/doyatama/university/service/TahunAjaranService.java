@@ -2,12 +2,12 @@ package com.doyatama.university.service;
 
 import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.exception.ResourceNotFoundException;
-import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.TahunAjaran;
 import com.doyatama.university.payload.TahunAjaranRequest;
 import com.doyatama.university.payload.DefaultResponse;
 import com.doyatama.university.payload.PagedResponse;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.repository.TahunAjaranRepository;
 import com.doyatama.university.util.AppConstants;
 import java.io.IOException;
@@ -18,21 +18,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class TahunAjaranService {
     private TahunAjaranRepository tahunRepository = new TahunAjaranRepository();
-    private SchoolRepository schoolRepository = new SchoolRepository();
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
 
-    public PagedResponse<TahunAjaran> getAllTahunAjaran(int page, String schoolID, int size) throws IOException {
-        System.out.println("⚙️ [Service] schoolID diterima: " + schoolID);
+    public PagedResponse<TahunAjaran> getAllTahunAjaran(int page, String studyProgramId, int size) throws IOException {
         validatePageNumberAndSize(page, size);
 
         // Retrieve Polls
         List<TahunAjaran> tahunResponse;
 
-        if (schoolID.equalsIgnoreCase("*")) {
-            System.out.println("🔄 [Service] Menjalankan findAll()");
+        if (studyProgramId.equalsIgnoreCase("*")) {
             tahunResponse = tahunRepository.findAll(size);
         } else {
-            System.out.println("🔍 [Service] Menjalankan findTahunAjaranBySekolah untuk schoolID: " + schoolID);
-            tahunResponse = tahunRepository.findTahunAjaranBySekolah(schoolID, size);
+            tahunResponse = tahunRepository.findTahunAjaranByStudyProgram(studyProgramId, size);
         }
 
         return new PagedResponse<>(tahunResponse, tahunResponse.size(), "Successfully get data", 200);
@@ -48,13 +45,12 @@ public class TahunAjaranService {
             throw new IllegalArgumentException("Tahun Ajaran already exist");
         }
 
-        School schoolResponse = schoolRepository.findById(tahunRequest.getIdSekolah());
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(tahunRequest.getEffectiveStudyProgramId());
 
         TahunAjaran tahun = new TahunAjaran();
         tahun.setIdTahun(tahunRequest.getIdTahun());
         tahun.setTahunAjaran(tahunRequest.getTahunAjaran());
-
-        tahun.setSchool(schoolResponse);
+        tahun.setStudyProgram(studyProgramResponse);
 
         return tahunRepository.save(tahun);
     }
@@ -69,11 +65,11 @@ public class TahunAjaranService {
 
         TahunAjaran tahun = new TahunAjaran();
 
-        School schoolResponse = schoolRepository.findById(tahunRequest.getIdSekolah());
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(tahunRequest.getEffectiveStudyProgramId());
 
-        if (schoolResponse.getIdSchool() != null) {
+        if (studyProgramResponse.getId() != null) {
             tahun.setTahunAjaran(tahunRequest.getTahunAjaran());
-            tahun.setSchool(schoolResponse);
+            tahun.setStudyProgram(studyProgramResponse);
 
             return tahunRepository.update(tahunId, tahun);
         } else {

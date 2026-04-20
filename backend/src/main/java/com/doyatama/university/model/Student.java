@@ -9,18 +9,18 @@ public class Student {
     private String birth_date;
     private String place_born;
     private String address;
+    private String angkatan;
 
     private Religion religion;
-    private BidangKeahlian bidangKeahlian;
-    private ProgramKeahlian programKeahlian;
-    private KonsentrasiKeahlian konsentrasiKeahlian;
+    private StudyProgram study_program;
+    private Kelas kelas;
 
     public Student() {
     }
 
     public Student(String id, String nisn, String name, String gender, String phone,
             String birth_date, String place_born, String address, Religion religion,
-            BidangKeahlian bidangKeahlian, ProgramKeahlian programKeahlian, KonsentrasiKeahlian konsentrasiKeahlian) {
+            StudyProgram study_program, Kelas kelas, String angkatan) {
         this.id = id;
         this.nisn = nisn;
         this.name = name;
@@ -30,9 +30,9 @@ public class Student {
         this.place_born = place_born;
         this.address = address;
         this.religion = religion;
-        this.bidangKeahlian = bidangKeahlian;
-        this.programKeahlian = programKeahlian;
-        this.konsentrasiKeahlian = konsentrasiKeahlian;
+        this.study_program = study_program;
+        this.kelas = kelas;
+        this.angkatan = angkatan;
     }
 
     public String getId() {
@@ -107,28 +107,28 @@ public class Student {
         this.religion = religion;
     }
 
-    public BidangKeahlian getBidangKeahlian() {
-        return bidangKeahlian;
+    public StudyProgram getStudyProgram() {
+        return study_program;
     }
 
-    public void setBidangKeahlian(BidangKeahlian bidangKeahlian) {
-        this.bidangKeahlian = bidangKeahlian;
+    public void setStudyProgram(StudyProgram study_program) {
+        this.study_program = study_program;
     }
 
-    public ProgramKeahlian getProgramKeahlian() {
-        return programKeahlian;
+    public Kelas getKelas() {
+        return kelas;
     }
 
-    public void setProgramKeahlian(ProgramKeahlian programKeahlian) {
-        this.programKeahlian = programKeahlian;
+    public void setKelas(Kelas kelas) {
+        this.kelas = kelas;
     }
 
-    public KonsentrasiKeahlian getKonsentrasiKeahlian() {
-        return konsentrasiKeahlian;
+    public String getAngkatan() {
+        return angkatan;
     }
 
-    public void setKonsentrasiKeahlian(KonsentrasiKeahlian konsentrasiKeahlian) {
-        this.konsentrasiKeahlian = konsentrasiKeahlian;
+    public void setAngkatan(String angkatan) {
+        this.angkatan = angkatan;
     }
 
     public boolean isValid() {

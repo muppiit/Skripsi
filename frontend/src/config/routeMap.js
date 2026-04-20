@@ -249,9 +249,9 @@ const TahunAjaran = React.lazy(() =>
 const Modul = React.lazy(() =>
   import(/*webpackChunkName:'Modul'*/ "@/views/modul")
 );
-// const Season = React.lazy(() =>
-//   import(/*webpackChunkName:'Season'*/ "@/views/season")
-// );
+const Season = React.lazy(() =>
+  import(/*webpackChunkName:'Season'*/ "@/views/season")
+);
 // const Kurikulum = React.lazy(() =>
 //   import(/*webpackChunkName:'Kurikulum'*/ "@/views/kurikulum")
 // );
@@ -421,50 +421,50 @@ export default [
     component: User,
     roles: ["ROLE_ADMINISTRATOR", "ROLE_OPERATOR"],
   },
-  {
-    path: "/school-profile",
-    component: SchoolProfile,
-    roles: ["ROLE_ADMINISTRATOR"],
-  },
-  {
-    path: "/bidang-keahlian",
-    component: BidangKeahlian,
-    roles: ["ROLE_ADMINISTRATOR"],
-  },
-  {
-    path: "/program-keahlian",
-    component: ProgramKeahlian,
-    roles: ["ROLE_ADMINISTRATOR"],
-  },
-  {
-    path: "/konsentrasi-keahlian",
-    component: KonsentrasiKeahlian,
-    roles: ["ROLE_ADMINISTRATOR", "ROLE_OPERATOR"],
-  },
-  {
-    path: "/bidang-keahlian-sekolah",
-    component: BidangKeahlianSekolah,
-    roles: ["ROLE_OPERATOR"],
-  },
-  {
-    path: "/program-keahlian-sekolah",
-    component: ProgramKeahlianSekolah,
-    roles: ["ROLE_OPERATOR"],
-  },
-  {
-    path: "/konsentrasi-keahlian-sekolah",
-    component: KonsentrasiKeahlianSekolah,
-    roles: ["ROLE_OPERATOR"],
-  },
-  // { path: "/department", component: Department, roles: ["ROLE_OPERATOR"] },
+  // {
+  //   path: "/school-profile",
+  //   component: SchoolProfile,
+  //   roles: ["ROLE_ADMINISTRATOR"],
+  // },
+  // {
+  //   path: "/bidang-keahlian",
+  //   component: BidangKeahlian,
+  //   roles: ["ROLE_ADMINISTRATOR"],
+  // },
+  // {
+  //   path: "/program-keahlian",
+  //   component: ProgramKeahlian,
+  //   roles: ["ROLE_ADMINISTRATOR"],
+  // },
+  // {
+  //   path: "/konsentrasi-keahlian",
+  //   component: KonsentrasiKeahlian,
+  //   roles: ["ROLE_ADMINISTRATOR", "ROLE_OPERATOR"],
+  // },
+  // {
+  //   path: "/bidang-keahlian-sekolah",
+  //   component: BidangKeahlianSekolah,
+  //   roles: ["ROLE_OPERATOR"],
+  // },
+  // {
+  //   path: "/program-keahlian-sekolah",
+  //   component: ProgramKeahlianSekolah,
+  //   roles: ["ROLE_OPERATOR"],
+  // },
+  // {
+  //   path: "/konsentrasi-keahlian-sekolah",
+  //   component: KonsentrasiKeahlianSekolah,
+  //   roles: ["ROLE_OPERATOR"],
+  // },
+  { path: "/department", component: Department, roles: ["ROLE_OPERATOR"] },
   { path: "/kelas", component: Kelas, roles: ["ROLE_OPERATOR"] },
   { path: "/semester", component: Semester, roles: ["ROLE_OPERATOR"] },
   { path: "/tahun-ajaran", component: TahunAjaran, roles: ["ROLE_OPERATOR"] },
-  // { path: "/season", component: Season, roles: ["ROLE_OPERATOR"] },
-  { path: "/modul", component: Modul, roles: ["ROLE_OPERATOR"] },
-  { path: "/elemen", component: Elemen, roles: ["ROLE_OPERATOR"] },
-  { path: "/acp", component: ACP, roles: ["ROLE_OPERATOR"] },
-  { path: "/atp", component: ATP, roles: ["ROLE_OPERATOR"] },
+  { path: "/season", component: Season, roles: ["ROLE_OPERATOR"] },
+  // { path: "/modul", component: Modul, roles: ["ROLE_OPERATOR"] },
+  // { path: "/elemen", component: Elemen, roles: ["ROLE_OPERATOR"] },
+  // { path: "/acp", component: ACP, roles: ["ROLE_OPERATOR"] },
+  // { path: "/atp", component: ATP, roles: ["ROLE_OPERATOR"] },
   {
     path: "/taksonomi",
     component: Taksonomi,
@@ -522,18 +522,18 @@ export default [
     roles: ["ROLE_OPERATOR", "ROLE_TEACHER"],
   },
 
-  // {
-  //   path: "/study-program",
-  //   component: StudyProgram,
-  //   roles: ["ROLE_OPERATOR"],
-  // },
-  // { path: "/religion", component: Religion, roles: ["ROLE_OPERATOR"] },
-  // {
-  //   path: "/subject-group",
-  //   component: SubjectGroup,
-  //   roles: ["ROLE_OPERATOR"],
-  // },
-  { path: "/subject", component: Subject, roles: ["ROLE_OPERATOR"] },
+  {
+    path: "/study-program",
+    component: StudyProgram,
+    roles: ["ROLE_OPERATOR"],
+  },
+  { path: "/religion", component: Religion, roles: ["ROLE_OPERATOR"] },
+  {
+    path: "/subject-group",
+    component: SubjectGroup,
+    roles: ["ROLE_OPERATOR"],
+  },
+  // { path: "/subject", component: Subject, roles: ["ROLE_OPERATOR"] },
   // {
   //   path: "/jadwal-pelajaran",
   //   component: JadwalPelajaran,
@@ -597,18 +597,18 @@ export default [
     roles: ["ROLE_OPERATOR"],
   },
   { path: "/student", component: Student, roles: ["ROLE_OPERATOR"] },
-  // {
-  //   path: "/rps",
-  //   component: RPS,
-  //   roles: ["ROLE_OPERATOR", "ROLE_DUDI", "ROLE_TEACHER"],
-  //   exact: true,
-  // },
-  // {
-  //   path: "/rps/:rpsID",
-  //   component: RPSDetail,
-  //   roles: ["ROLE_OPERATOR", "ROLE_DUDI", "ROLE_TEACHER"],
-  //   exact: true,
-  // },
+  {
+    path: "/rps",
+    component: RPS,
+    roles: ["ROLE_OPERATOR", "ROLE_DUDI", "ROLE_TEACHER"],
+    exact: true,
+  },
+  {
+    path: "/rps/:rpsID",
+    component: RPSDetail,
+    roles: ["ROLE_OPERATOR", "ROLE_DUDI", "ROLE_TEACHER"],
+    exact: true,
+  },
   {
     path: "/question",
     component: Question,

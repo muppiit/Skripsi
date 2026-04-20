@@ -15,19 +15,15 @@ import {
 } from "antd";
 
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { getSchool } from "@/api/school";
 import { reqUserInfo } from "@/api/user";
-import { getKelas } from "@/api/kelas";
 import { getTahunAjaran } from "@/api/tahun-ajaran";
 import { getSemester } from "@/api/semester";
-import { getMapel } from "@/api/mapel";
-import { getKonsentrasiSekolah } from "@/api/konsentrasiKeahlianSekolah";
-import { getElemen } from "@/api/elemen";
-import { getACP } from "@/api/acp";
-import { getATP } from "@/api/atp";
+import { getKelas } from "@/api/kelas";
 import { getBankSoal } from "@/api/bankSoal";
 import { getSoalUjian } from "@/api/soalUjian";
-import { useFormFilterATP } from "@/helper/atp/formFilterAtpHelperAdd";
+import { getSubjects } from "@/api/subject";
+import { getRPSDetail } from "@/api/rpsDetail";
+import { getSeason } from "@/api/season";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -38,16 +34,18 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
 
   const [userSchoolId, setUserSchoolId] = useState([]); // State untuk menyimpan ID sekolah user
-  const [schoolList, setSchoolList] = useState([]);
-  const [konsentrasiKeahlianSekolahList, setKonsentrasiKeahlianSekolahList] =
-    useState([]);
+  const [subjectList, setSubjectList] = useState([]);
+  const [rpsDetailList, setRpsDetailList] = useState([]);
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [semesterList, setSemesterList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [seasonList, setSeasonList] = useState([]);
+  const [filteredSeasonList, setFilteredSeasonList] = useState([]);
   const [soalUjianList, setSoalUjianList] = useState([]);
   const [selectedSoalData, setSelectedSoalData] = useState(null); // State untuk menyimpan data soal yang dipilih
   const [selectedNamaUjian, setSelectedNamaUjian] = useState(null); // State untuk nama ujian yang dipilih
   const [filteredSoalList, setFilteredSoalList] = useState([]); // State untuk daftar soal yang difilter berdasarkan nama ujian
   const [tableLoading, setTableLoading] = useState(false);
-
-  const [initialData, setInitialData] = useState(null);
 
   const fetchUserInfo = async () => {
     try {
@@ -59,11 +57,24 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     }
   };
 
-  const fetchSchoolList = async () => {
+  const fetchSubjectList = async () => {
     try {
-      const result = await getSchool();
+      const result = await getSubjects();
       if (result.data.statusCode === 200) {
-        setSchoolList(result.data.content);
+        setSubjectList(result.data.content || []);
+      } else {
+        message.error("Gagal mengambil data");
+      }
+    } catch (error) {
+      message.error("Terjadi kesalahan: " + error.message);
+    }
+  };
+
+  const fetchRpsDetailList = async () => {
+    try {
+      const result = await getRPSDetail();
+      if (result.data.statusCode === 200) {
+        setRpsDetailList(result.data.content || []);
       } else {
         message.error("Gagal mengambil data");
       }
@@ -88,17 +99,36 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     }
   };
 
-  const fetchKonsentrasiKeahlianSekolahList = async () => {
+  const fetchKelasList = async () => {
     try {
-      const result = await getKonsentrasiSekolah();
+      const result = await getKelas();
       if (result.data.statusCode === 200) {
-        setKonsentrasiKeahlianSekolahList(result.data.content);
-      } else {
-        message.error("Gagal mengambil data");
+        setKelasList(result.data.content || []);
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
     }
+  };
+
+  const fetchSeasonList = async () => {
+    try {
+      const result = await getSeason();
+      if (result.data.statusCode === 200) {
+        setSeasonList(result.data.content || []);
+      }
+    } catch (error) {
+      message.error("Terjadi kesalahan: " + error.message);
+    }
+  };
+
+  const filterSeasonOptions = (semesterId, kelasId) => {
+    const filtered = (seasonList || []).filter((item) => {
+      const matchesSemester = !semesterId || item?.semester?.idSemester === semesterId;
+      const matchesKelas = !kelasId || item?.kelas?.idKelas === kelasId;
+      return matchesSemester && matchesKelas;
+    });
+
+    setFilteredSeasonList(filtered);
   };
 
   const fetchSoalUjian = async () => {
@@ -151,54 +181,22 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         toleransiTypo: selectedSoal.toleransiTypo,
         jawabanBenar: selectedSoal.jawabanBenar,
         idTaksonomi: selectedSoal.taksonomi?.idTaksonomi,
-        idKonsentrasiSekolah:
-          selectedSoal.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah,
+        idStudyProgram: selectedSoal.school?.idSchool || userSchoolId,
       });
     }
   };
 
-  const {
-    renderTahunAjaranSelect,
-    renderSemesterSelect,
-    renderKelasSelect,
-    renderMapelSelect,
-    renderElemenSelect,
-    renderAcpSelect,
-    renderAtpSelect,
-  } = useFormFilterATP(initialData);
-
-  // Fetch data awal
   useEffect(() => {
     const fetchData = async () => {
       try {
         setTableLoading(true);
-        const [
-          tahunAjaranRes,
-          semesterRes,
-          kelasRes,
-          mapelRes,
-          elemenRes,
-          acpRes,
-          atpRes,
-        ] = await Promise.all([
+        const [tahunAjaranRes, semesterRes] = await Promise.all([
           getTahunAjaran(),
           getSemester(),
-          getKelas(),
-          getMapel(),
-          getElemen(),
-          getACP(),
-          getATP(),
         ]);
 
-        setInitialData({
-          tahunAjaranList: tahunAjaranRes.data.content || [],
-          semesterList: semesterRes.data.content || [],
-          kelasList: kelasRes.data.content || [],
-          mapelList: mapelRes.data.content || [],
-          elemenList: elemenRes.data.content || [],
-          acpList: acpRes.data.content || [],
-          atpList: atpRes.data.content || [],
-        });
+        setTahunAjaranList(tahunAjaranRes.data.content || []);
+        setSemesterList(semesterRes.data.content || []);
       } catch (error) {
         message.error("Gagal memuat data");
       } finally {
@@ -211,15 +209,23 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
 
   useEffect(() => {
     fetchUserInfo();
-    fetchSchoolList();
-    fetchKonsentrasiKeahlianSekolahList();
+    fetchSubjectList();
+    fetchRpsDetailList();
+    fetchKelasList();
+    fetchSeasonList();
     fetchSoalUjian();
     fetchBankSoal();
   }, []);
 
   useEffect(() => {
+    const semesterId = form.getFieldValue("idSemester");
+    const kelasId = form.getFieldValue("idKelas");
+    filterSeasonOptions(semesterId, kelasId);
+  }, [seasonList]);
+
+  useEffect(() => {
     if (userSchoolId) {
-      form.setFieldsValue({ idSchool: userSchoolId });
+      form.setFieldsValue({ idStudyProgram: userSchoolId });
     }
   }, [userSchoolId, form]);
 
@@ -282,16 +288,15 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         pasangan: formatPasangan(values.pasangan),
         toleransiTypo: values.toleransiTypo,
         jawabanBenar: formatJawabanBenar(values.jawabanBenar),
+        idStudyProgram: values.idStudyProgram,
         idTaksonomi: values.idTaksonomi,
-        idKonsentrasiSekolah: values.idKonsentrasiSekolah,
+        idSubject: values.idSubject,
+        idRpsDetail: values.idRpsDetail,
         idTahun: values.idTahun,
         idSemester: values.idSemester,
         idKelas: values.idKelas,
-        idMapel: values.idMapel,
-        idElemen: values.idElemen,
-        idAcp: values.idAcp,
-        idAtp: values.idAtp,
-        idSchool: values.idSchool,
+        idSeason: values.idSeason,
+        idSchool: values.idStudyProgram,
       };
 
       console.log("Formatted payload:", payload); // For debugging
@@ -306,6 +311,7 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     setSelectedSoalData(null);
     setSelectedNamaUjian(null);
     setFilteredSoalList([]);
+    setFilteredSeasonList([]);
     onCancel();
   };
 
@@ -321,80 +327,137 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     >
       <Form form={form} layout="vertical">
         <Tabs defaultActiveKey="1">
-          <TabPane tab="Informasi ATP" key="1">
+          <TabPane tab="Informasi Relasi" key="1">
             <Row gutter={16}>
               <Col xs={24} sm={24} md={24}>
                 <Form.Item
-                  label="Sekolah:"
-                  name="idSchool"
+                  label="Study Program:"
+                  name="idStudyProgram"
                   style={{ display: "none" }}
-                  rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
-                >
-                  <Select defaultValue={userSchoolId} disabled>
-                    {schoolList
-                      .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                      .map(({ idSchool, nameSchool }) => (
-                        <Option key={idSchool} value={idSchool}>
-                          {nameSchool}
-                        </Option>
-                      ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={24} md={12}>
-                <Form.Item
-                  label="Konsentrasi Keahlian Sekolah:"
-                  name="idKonsentrasiSekolah"
                   rules={[
-                    {
-                      required: true,
-                      message: "Silahkan pilih Konsentrasi Keahlian Sekolah",
-                    },
+                    { required: true, message: "Silahkan pilih study program" },
                   ]}
                 >
-                  <Select
-                    placeholder="Pilih Konsentrasi Keahlian Sekolah"
-                    showSearch
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      option.children
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                  >
-                    {konsentrasiKeahlianSekolahList.map(
-                      ({ idKonsentrasiSekolah, namaKonsentrasiSekolah }) => (
-                        <Option
-                          key={idKonsentrasiSekolah}
-                          value={idKonsentrasiSekolah}
-                        >
-                          {namaKonsentrasiSekolah}
-                        </Option>
-                      )
+                  <Select defaultValue={userSchoolId} disabled>
+                    {userSchoolId && (
+                      <Option key={userSchoolId} value={userSchoolId}>
+                        {userSchoolId}
+                      </Option>
                     )}
                   </Select>
                 </Form.Item>
               </Col>
               <Col xs={24} sm={24} md={12}>
-                {renderTahunAjaranSelect(form)}
+                <Form.Item
+                  label="Subject:"
+                  name="idSubject"
+                  rules={[{ required: true, message: "Silahkan pilih Subject" }]}
+                >
+                  <Select placeholder="Pilih Subject" showSearch optionFilterProp="children">
+                    {subjectList.map((item) => (
+                      <Option key={item.id} value={item.id}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
               </Col>
               <Col xs={24} sm={24} md={12}>
-                {renderSemesterSelect(form)}
+                <Form.Item
+                  label="RPS Detail:"
+                  name="idRpsDetail"
+                  rules={[
+                    { required: true, message: "Silahkan pilih RPS Detail" },
+                  ]}
+                >
+                  <Select placeholder="Pilih RPS Detail" showSearch optionFilterProp="children">
+                    {rpsDetailList.map((item) => (
+                      <Option key={item.id} value={item.id}>
+                        {item.weekLabel ? `${item.weekLabel} - ` : ""}
+                        {item.sub_cp_mk || item.id}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
               </Col>
               <Col xs={24} sm={24} md={12}>
-                {renderKelasSelect(form)}
+                <Form.Item
+                  label="Tahun Ajaran:"
+                  name="idTahun"
+                  rules={[{ required: true, message: "Silahkan pilih Tahun Ajaran" }]}
+                >
+                  <Select placeholder="Pilih Tahun Ajaran" showSearch optionFilterProp="children">
+                    {tahunAjaranList.map((item) => (
+                      <Option key={item.idTahun} value={item.idTahun}>
+                        {item.tahunAjaran}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
               </Col>
               <Col xs={24} sm={24} md={12}>
-                {renderMapelSelect(form)}
+                <Form.Item
+                  label="Semester:"
+                  name="idSemester"
+                  rules={[{ required: true, message: "Silahkan pilih Semester" }]}
+                >
+                  <Select
+                    placeholder="Pilih Semester"
+                    showSearch
+                    optionFilterProp="children"
+                    onChange={(value) => {
+                      const kelasId = form.getFieldValue("idKelas");
+                      form.setFieldsValue({ idSeason: undefined });
+                      filterSeasonOptions(value, kelasId);
+                    }}
+                  >
+                    {semesterList.map((item) => (
+                      <Option key={item.idSemester} value={item.idSemester}>
+                        {item.namaSemester}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
               </Col>
               <Col xs={24} sm={24} md={12}>
-                {renderElemenSelect(form)}
+                <Form.Item
+                  label="Kelas:"
+                  name="idKelas"
+                  rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
+                >
+                  <Select
+                    placeholder="Pilih Kelas"
+                    showSearch
+                    optionFilterProp="children"
+                    onChange={(value) => {
+                      const semesterId = form.getFieldValue("idSemester");
+                      form.setFieldsValue({ idSeason: undefined });
+                      filterSeasonOptions(semesterId, value);
+                    }}
+                  >
+                    {kelasList.map((item) => (
+                      <Option key={item.idKelas} value={item.idKelas}>
+                        {item.namaKelas}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
               </Col>
-              <Col xs={24} sm={24} md={24}>
-                {renderAcpSelect(form)}
-              </Col>
-              <Col xs={24} sm={24} md={24}>
-                {renderAtpSelect(form)}
+              <Col xs={24} sm={24} md={12}>
+                <Form.Item label="Season (Opsional):" name="idSeason">
+                  <Select
+                    placeholder="Pilih Season"
+                    showSearch
+                    optionFilterProp="children"
+                    allowClear
+                  >
+                    {(filteredSeasonList.length > 0 ? filteredSeasonList : seasonList).map((item) => (
+                      <Option key={item.idSeason} value={item.idSeason}>
+                        {(item.kelas?.namaKelas || "-") + " | " + (item.semester?.namaSemester || "-")}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
               </Col>
             </Row>
           </TabPane>

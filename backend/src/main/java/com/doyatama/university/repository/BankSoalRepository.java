@@ -5,6 +5,7 @@ import com.doyatama.university.model.BankSoal;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,41 +25,112 @@ public class BankSoalRepository {
     String tableName = "bankSoal";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public List<BankSoal> findAll(int size) throws IOException {
-        HBaseCustomClient client = new HBaseCustomClient(conf);
-
-        TableName tableBankSoal = TableName.valueOf(tableName);
+    private Map<String, String> baseColumnMapping() {
         Map<String, String> columnMapping = new HashMap<>();
-
-        // Add the mappings to the HashMap (kolom standar)
         columnMapping.put("idBankSoal", "idBankSoal");
         columnMapping.put("idSoalUjian", "idSoalUjian");
         columnMapping.put("namaUjian", "namaUjian");
         columnMapping.put("pertanyaan", "pertanyaan");
         columnMapping.put("bobot", "bobot");
         columnMapping.put("jenisSoal", "jenisSoal");
+        columnMapping.put("opsi", "opsi");
+        columnMapping.put("pasangan", "pasangan");
+        columnMapping.put("jawabanBenar", "jawabanBenar");
         columnMapping.put("toleransiTypo", "toleransiTypo");
         columnMapping.put("createdAt", "createdAt");
         columnMapping.put("soalUjian", "soalUjian");
         columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("mapel", "mapel");
+        columnMapping.put("subject", "subject");
         columnMapping.put("tahunAjaran", "tahunAjaran");
         columnMapping.put("semester", "semester");
         columnMapping.put("kelas", "kelas");
-        columnMapping.put("elemen", "elemen");
-        columnMapping.put("acp", "acp");
-        columnMapping.put("atp", "atp");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
+        columnMapping.put("rps_detail", "rps_detail");
+        columnMapping.put("study_program", "study_program");
+        columnMapping.put("seasons", "seasons");
+        return columnMapping;
+    }
 
-        // Definisikan field yang menggunakan indeks
+    private Map<String, String> indexedFields() {
         Map<String, String> indexedFields = new HashMap<>();
-        indexedFields.put("opsi", "MAP"); // opsi disimpan sebagai MAP
-        indexedFields.put("pasangan", "MAP"); // pasangan disimpan sebagai MAP
-        indexedFields.put("jawabanBenar", "LIST"); // jawabanBenar disimpan sebagai LIST
+        indexedFields.put("opsi", "MAP");
+        indexedFields.put("pasangan", "MAP");
+        indexedFields.put("jawabanBenar", "LIST");
+        return indexedFields;
+    }
 
-        return client.showListTableIndex(tableBankSoal.toString(), columnMapping, BankSoal.class, indexedFields,
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private boolean matchesFilter(String actual, String expected) {
+        return isBlank(expected) || (actual != null && actual.equals(expected));
+    }
+
+    public List<BankSoal> findAll(int size) throws IOException {
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+
+        TableName tableBankSoal = TableName.valueOf(tableName);
+        return client.showListTableIndex(tableBankSoal.toString(), baseColumnMapping(), BankSoal.class, indexedFields(),
                 size);
+    }
+
+    public List<BankSoal> findBankSoalByFilters(String studyProgramId, String semesterId, String kelasId, int size)
+            throws IOException {
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+        TableName tableBankSoal = TableName.valueOf(tableName);
+
+        int fetchSize = Math.max(size, 1000);
+        List<BankSoal> candidates;
+
+        if (!isBlank(semesterId)) {
+            candidates = client.getDataListByColumnIndeks(
+                    tableBankSoal.toString(),
+                    baseColumnMapping(),
+                    "semester",
+                    "idSemester",
+                    semesterId,
+                    BankSoal.class,
+                    fetchSize,
+                    indexedFields());
+        } else if (!isBlank(kelasId)) {
+            candidates = client.getDataListByColumnIndeks(
+                    tableBankSoal.toString(),
+                    baseColumnMapping(),
+                    "kelas",
+                    "idKelas",
+                    kelasId,
+                    BankSoal.class,
+                    fetchSize,
+                    indexedFields());
+        } else if (!"*".equalsIgnoreCase(studyProgramId)) {
+            candidates = findBankSoalBySekolah(studyProgramId, fetchSize);
+        } else {
+            candidates = findAll(fetchSize);
+        }
+
+        if (candidates == null || candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<BankSoal> filtered = new ArrayList<>();
+        for (BankSoal item : candidates) {
+            String itemStudyProgramId = item.getStudy_program() != null ? item.getStudy_program().getId() : null;
+            String itemSemesterId = item.getSemester() != null ? item.getSemester().getIdSemester() : null;
+            String itemKelasId = item.getKelas() != null ? item.getKelas().getIdKelas() : null;
+
+            boolean matchesStudyProgram = "*".equalsIgnoreCase(studyProgramId)
+                    || matchesFilter(itemStudyProgramId, studyProgramId);
+
+            if (matchesStudyProgram && matchesFilter(itemSemesterId, semesterId)
+                    && matchesFilter(itemKelasId, kelasId)) {
+                filtered.add(item);
+                if (filtered.size() >= size) {
+                    break;
+                }
+            }
+        }
+
+        return filtered;
     }
 
     public BankSoal save(BankSoal bankSoal) throws IOException {
@@ -103,7 +175,7 @@ public class BankSoalRepository {
     }
 
     private void saveRelationships(HBaseCustomClient client, TableName table, String rowKey, BankSoal bankSoal) {
-        if (bankSoal.getIdSoalUjian() != null) {
+        if (bankSoal.getIdSoalUjian() != null && bankSoal.getSoalUjian() != null) {
             client.insertRecord(table, rowKey, "soalUjian", "idSoalUjian", bankSoal.getSoalUjian().getIdSoalUjian());
             client.insertRecord(table, rowKey, "soalUjian", "namaUjian", bankSoal.getSoalUjian().getNamaUjian());
             client.insertRecord(table, rowKey, "soalUjian", "pertanyaan", bankSoal.getSoalUjian().getPertanyaan());
@@ -113,40 +185,29 @@ public class BankSoalRepository {
                     bankSoal.getSoalUjian().getCreatedAt().toString());
         }
 
-        if (bankSoal.getTahunAjaran().getIdTahun() != null) {
+        if (bankSoal.getStudy_program() != null && bankSoal.getStudy_program().getId() != null) {
+            client.insertRecord(table, rowKey, "study_program", "id", bankSoal.getStudy_program().getId());
+            client.insertRecord(table, rowKey, "study_program", "name", bankSoal.getStudy_program().getName());
+        }
+
+        if (bankSoal.getTahunAjaran() != null && bankSoal.getTahunAjaran().getIdTahun() != null) {
             client.insertRecord(table, rowKey, "tahunAjaran", "idTahun", bankSoal.getTahunAjaran().getIdTahun());
             client.insertRecord(table, rowKey, "tahunAjaran", "tahunAjaran",
                     bankSoal.getTahunAjaran().getTahunAjaran());
         }
 
-        if (bankSoal.getSemester().getIdSemester() != null) {
+        if (bankSoal.getSemester() != null && bankSoal.getSemester().getIdSemester() != null) {
             client.insertRecord(table, rowKey, "semester", "idSemester", bankSoal.getSemester().getIdSemester());
             client.insertRecord(table, rowKey, "semester", "namaSemester", bankSoal.getSemester().getNamaSemester());
         }
 
-        if (bankSoal.getKelas().getIdKelas() != null) {
+        if (bankSoal.getKelas() != null && bankSoal.getKelas().getIdKelas() != null) {
             client.insertRecord(table, rowKey, "kelas", "idKelas", bankSoal.getKelas().getIdKelas());
             client.insertRecord(table, rowKey, "kelas", "namaKelas", bankSoal.getKelas().getNamaKelas());
         }
 
-        if (bankSoal.getMapel().getIdMapel() != null) {
-            client.insertRecord(table, rowKey, "mapel", "idMapel", bankSoal.getMapel().getIdMapel());
-            client.insertRecord(table, rowKey, "mapel", "name", bankSoal.getMapel().getName());
-        }
-
-        if (bankSoal.getElemen().getIdElemen() != null) {
-            client.insertRecord(table, rowKey, "elemen", "idElemen", bankSoal.getElemen().getIdElemen());
-            client.insertRecord(table, rowKey, "elemen", "namaElemen", bankSoal.getElemen().getNamaElemen());
-        }
-
-        if (bankSoal.getAcp().getIdAcp() != null) {
-            client.insertRecord(table, rowKey, "acp", "idAcp", bankSoal.getAcp().getIdAcp());
-            client.insertRecord(table, rowKey, "acp", "namaAcp", bankSoal.getAcp().getNamaAcp());
-        }
-
-        if (bankSoal.getAtp().getIdAtp() != null) {
-            client.insertRecord(table, rowKey, "atp", "idAtp", bankSoal.getAtp().getIdAtp());
-            client.insertRecord(table, rowKey, "atp", "namaAtp", bankSoal.getAtp().getNamaAtp());
+        if (bankSoal.getSeasons() != null && bankSoal.getSeasons().getIdSeason() != null) {
+            client.insertRecord(table, rowKey, "seasons", "idSeason", bankSoal.getSeasons().getIdSeason());
         }
 
         if (bankSoal.getTaksonomi().getIdTaksonomi() != null) {
@@ -155,17 +216,18 @@ public class BankSoalRepository {
                     bankSoal.getTaksonomi().getNamaTaksonomi());
         }
 
-        if (bankSoal.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah() != null) {
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "idKonsentrasiSekolah",
-                    bankSoal.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah());
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "namaKonsentrasiSekolah",
-                    bankSoal.getKonsentrasiKeahlianSekolah().getNamaKonsentrasiSekolah());
-
+        if (bankSoal.getSubject() != null && bankSoal.getSubject().getId() != null) {
+            client.insertRecord(table, rowKey, "subject", "id", bankSoal.getSubject().getId());
+            client.insertRecord(table, rowKey, "subject", "name", bankSoal.getSubject().getName());
         }
 
-        if (bankSoal.getSchool().getIdSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", bankSoal.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool", bankSoal.getSchool().getNameSchool());
+        if (bankSoal.getRps_detail() != null && bankSoal.getRps_detail().getId() != null) {
+            client.insertRecord(table, rowKey, "rps_detail", "id", bankSoal.getRps_detail().getId());
+            client.insertRecord(table, rowKey, "rps_detail", "week",
+                    String.valueOf(bankSoal.getRps_detail().getWeek()));
+            client.insertRecord(table, rowKey, "rps_detail", "sub_cp_mk", bankSoal.getRps_detail().getSub_cp_mk());
+            client.insertRecord(table, rowKey, "rps_detail", "weight",
+                    String.valueOf(bankSoal.getRps_detail().getWeight()));
         }
     }
 
@@ -214,82 +276,22 @@ public class BankSoalRepository {
     public BankSoal findById(String bankSoalId) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
         TableName tableBankSoal = TableName.valueOf(tableName);
-        Map<String, String> columnMapping = new HashMap<>();
-
-        columnMapping.put("idBankSoal", "idBankSoal");
-        columnMapping.put("idSoalUjian", "idSoalUjian");
-        columnMapping.put("namaUjian", "namaUjian");
-        columnMapping.put("pertanyaan", "pertanyaan");
-        columnMapping.put("bobot", "bobot");
-        columnMapping.put("jenisSoal", "jenisSoal");
-        columnMapping.put("opsi", "opsi");
-        columnMapping.put("pasangan", "pasangan");
-        columnMapping.put("jawabanBenar", "jawabanBenar");
-        columnMapping.put("toleransiTypo", "toleransiTypo");
-        columnMapping.put("createdAt", "createdAt");
-        columnMapping.put("soalUjian", "soalUjian");
-        columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("mapel", "mapel");
-        columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("semester", "semester");
-        columnMapping.put("kelas", "kelas");
-        columnMapping.put("elemen", "elemen");
-        columnMapping.put("acp", "acp");
-        columnMapping.put("atp", "atp");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
-
-        Map<String, String> indexedFields = new HashMap<>();
-        indexedFields.put("opsi", "MAP");
-        indexedFields.put("pasangan", "MAP");
-        indexedFields.put("jawabanBenar", "LIST");
-
-        return client.showDataTable(tableBankSoal.toString(), columnMapping, bankSoalId, BankSoal.class);
+        return client.showDataTable(tableBankSoal.toString(), baseColumnMapping(), bankSoalId, BankSoal.class);
     }
 
     public List<BankSoal> findBankSoalBySekolah(String schoolID, int size) throws IOException {
         TableName tableBankSoal = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
-        // Standard column mappings
-        Map<String, String> columnMapping = new HashMap<>();
-        columnMapping.put("idBankSoal", "idBankSoal");
-        columnMapping.put("idSoalUjian", "idSoalUjian");
-        columnMapping.put("namaUjian", "namaUjian");
-        columnMapping.put("pertanyaan", "pertanyaan");
-        columnMapping.put("bobot", "bobot");
-        columnMapping.put("jenisSoal", "jenisSoal");
-        columnMapping.put("opsi", "opsi");
-        columnMapping.put("pasangan", "pasangan");
-        columnMapping.put("jawabanBenar", "jawabanBenar");
-        columnMapping.put("toleransiTypo", "toleransiTypo");
-        columnMapping.put("createdAt", "createdAt");
-        columnMapping.put("soalUjian", "soalUjian");
-        columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("mapel", "mapel");
-        columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("semester", "semester");
-        columnMapping.put("kelas", "kelas");
-        columnMapping.put("elemen", "elemen");
-        columnMapping.put("acp", "acp");
-        columnMapping.put("atp", "atp");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
-
-        Map<String, String> indexedFields = new HashMap<>();
-        indexedFields.put("opsi", "MAP");
-        indexedFields.put("pasangan", "MAP");
-        indexedFields.put("jawabanBenar", "LIST");
-
         List<BankSoal> bankSoalList = client.getDataListByColumnIndeks(
                 tableBankSoal.toString(),
-                columnMapping,
-                "school",
-                "idSchool",
+                baseColumnMapping(),
+                "study_program",
+                "id",
                 schoolID,
                 BankSoal.class,
                 size,
-                indexedFields);
+                indexedFields());
 
         return bankSoalList;
     }
@@ -302,37 +304,6 @@ public class BankSoalRepository {
         HBaseCustomClient client = new HBaseCustomClient(conf);
         TableName tableBankSoal = TableName.valueOf(tableName);
 
-        // Standard column mappings
-        Map<String, String> columnMapping = new HashMap<>();
-        columnMapping.put("idBankSoal", "idBankSoal");
-        columnMapping.put("idSoalUjian", "idSoalUjian");
-        columnMapping.put("namaUjian", "namaUjian");
-        columnMapping.put("pertanyaan", "pertanyaan");
-        columnMapping.put("bobot", "bobot");
-        columnMapping.put("jenisSoal", "jenisSoal");
-        columnMapping.put("opsi", "opsi");
-        columnMapping.put("pasangan", "pasangan");
-        columnMapping.put("jawabanBenar", "jawabanBenar");
-        columnMapping.put("toleransiTypo", "toleransiTypo");
-        columnMapping.put("createdAt", "createdAt");
-        columnMapping.put("soalUjian", "soalUjian");
-        columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("mapel", "mapel");
-        columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("semester", "semester");
-        columnMapping.put("kelas", "kelas");
-        columnMapping.put("elemen", "elemen");
-        columnMapping.put("acp", "acp");
-        columnMapping.put("atp", "atp");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
-
-        // Definisikan field yang menggunakan indeks
-        Map<String, String> indexedFields = new HashMap<>();
-        indexedFields.put("opsi", "MAP");
-        indexedFields.put("pasangan", "MAP");
-        indexedFields.put("jawabanBenar", "LIST");
-
         List<BankSoal> result = new ArrayList<>();
 
         // Fetch each BankSoal by ID
@@ -340,7 +311,7 @@ public class BankSoalRepository {
             try {
                 BankSoal bankSoal = client.showDataTable(
                         tableBankSoal.toString(),
-                        columnMapping,
+                        baseColumnMapping(),
                         bankSoalId,
                         BankSoal.class);
 
@@ -454,7 +425,34 @@ public class BankSoalRepository {
                     bankSoal.getSoalUjian().getCreatedAt().toString());
         }
 
-        // Update other relationships
+        if (bankSoal.getStudy_program() != null && bankSoal.getStudy_program().getId() != null) {
+            client.insertRecord(table, rowKey, "study_program", "id", bankSoal.getStudy_program().getId());
+            client.insertRecord(table, rowKey, "study_program", "name", bankSoal.getStudy_program().getName());
+        }
+
+        if (bankSoal.getKelas() != null && bankSoal.getKelas().getIdKelas() != null) {
+            client.insertRecord(table, rowKey, "kelas", "idKelas", bankSoal.getKelas().getIdKelas());
+            client.insertRecord(table, rowKey, "kelas", "namaKelas", bankSoal.getKelas().getNamaKelas());
+        }
+
+        if (bankSoal.getSeasons() != null && bankSoal.getSeasons().getIdSeason() != null) {
+            client.insertRecord(table, rowKey, "seasons", "idSeason", bankSoal.getSeasons().getIdSeason());
+        }
+
+        if (bankSoal.getSubject() != null && bankSoal.getSubject().getId() != null) {
+            client.insertRecord(table, rowKey, "subject", "id", bankSoal.getSubject().getId());
+            client.insertRecord(table, rowKey, "subject", "name", bankSoal.getSubject().getName());
+        }
+
+        if (bankSoal.getRps_detail() != null && bankSoal.getRps_detail().getId() != null) {
+            client.insertRecord(table, rowKey, "rps_detail", "id", bankSoal.getRps_detail().getId());
+            client.insertRecord(table, rowKey, "rps_detail", "week",
+                    String.valueOf(bankSoal.getRps_detail().getWeek()));
+            client.insertRecord(table, rowKey, "rps_detail", "sub_cp_mk", bankSoal.getRps_detail().getSub_cp_mk());
+            client.insertRecord(table, rowKey, "rps_detail", "weight",
+                    String.valueOf(bankSoal.getRps_detail().getWeight()));
+        }
+
         if (bankSoal.getTahunAjaran() != null) {
             client.insertRecord(table, rowKey, "tahunAjaran", "idTahun", bankSoal.getTahunAjaran().getIdTahun());
             client.insertRecord(table, rowKey, "tahunAjaran", "tahunAjaran",
@@ -466,47 +464,10 @@ public class BankSoalRepository {
             client.insertRecord(table, rowKey, "semester", "namaSemester", bankSoal.getSemester().getNamaSemester());
         }
 
-        if (bankSoal.getKelas() != null) {
-            client.insertRecord(table, rowKey, "kelas", "idKelas", bankSoal.getKelas().getIdKelas());
-            client.insertRecord(table, rowKey, "kelas", "namaKelas", bankSoal.getKelas().getNamaKelas());
-        }
-
-        if (bankSoal.getMapel() != null) {
-            client.insertRecord(table, rowKey, "mapel", "idMapel", bankSoal.getMapel().getIdMapel());
-            client.insertRecord(table, rowKey, "mapel", "name", bankSoal.getMapel().getName());
-        }
-
-        if (bankSoal.getElemen() != null) {
-            client.insertRecord(table, rowKey, "elemen", "idElemen", bankSoal.getElemen().getIdElemen());
-            client.insertRecord(table, rowKey, "elemen", "namaElemen", bankSoal.getElemen().getNamaElemen());
-        }
-
-        if (bankSoal.getAcp() != null) {
-            client.insertRecord(table, rowKey, "acp", "idAcp", bankSoal.getAcp().getIdAcp());
-            client.insertRecord(table, rowKey, "acp", "namaAcp", bankSoal.getAcp().getNamaAcp());
-        }
-
-        if (bankSoal.getAtp() != null) {
-            client.insertRecord(table, rowKey, "atp", "idAtp", bankSoal.getAtp().getIdAtp());
-            client.insertRecord(table, rowKey, "atp", "namaAtp", bankSoal.getAtp().getNamaAtp());
-        }
-
         if (bankSoal.getTaksonomi() != null) {
             client.insertRecord(table, rowKey, "taksonomi", "idTaksonomi", bankSoal.getTaksonomi().getIdTaksonomi());
             client.insertRecord(table, rowKey, "taksonomi", "namaTaksonomi",
                     bankSoal.getTaksonomi().getNamaTaksonomi());
-        }
-
-        if (bankSoal.getKonsentrasiKeahlianSekolah() != null) {
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "idKonsentrasiSekolah",
-                    bankSoal.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah());
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "namaKonsentrasiSekolah",
-                    bankSoal.getKonsentrasiKeahlianSekolah().getNamaKonsentrasiSekolah());
-        }
-
-        if (bankSoal.getSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", bankSoal.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool", bankSoal.getSchool().getNameSchool());
         }
     }
 

@@ -37,8 +37,7 @@ public class SoalUjianRepository {
         columnMapping.put("createdAt", "createdAt");
         columnMapping.put("user", "user");
         columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
         // Definisikan field yang menggunakan indeks
         Map<String, String> indexedFields = new HashMap<>();
@@ -110,17 +109,9 @@ public class SoalUjianRepository {
             client.insertRecord(table, rowKey, "taksonomi", "namaTaksonomi", soal.getTaksonomi().getNamaTaksonomi());
         }
 
-        if (soal.getKonsentrasiKeahlianSekolah() != null) {
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "idKonsentrasiSekolah",
-                    soal.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah());
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "namaKonsentrasiSekolah",
-                    soal.getKonsentrasiKeahlianSekolah().getNamaKonsentrasiSekolah());
-
-        }
-
         if (soal.getSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", soal.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool", soal.getSchool().getNameSchool());
+            client.insertRecord(table, rowKey, "study_program", "idSchool", soal.getSchool().getIdSchool());
+            client.insertRecord(table, rowKey, "study_program", "nameSchool", soal.getSchool().getNameSchool());
         }
     }
 
@@ -204,13 +195,12 @@ public class SoalUjianRepository {
         columnMapping.put("createdAt", "createdAt");
         columnMapping.put("user", "user");
         columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
         return client.showDataTable(tableSoalUjian.toString(), columnMapping, soalUjianId, SoalUjian.class);
     }
 
-    public List<SoalUjian> findSoalUjianBySekolah(String schoolID, int size) throws IOException {
+    public List<SoalUjian> findSoalUjianByStudyProgram(String studyProgramId, int size) throws IOException {
         TableName tableSoalUjian = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
@@ -228,8 +218,7 @@ public class SoalUjianRepository {
         columnMapping.put("createdAt", "createdAt");
         columnMapping.put("user", "user");
         columnMapping.put("taksonomi", "taksonomi");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
         // Define indexed fields with their types
         Map<String, String> indexedFields = new HashMap<>();
@@ -240,14 +229,18 @@ public class SoalUjianRepository {
         List<SoalUjian> soalUjianList = client.getDataListByColumnIndeks(
                 tableSoalUjian.toString(),
                 columnMapping,
-                "school",
+                "study_program",
                 "idSchool",
-                schoolID,
+                studyProgramId,
                 SoalUjian.class,
                 size,
                 indexedFields);
 
         return soalUjianList;
+    }
+
+    public List<SoalUjian> findSoalUjianBySekolah(String schoolID, int size) throws IOException {
+        return findSoalUjianByStudyProgram(schoolID, size);
     }
 
     public SoalUjian update(String soalUjianId, SoalUjian soalUjian) throws IOException {
@@ -321,16 +314,9 @@ public class SoalUjianRepository {
             client.insertRecord(table, rowKey, "taksonomi", "namaTaksonomi", soal.getTaksonomi().getNamaTaksonomi());
         }
 
-        if (soal.getKonsentrasiKeahlianSekolah() != null) {
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "idKonsentrasiSekolah",
-                    soal.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah());
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "namaKonsentrasiSekolah",
-                    soal.getKonsentrasiKeahlianSekolah().getNamaKonsentrasiSekolah());
-        }
-
         if (soal.getSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", soal.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool", soal.getSchool().getNameSchool());
+            client.insertRecord(table, rowKey, "study_program", "idSchool", soal.getSchool().getIdSchool());
+            client.insertRecord(table, rowKey, "study_program", "nameSchool", soal.getSchool().getNameSchool());
         }
     }
 

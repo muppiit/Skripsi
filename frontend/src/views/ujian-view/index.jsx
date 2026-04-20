@@ -80,6 +80,28 @@ const getGradeColor = (grade) => {
   return gradeColors[grade] || "default";
 };
 
+const formatKelasLabel = (kelas) => {
+  if (!kelas) return "-";
+
+  const parts = [kelas.namaKelas || kelas.idKelas, kelas.angkatan].filter(
+    Boolean
+  );
+
+  return parts.length > 0 ? parts.join(" • ") : kelas.idKelas || "-";
+};
+
+const formatSeasonLabel = (season) => {
+  if (!season) return "-";
+
+  const parts = [
+    season.idSeason,
+    season.semester?.namaSemester,
+    season.tahunAjaran?.tahunAjaran,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" • ") : season.idSeason || "-";
+};
+
 const UjianCATView = () => {
   const screens = useBreakpoint();
   const navigate = useNavigate();
@@ -113,6 +135,7 @@ const UjianCATView = () => {
   const [sessionId, setSessionId] = useState(null);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [sessionContext, setSessionContext] = useState(null);
 
   // Ujian states
   const [currentSoal, setCurrentSoal] = useState(0);
@@ -365,6 +388,10 @@ const UjianCATView = () => {
 
         // Set data ujian dan soal sekaligus
         setUjianData(ujian);
+        setSessionContext({
+          kelas: ujian.kelas || null,
+          seasons: ujian.seasons || null,
+        });
 
         // Langsung set soal dari bankSoalList (tanpa jawabanBenar untuk keamanan)
         if (ujian.bankSoalList && ujian.bankSoalList.length > 0) {
@@ -474,6 +501,7 @@ const UjianCATView = () => {
 
         // Auto resume without modal confirmation - SEAMLESS MODE
         console.log("Auto-resuming existing session:", sessionData);
+        setSessionContext(sessionData);
 
         // Brief info message only - no modal blocking
         message.info(
@@ -585,6 +613,7 @@ const UjianCATView = () => {
 
         // Set session data
         setSessionId(sessionData.sessionId);
+        setSessionContext(sessionData);
         setSessionStarted(true);
         setSessionActive(true);
         setIsStarted(true);
@@ -1099,14 +1128,14 @@ const UjianCATView = () => {
                             border: isSelected
                               ? "2px solid #1890ff"
                               : isMatched
-                              ? "2px solid #52c41a"
-                              : "2px solid #d9d9d9",
+                                ? "2px solid #52c41a"
+                                : "2px solid #d9d9d9",
                             borderRadius: "8px",
                             backgroundColor: isSelected
                               ? "#e6f7ff"
                               : isMatched
-                              ? "#f6ffed"
-                              : "#ffffff",
+                                ? "#f6ffed"
+                                : "#ffffff",
                             cursor: "pointer",
                             transition: "all 0.3s ease",
                             position: "relative",
@@ -1121,8 +1150,8 @@ const UjianCATView = () => {
                               color: isSelected
                                 ? "#1890ff"
                                 : isMatched
-                                ? "#52c41a"
-                                : "#666",
+                                  ? "#52c41a"
+                                  : "#666",
                             }}
                           >
                             {item.label}.
@@ -1276,14 +1305,14 @@ const UjianCATView = () => {
                             border: canSelect
                               ? "2px dashed #1890ff"
                               : isMatched
-                              ? "2px solid #52c41a"
-                              : "2px solid #d9d9d9",
+                                ? "2px solid #52c41a"
+                                : "2px solid #d9d9d9",
                             borderRadius: "8px",
                             backgroundColor: canSelect
                               ? "#f0f9ff"
                               : isMatched
-                              ? "#f6ffed"
-                              : "#ffffff",
+                                ? "#f6ffed"
+                                : "#ffffff",
                             cursor:
                               selectedLeftItem || isMatched
                                 ? "pointer"
@@ -1299,8 +1328,8 @@ const UjianCATView = () => {
                               color: canSelect
                                 ? "#1890ff"
                                 : isMatched
-                                ? "#52c41a"
-                                : "#666",
+                                  ? "#52c41a"
+                                  : "#666",
                             }}
                           >
                             {item.label}.
@@ -1716,6 +1745,29 @@ const UjianCATView = () => {
               Kode: {ujianData.pengaturan?.kodeUjian}
             </Text>
 
+            <Card size="small" style={{ marginBottom: "24px" }}>
+              <Row gutter={[16, 12]}>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">Kelas</Text>
+                  <div>
+                    <Text strong>
+                      {formatKelasLabel(sessionContext?.kelas || ujianData.kelas)}
+                    </Text>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Text type="secondary">Season</Text>
+                  <div>
+                    <Text strong>
+                      {formatSeasonLabel(
+                        sessionContext?.seasons || ujianData.seasons
+                      )}
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
+
             <Card style={{ marginBottom: "24px", backgroundColor: "#f6ffed" }}>
               <Row gutter={[24, 16]}>
                 <Col xs={24} sm={8}>
@@ -1882,10 +1934,10 @@ const UjianCATView = () => {
           <Divider />
           {/* Analisis Ujian - HANYA UNTUK OPERATOR & TEACHER */}
           {userInfo &&
-          userInfo.authorities &&
-          userInfo.authorities.some((auth) =>
-            ["ROLE_OPERATOR", "ROLE_TEACHER"].includes(auth.authority)
-          ) ? (
+            userInfo.authorities &&
+            userInfo.authorities.some((auth) =>
+              ["ROLE_OPERATOR", "ROLE_TEACHER"].includes(auth.authority)
+            ) ? (
             <>
               {analysisLoading ? (
                 <div style={{ textAlign: "center" }}>
@@ -1948,62 +2000,62 @@ const UjianCATView = () => {
                   {(ujianAnalysis.medianScore ||
                     ujianAnalysis.standardDeviation ||
                     ujianAnalysis.gradeDistribution) && (
-                    <Card size="small" style={{ marginBottom: "16px" }}>
-                      <Title level={5}>📈 Statistik Detail</Title>
-                      <Row gutter={[16, 8]}>
-                        {ujianAnalysis.medianScore && (
-                          <Col xs={24} sm={8}>
-                            <Text>
-                              <strong>Median:</strong>{" "}
-                              {ujianAnalysis.medianScore.toFixed(1)}
-                            </Text>
-                          </Col>
-                        )}
-                        {ujianAnalysis.standardDeviation && (
-                          <Col xs={24} sm={8}>
-                            <Text>
-                              <strong>Std. Deviasi:</strong>{" "}
-                              {ujianAnalysis.standardDeviation.toFixed(1)}
-                            </Text>
-                          </Col>
-                        )}
-                        {ujianAnalysis.highestScore &&
-                          ujianAnalysis.lowestScore && (
+                      <Card size="small" style={{ marginBottom: "16px" }}>
+                        <Title level={5}>📈 Statistik Detail</Title>
+                        <Row gutter={[16, 8]}>
+                          {ujianAnalysis.medianScore && (
                             <Col xs={24} sm={8}>
                               <Text>
-                                <strong>Range:</strong>{" "}
-                                {ujianAnalysis.lowestScore.toFixed(1)} -{" "}
-                                {ujianAnalysis.highestScore.toFixed(1)}
+                                <strong>Median:</strong>{" "}
+                                {ujianAnalysis.medianScore.toFixed(1)}
                               </Text>
                             </Col>
                           )}
-                      </Row>
+                          {ujianAnalysis.standardDeviation && (
+                            <Col xs={24} sm={8}>
+                              <Text>
+                                <strong>Std. Deviasi:</strong>{" "}
+                                {ujianAnalysis.standardDeviation.toFixed(1)}
+                              </Text>
+                            </Col>
+                          )}
+                          {ujianAnalysis.highestScore &&
+                            ujianAnalysis.lowestScore && (
+                              <Col xs={24} sm={8}>
+                                <Text>
+                                  <strong>Range:</strong>{" "}
+                                  {ujianAnalysis.lowestScore.toFixed(1)} -{" "}
+                                  {ujianAnalysis.highestScore.toFixed(1)}
+                                </Text>
+                              </Col>
+                            )}
+                        </Row>
 
-                      {/* Grade Distribution */}
-                      {ujianAnalysis.gradeDistribution && (
-                        <div style={{ marginTop: "12px" }}>
-                          <Text strong>Distribusi Nilai:</Text>
-                          <div style={{ marginTop: "8px" }}>
-                            {Object.entries(
-                              ujianAnalysis.gradeDistribution
-                            ).map(([grade, count]) => (
-                              <Tag
-                                key={grade}
-                                color={getGradeColor(grade)}
-                                style={{ margin: "2px" }}
-                              >
-                                {grade}: {count} siswa (
-                                {ujianAnalysis.gradePercentages?.[
-                                  grade
-                                ]?.toFixed(1) || 0}
-                                %)
-                              </Tag>
-                            ))}
+                        {/* Grade Distribution */}
+                        {ujianAnalysis.gradeDistribution && (
+                          <div style={{ marginTop: "12px" }}>
+                            <Text strong>Distribusi Nilai:</Text>
+                            <div style={{ marginTop: "8px" }}>
+                              {Object.entries(
+                                ujianAnalysis.gradeDistribution
+                              ).map(([grade, count]) => (
+                                <Tag
+                                  key={grade}
+                                  color={getGradeColor(grade)}
+                                  style={{ margin: "2px" }}
+                                >
+                                  {grade}: {count} siswa (
+                                  {ujianAnalysis.gradePercentages?.[
+                                    grade
+                                  ]?.toFixed(1) || 0}
+                                  %)
+                                </Tag>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </Card>
-                  )}
+                        )}
+                      </Card>
+                    )}
 
                   {/* Item Analysis Preview */}
                   {ujianAnalysis.easiestQuestions &&
@@ -2060,49 +2112,49 @@ const UjianCATView = () => {
                   {/* Security Analysis */}
                   {(ujianAnalysis.suspiciousSubmissions > 0 ||
                     ujianAnalysis.flaggedParticipants > 0) && (
-                    <Card
-                      size="small"
-                      style={{ marginBottom: "16px", borderColor: "#ff7875" }}
-                    >
-                      <Title level={5} style={{ color: "#ff7875" }}>
-                        🔒 Analisis Keamanan
-                      </Title>
-                      <Row gutter={[16, 8]}>
-                        <Col xs={24} sm={8}>
-                          <Text>
-                            <strong>Pelanggaran:</strong>{" "}
-                            {ujianAnalysis.suspiciousSubmissions || 0}
-                          </Text>
-                        </Col>
-                        <Col xs={24} sm={8}>
-                          <Text>
-                            <strong>Peserta Ter-flag:</strong>{" "}
-                            {ujianAnalysis.flaggedParticipants || 0}
-                          </Text>
-                        </Col>
-                        <Col xs={24} sm={8}>
-                          <Text>
-                            <strong>Status:</strong>
-                            <Tag
-                              color={
-                                ujianAnalysis.integrityScore > 0.8
-                                  ? "green"
+                      <Card
+                        size="small"
+                        style={{ marginBottom: "16px", borderColor: "#ff7875" }}
+                      >
+                        <Title level={5} style={{ color: "#ff7875" }}>
+                          🔒 Analisis Keamanan
+                        </Title>
+                        <Row gutter={[16, 8]}>
+                          <Col xs={24} sm={8}>
+                            <Text>
+                              <strong>Pelanggaran:</strong>{" "}
+                              {ujianAnalysis.suspiciousSubmissions || 0}
+                            </Text>
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Text>
+                              <strong>Peserta Ter-flag:</strong>{" "}
+                              {ujianAnalysis.flaggedParticipants || 0}
+                            </Text>
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Text>
+                              <strong>Status:</strong>
+                              <Tag
+                                color={
+                                  ujianAnalysis.integrityScore > 0.8
+                                    ? "green"
+                                    : ujianAnalysis.integrityScore > 0.6
+                                      ? "orange"
+                                      : "red"
+                                }
+                              >
+                                {ujianAnalysis.integrityScore > 0.8
+                                  ? "Aman"
                                   : ujianAnalysis.integrityScore > 0.6
-                                  ? "orange"
-                                  : "red"
-                              }
-                            >
-                              {ujianAnalysis.integrityScore > 0.8
-                                ? "Aman"
-                                : ujianAnalysis.integrityScore > 0.6
-                                ? "Perlu Perhatian"
-                                : "Berisiko Tinggi"}
-                            </Tag>
-                          </Text>
-                        </Col>
-                      </Row>
-                    </Card>
-                  )}
+                                    ? "Perlu Perhatian"
+                                    : "Berisiko Tinggi"}
+                              </Tag>
+                            </Text>
+                          </Col>
+                        </Row>
+                      </Card>
+                    )}
 
                   {/* Enhanced Recommendations */}
                   {ujianAnalysis.recommendations &&
@@ -2159,7 +2211,7 @@ const UjianCATView = () => {
                   {/* Performance by Class */}
                   {ujianAnalysis.performanceByKelas &&
                     Object.keys(ujianAnalysis.performanceByKelas).length >
-                      0 && (
+                    0 && (
                       <Card size="small">
                         <Title level={5}>🏫 Performa per Kelas</Title>
                         {Object.entries(ujianAnalysis.performanceByKelas).map(
@@ -2294,6 +2346,16 @@ const UjianCATView = () => {
                   Session: {sessionId ? "Aktif" : "Tidak Aktif"}
                 </Text>
               </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: "12px" }}>
+                  Kelas: {formatKelasLabel(sessionContext?.kelas || ujianData.kelas)}
+                </Text>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: "12px" }}>
+                  Season: {formatSeasonLabel(sessionContext?.seasons || ujianData.seasons)}
+                </Text>
+              </div>
             </div>
           </Col>
           <Col xs={24} sm={12} md={8}>
@@ -2329,8 +2391,8 @@ const UjianCATView = () => {
                         violationCount > 10
                           ? "#ff4d4f"
                           : violationCount > 5
-                          ? "#fa8c16"
-                          : "#faad14",
+                            ? "#fa8c16"
+                            : "#faad14",
                     }}
                   >
                     <Tag
@@ -2338,8 +2400,8 @@ const UjianCATView = () => {
                         violationCount > 10
                           ? "red"
                           : violationCount > 5
-                          ? "orange"
-                          : "warning"
+                            ? "orange"
+                            : "warning"
                       }
                     >
                       Pelanggaran
@@ -2535,9 +2597,8 @@ const UjianCATView = () => {
               centered
             >
               <Alert
-                message={`Waktu tersisa ${Math.floor(timeLeft / 60)} menit ${
-                  timeLeft % 60
-                } detik!`}
+                message={`Waktu tersisa ${Math.floor(timeLeft / 60)} menit ${timeLeft % 60
+                  } detik!`}
                 description="Segera selesaikan ujian Anda. Ujian akan otomatis terkumpul ketika waktu habis."
                 type="warning"
                 showIcon

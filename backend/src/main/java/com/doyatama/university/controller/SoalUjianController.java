@@ -38,13 +38,16 @@ public class SoalUjianController {
             @RequestParam(value = "userID", defaultValue = "*") String userID,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
-        return soalUjianService.getAllSoalUjian(page, size, userID, schoolID);
+        String studyProgramID = currentUser.getSchoolId();
+        return soalUjianService.getAllSoalUjian(page, size, userID, studyProgramID);
     }
 
     @PostMapping
     public ResponseEntity<?> createSoalUjian(@Valid @RequestBody SoalUjianRequest soalUjianRequest) throws IOException {
         try {
+            soalUjianRequest.setIdStudyProgram(soalUjianRequest.getIdStudyProgram() != null
+                    ? soalUjianRequest.getIdStudyProgram()
+                    : soalUjianRequest.getIdSchool());
             SoalUjian soalUjian = soalUjianService.createSoalUjian(soalUjianRequest);
 
             URI location = ServletUriComponentsBuilder
@@ -70,6 +73,9 @@ public class SoalUjianController {
     public ResponseEntity<?> updateSoalUjian(@PathVariable String soalUjianId,
             @Valid @RequestBody SoalUjianRequest soalUjianRequest) throws IOException {
         try {
+            soalUjianRequest.setIdStudyProgram(soalUjianRequest.getIdStudyProgram() != null
+                    ? soalUjianRequest.getIdStudyProgram()
+                    : soalUjianRequest.getIdSchool());
             SoalUjian soalUjian = soalUjianService.updateSoalUjian(soalUjianId, soalUjianRequest);
 
             URI location = ServletUriComponentsBuilder

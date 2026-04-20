@@ -13,7 +13,7 @@ import {
   message,
 } from "antd";
 import { getTaksonomi } from "@/api/taksonomi";
-import { getSchool } from "@/api/school";
+import { getStudyPrograms } from "@/api/studyProgram";
 import { reqUserInfo } from "@/api/user";
 
 const { TextArea } = Input;
@@ -46,9 +46,14 @@ const EditTaksonomiForm = ({
 
   const fetchSchoolList = async () => {
     try {
-      const result = await getSchool();
+      const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(result.data.content);
+        setSchoolList(
+          result.data.content.map((item) => ({
+            idSchool: item.id,
+            nameSchool: item.name,
+          }))
+        );
       } else {
         message.error("Gagal mengambil data");
       }

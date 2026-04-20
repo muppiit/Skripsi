@@ -1,0 +1,9 @@
+rps_id,rps_name,sub_cp_mk,weight,learning_materials
+RPS001,Algoritma Pemrograman,Pengenalan Algoritma,20,Textbook: Introduction to Algorithms
+RPS001,Algoritma Pemrograman,Sorting Algorithm,30,Online Course: Coursera Algorithms
+RPS001,Algoritma Pemrograman,Searching Algorithm,25,Video Tutorial: YouTube
+RPS001,Algoritma Pemrograman,Graph Algorithm,25,Research Paper: Graph Theory Basics
+RPS002,Struktur Data,Array dan List,20,Textbook: Data Structures Fundamentals
+RPS002,Struktur Data,Stack dan Queue,25,Practice Problems: LeetCode
+RPS002,Struktur Data,Tree Structures,30,Video Series: Tree Algorithms
+RPS002,Struktur Data,Hash Table,25,Documentation: C++ STL

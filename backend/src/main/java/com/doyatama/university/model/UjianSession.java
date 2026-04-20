@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
+import com.doyatama.university.model.Kelas;
+import com.doyatama.university.model.Season;
+
 public class UjianSession {
     private String idSession;
     private String idUjian;
@@ -23,6 +26,8 @@ public class UjianSession {
     private Instant submittedAt;
     private Boolean isAutoSubmit;
     private String idSchool;
+    private String idKelas;
+    private String idSeason;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -43,6 +48,8 @@ public class UjianSession {
     private Ujian ujian;
     private User peserta;
     private School school;
+    private Kelas kelas;
+    private Season seasons;
 
     // TAMBAHAN: Track violations dalam session
     private List<String> violationIds; // Track IDs of violations
@@ -228,6 +235,22 @@ public class UjianSession {
         this.idSchool = idSchool;
     }
 
+    public String getIdKelas() {
+        return idKelas;
+    }
+
+    public void setIdKelas(String idKelas) {
+        this.idKelas = idKelas;
+    }
+
+    public String getIdSeason() {
+        return idSeason;
+    }
+
+    public void setIdSeason(String idSeason) {
+        this.idSeason = idSeason;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -307,6 +330,22 @@ public class UjianSession {
 
     public void setSchool(School school) {
         this.school = school;
+    }
+
+    public Kelas getKelas() {
+        return kelas;
+    }
+
+    public void setKelas(Kelas kelas) {
+        this.kelas = kelas;
+    }
+
+    public Season getSeasons() {
+        return seasons;
+    }
+
+    public void setSeasons(Season seasons) {
+        this.seasons = seasons;
     }
 
     // TAMBAHAN: Getters/Setters untuk violation tracking
@@ -470,6 +509,8 @@ public class UjianSession {
         hasil.setUjian(this.ujian);
         hasil.setPeserta(this.peserta);
         hasil.setSchool(this.school);
+        hasil.setKelas(this.kelas);
+        hasil.setSeasons(this.seasons);
 
         return hasil;
     }

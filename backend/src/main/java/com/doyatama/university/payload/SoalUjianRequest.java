@@ -18,6 +18,7 @@ public class SoalUjianRequest {
 
     private String idUser;
     private String idTaksonomi; // taksonomi kesulitan
+    private String idStudyProgram;
     private String idSchool; // sekolah
     private String idKonsentrasiSekolah;
 
@@ -28,7 +29,7 @@ public class SoalUjianRequest {
             Map<String, String> opsi,
             Map<String, String> pasangan, List<String> jawabanBenar, String toleransiTypo, String idUser,
             String idKonsentrasiSekolah,
-            String idTaksonomi, String idSchool) {
+            String idTaksonomi, String idStudyProgram, String idSchool) {
         this.idSoalUjian = idSoalUjian;
         this.namaUjian = namaUjian;
         this.pertanyaan = pertanyaan;
@@ -40,6 +41,7 @@ public class SoalUjianRequest {
         this.toleransiTypo = toleransiTypo;
         this.idUser = idUser;
         this.idTaksonomi = idTaksonomi;
+        this.idStudyProgram = idStudyProgram;
         this.idSchool = idSchool;
         this.idKonsentrasiSekolah = idKonsentrasiSekolah;
     }
@@ -138,6 +140,14 @@ public class SoalUjianRequest {
 
     public void setIdTaksonomi(String idTaksonomi) {
         this.idTaksonomi = idTaksonomi;
+    }
+
+    public String getIdStudyProgram() {
+        return idStudyProgram;
+    }
+
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
     }
 
     public String getIdSchool() {

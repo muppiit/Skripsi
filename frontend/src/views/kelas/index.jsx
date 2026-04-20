@@ -107,7 +107,8 @@ const Kelas = () => {
       const updatedData = {
         idKelas: null,
         namaKelas: values.namaKelas,
-        idSekolah: values.idSchool,
+        idStudyProgram: values.idStudyProgram,
+        angkatan: values.angkatan,
       };
       await addKelas(updatedData);
       setAddKelasModalVisible(false);
@@ -127,7 +128,8 @@ const Kelas = () => {
       const updatedData = {
         idKelas: values.idKelas,
         namaKelas: values.namaKelas,
-        idSekolah: values.idSchool,
+        idStudyProgram: values.idStudyProgram,
+        angkatan: values.angkatan,
       };
       console.log("Updated Data:", updatedData);
       await editKelas(updatedData, currentRowData.idKelas);
@@ -168,6 +170,23 @@ const Kelas = () => {
       align: "center",
       ...getColumnSearchProps("namaKelas"),
       sorter: (a, b) => a.namaKelas.localeCompare(b.namaKelas),
+    },
+    {
+      title: "Angkatan",
+      dataIndex: "angkatan",
+      key: "angkatan",
+      align: "center",
+      ...getColumnSearchProps("angkatan"),
+      sorter: (a, b) => (a.angkatan || "").localeCompare(b.angkatan || ""),
+    },
+    {
+      title: "Program Studi",
+      key: "studyProgram",
+      align: "center",
+      render: (_, row) => {
+        const studyProgram = row.studyProgram || row.study_program;
+        return studyProgram?.name || "-";
+      },
     },
     {
       title: "Operasi",

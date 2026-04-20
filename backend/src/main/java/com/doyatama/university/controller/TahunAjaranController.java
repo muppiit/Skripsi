@@ -38,9 +38,8 @@ public class TahunAjaranController {
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
-        System.out.println("⚙️ [Controller] schoolID diterima: " + schoolID);
-        return tahunService.getAllTahunAjaran(page, schoolID, size);
+        String studyProgramId = currentUser.getSchoolId();
+        return tahunService.getAllTahunAjaran(page, studyProgramId, size);
     }
 
     @PostMapping

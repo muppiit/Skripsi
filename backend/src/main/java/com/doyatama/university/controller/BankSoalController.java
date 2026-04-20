@@ -36,10 +36,12 @@ public class BankSoalController {
             @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @RequestParam(value = "userID", defaultValue = "*") String userID,
+            @RequestParam(value = "semesterId", defaultValue = "") String semesterId,
+            @RequestParam(value = "kelasId", defaultValue = "") String kelasId,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
         String schoolID = currentUser.getSchoolId();
-        return bankSoalService.getAllBankSoal(page, size, userID, schoolID);
+        return bankSoalService.getAllBankSoal(page, size, userID, schoolID, semesterId, kelasId);
     }
 
     @PostMapping

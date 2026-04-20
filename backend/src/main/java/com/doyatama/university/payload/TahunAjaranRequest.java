@@ -11,15 +11,29 @@ package com.doyatama.university.payload;
 public class TahunAjaranRequest {
     private String idTahun;
     private String tahunAjaran;
+    private String idStudyProgram;
     private String idSekolah;
 
     public TahunAjaranRequest() {
     }
 
-    public TahunAjaranRequest(String idTahun, String tahunAjaran, String idSekolah) {
+    public TahunAjaranRequest(String idTahun, String tahunAjaran, String idStudyProgram, String idSekolah) {
         this.idTahun = idTahun;
         this.tahunAjaran = tahunAjaran;
+        this.idStudyProgram = idStudyProgram;
         this.idSekolah = idSekolah;
+    }
+
+    public String getIdStudyProgram() {
+        return idStudyProgram;
+    }
+
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
+    }
+
+    public String getEffectiveStudyProgramId() {
+        return idStudyProgram != null ? idStudyProgram : idSekolah;
     }
 
     public String getIdTahun() {
@@ -53,6 +67,9 @@ public class TahunAjaranRequest {
                 break;
             case "tahunAjaran":
                 this.tahunAjaran = value;
+                break;
+            case "idStudyProgram":
+                this.idStudyProgram = value;
                 break;
             case "idSekolah":
                 this.idSekolah = value;

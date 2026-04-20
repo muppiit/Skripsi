@@ -34,17 +34,37 @@ public class RPSController {
     @CrossOrigin
     @PostMapping("/import")
     public ResponseEntity<?> importRPS(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "File tidak boleh kosong"));
+        }
+
         if (!ExcelUploadService.isValidExcelFile(file)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Invalid file format. Please upload an Excel file.");
+                    .body(new ApiResponse(false, "Format file harus Excel (.xlsx)"));
         }
 
         try {
             List<RPS> rpsList = rpsService.importRPSFromExcel(file);
-            return ResponseEntity.status(HttpStatus.OK).body(rpsList);
+
+            if (rpsList == null || rpsList.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.OK)
+                        .body(new ApiResponse(true,
+                                "File diproses tapi tidak ada data yang berhasil disimpan. Periksa format file."));
+            }
+
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(new ApiResponse(true,
+                            rpsList.size() + " RPS data berhasil diimport"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse(false, "Format file tidak sesuai: " + e.getMessage()));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to import data from Excel file.");
+                    .body(new ApiResponse(false, "Gagal membaca file Excel: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Terjadi kesalahan: " + e.getMessage()));
         }
     }
 

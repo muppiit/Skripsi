@@ -7,15 +7,17 @@ package com.doyatama.university.payload;
 public class KelasRequest {
     private String idKelas;
     private String namaKelas;
-    private String idSekolah;
+    private String idStudyProgram;
+    private String angkatan;
 
     public KelasRequest() {
     }
 
-    public KelasRequest(String idKelas, String namaKelas, String idSekolah) {
+    public KelasRequest(String idKelas, String namaKelas, String idStudyProgram, String angkatan) {
         this.idKelas = idKelas;
         this.namaKelas = namaKelas;
-        this.idSekolah = idSekolah;
+        this.idStudyProgram = idStudyProgram;
+        this.angkatan = angkatan;
     }
 
     public String getIdKelas() {
@@ -34,12 +36,20 @@ public class KelasRequest {
         this.namaKelas = namaKelas;
     }
 
-    public String getIdSekolah() {
-        return idSekolah;
+    public String getIdStudyProgram() {
+        return idStudyProgram;
     }
 
-    public void setIdSekolah(String idSekolah) {
-        this.idSekolah = idSekolah;
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
+    }
+
+    public String getAngkatan() {
+        return angkatan;
+    }
+
+    public void setAngkatan(String angkatan) {
+        this.angkatan = angkatan;
     }
 
     public void set(String fieldName, String value) {
@@ -50,8 +60,11 @@ public class KelasRequest {
             case "namaKelas":
                 this.namaKelas = value;
                 break;
-            case "idSekolah":
-                this.idSekolah = value;
+            case "idStudyProgram":
+                this.idStudyProgram = value;
+                break;
+            case "angkatan":
+                this.angkatan = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

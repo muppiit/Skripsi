@@ -650,7 +650,7 @@ public class CheatDetectionService {
         } else if (request.getIdPeserta() != null) {
             allViolations = cheatDetectionRepository.findByPesertaId(request.getIdPeserta());
         } else if (request.getIdSchool() != null) {
-            allViolations = cheatDetectionRepository.findBySchoolId(request.getIdSchool());
+            allViolations = cheatDetectionRepository.findByStudyProgramId(request.getIdSchool());
         } else {
             allViolations = cheatDetectionRepository.findAll(1000);
         }
@@ -1218,7 +1218,7 @@ public class CheatDetectionService {
         List<CheatDetection> violations;
 
         if (request.getIdSchool() != null) {
-            violations = cheatDetectionRepository.findBySchoolId(request.getIdSchool());
+            violations = cheatDetectionRepository.findByStudyProgramId(request.getIdSchool());
         } else {
             violations = cheatDetectionRepository.findAll(10000);
         }
@@ -1235,7 +1235,7 @@ public class CheatDetectionService {
         List<CheatDetection> violations;
 
         if (request.getIdSchool() != null) {
-            violations = cheatDetectionRepository.findBySchoolId(request.getIdSchool());
+            violations = cheatDetectionRepository.findByStudyProgramId(request.getIdSchool());
         } else {
             violations = cheatDetectionRepository.findAll(10000);
         }

@@ -27,7 +27,7 @@ public class TahunAjaranRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idTahun", "idTahun");
         columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
         return client.showListTable(tableTahun.toString(), columnMapping, TahunAjaran.class, size);
     }
 
@@ -39,9 +39,8 @@ public class TahunAjaranRepository {
         client.insertRecord(tableTahun, rowKey, "main", "idTahun", rowKey);
         client.insertRecord(tableTahun, rowKey, "main", "tahunAjaran", tahun.getTahunAjaran());
 
-        // Sekolah
-        client.insertRecord(tableTahun, rowKey, "school", "idSchool", tahun.getSchool().getIdSchool());
-        client.insertRecord(tableTahun, rowKey, "school", "nameSchool", tahun.getSchool().getNameSchool());
+        client.insertRecord(tableTahun, rowKey, "study_program", "idSchool", tahun.getStudyProgram().getId());
+        client.insertRecord(tableTahun, rowKey, "study_program", "nameSchool", tahun.getStudyProgram().getName());
 
         client.insertRecord(tableTahun, rowKey, "detail", "created_by", "Doyatama");
         return tahun;
@@ -56,7 +55,7 @@ public class TahunAjaranRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idTahun", "idTahun");
         columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
 
         return client.showDataTable(tableTahun.toString(), columnMapping, tahunId, TahunAjaran.class);
     }
@@ -70,7 +69,7 @@ public class TahunAjaranRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idTahun", "idTahun");
         columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
 
         return client.showDataTable(tableTahun.toString(), columnMapping, tahunId, TahunAjaran.class);
     }
@@ -94,8 +93,7 @@ public class TahunAjaranRepository {
         return tahuns;
     }
 
-    public List<TahunAjaran> findTahunAjaranBySekolah(String schoolID, int size) throws IOException {
-        System.out.println("📡 [Repository] Filter berdasarkan schoolID: " + schoolID);
+    public List<TahunAjaran> findTahunAjaranByStudyProgram(String studyProgramId, int size) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
         TableName tableTahun = TableName.valueOf(tableName);
@@ -104,10 +102,10 @@ public class TahunAjaranRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idTahun", "idTahun");
         columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
 
-        List<TahunAjaran> tahun = client.getDataListByColumn(tableTahun.toString(), columnMapping, "school",
-                "idSchool", schoolID, TahunAjaran.class, size);
+        List<TahunAjaran> tahun = client.getDataListByColumn(tableTahun.toString(), columnMapping, "study_program",
+                "idSchool", studyProgramId, TahunAjaran.class, size);
 
         return tahun;
     }
@@ -121,10 +119,9 @@ public class TahunAjaranRepository {
             client.insertRecord(tableTahun, tahunId, "main", "tahunAjaran", tahun.getTahunAjaran());
         }
 
-        // Sekolah
-        if (tahun.getSchool() != null) {
-            client.insertRecord(tableTahun, tahunId, "school", "idSchool", tahun.getSchool().getIdSchool());
-            client.insertRecord(tableTahun, tahunId, "school", "nameSchool", tahun.getSchool().getNameSchool());
+        if (tahun.getStudyProgram() != null) {
+            client.insertRecord(tableTahun, tahunId, "study_program", "idSchool", tahun.getStudyProgram().getId());
+            client.insertRecord(tableTahun, tahunId, "study_program", "nameSchool", tahun.getStudyProgram().getName());
         }
 
         client.insertRecord(tableTahun, tahunId, "detail", "created_by", "Doyatama");

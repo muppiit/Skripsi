@@ -7,9 +7,9 @@ public class StudentRequest {
     private String gender;
     private String phone;
     private String religion_id;
-    private String bidangKeahlian_id;
-    private String programKeahlian_id;
-    private String konsentrasiKeahlian_id;
+    private String idStudyProgram;
+    private String idKelas;
+    private String angkatan;
     private String birth_date;
     private String place_born;
     private String address;
@@ -18,17 +18,17 @@ public class StudentRequest {
     }
 
     public StudentRequest(String id, String nisn, String name, String gender, String phone,
-            String religion_id, String bidangKeahlian_id, String programKeahlian_id,
-            String konsentrasiKeahlian_id, String birth_date, String place_born, String address) {
+            String religion_id, String idStudyProgram, String idKelas, String angkatan,
+            String birth_date, String place_born, String address) {
         this.id = id;
         this.nisn = nisn;
         this.name = name;
         this.gender = gender;
         this.phone = phone;
         this.religion_id = religion_id;
-        this.bidangKeahlian_id = bidangKeahlian_id;
-        this.programKeahlian_id = programKeahlian_id;
-        this.konsentrasiKeahlian_id = konsentrasiKeahlian_id;
+        this.idStudyProgram = idStudyProgram;
+        this.idKelas = idKelas;
+        this.angkatan = angkatan;
         this.birth_date = birth_date;
         this.place_born = place_born;
         this.address = address;
@@ -82,28 +82,28 @@ public class StudentRequest {
         this.religion_id = religion_id;
     }
 
-    public String getBidangKeahlian_id() {
-        return bidangKeahlian_id;
+    public String getIdStudyProgram() {
+        return idStudyProgram;
     }
 
-    public void setBidangKeahlian_id(String bidangKeahlian_id) {
-        this.bidangKeahlian_id = bidangKeahlian_id;
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
     }
 
-    public String getProgramKeahlian_id() {
-        return programKeahlian_id;
+    public String getIdKelas() {
+        return idKelas;
     }
 
-    public void setProgramKeahlian_id(String programKeahlian_id) {
-        this.programKeahlian_id = programKeahlian_id;
+    public void setIdKelas(String idKelas) {
+        this.idKelas = idKelas;
     }
 
-    public String getKonsentrasiKeahlian_id() {
-        return konsentrasiKeahlian_id;
+    public String getAngkatan() {
+        return angkatan;
     }
 
-    public void setKonsentrasiKeahlian_id(String konsentrasiKeahlian_id) {
-        this.konsentrasiKeahlian_id = konsentrasiKeahlian_id;
+    public void setAngkatan(String angkatan) {
+        this.angkatan = angkatan;
     }
 
     public String getBirth_date() {
@@ -159,14 +159,14 @@ public class StudentRequest {
             case "religion_id":
                 this.religion_id = value;
                 break;
-            case "bidangKeahlian_id":
-                this.bidangKeahlian_id = value;
+            case "idStudyProgram":
+                this.idStudyProgram = value;
                 break;
-            case "programKeahlian_id":
-                this.programKeahlian_id = value;
+            case "idKelas":
+                this.idKelas = value;
                 break;
-            case "konsentrasiKeahlian_id":
-                this.konsentrasiKeahlian_id = value;
+            case "angkatan":
+                this.angkatan = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

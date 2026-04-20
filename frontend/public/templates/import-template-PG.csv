@@ -1,2 +1,2 @@
-﻿namaUjian,pertanyaan,bobot,opsiA,opsiB,opsiC,opsiD,opsiE,jawabanBenar,idSchool,tahunAjaran,namaSemester,namaKelas,namaMapel,namaElemen,namaAcp,namaAtp,namaKonsentrasiSekolah,namaTaksonomi
-UTS Matematika,Hasil dari 15 + 27 adalah...,10,40,41,42,43,,C,RWK001,2025/2026,Ganjil,X,Matematika,Bilangan,Operasi Hitung Bilangan,Penjumlahan Bilangan Bulat,Teknik Komputer dan Jaringan,C1
+﻿namaUjian,pertanyaan,bobot,opsiA,opsiB,opsiC,opsiD,opsiE,jawabanBenar,idStudyProgram,tahunAjaran,namaSemester,subject,rps_detail,idSubject,idRpsDetail,namaTaksonomi
+UTS Pemrograman Dasar,Manakah struktur kontrol yang digunakan untuk perulangan?,10,if,for,return,switch,,B,RWK001,2025/2026,Ganjil,Pemrograman Dasar,CP MK 1,SUB001,RPD001,C1

@@ -88,7 +88,9 @@ const DetailAnalysis = () => {
 
         const vres = await getViolationsByUjian(idUjian);
         setViolations(vres.data?.content || []);
-        const hres = await getHasilByUjian(idUjian, true);
+        const hres = await getHasilByUjian(idUjian, {
+          includeAnalytics: true,
+        });
         setHasilUjian(hres.data?.content || []);
       } catch (err) {
         console.error("DetailAnalysis: Error fetching data:", err);
@@ -153,8 +155,8 @@ const DetailAnalysis = () => {
                     analysis.averageScore >= 75
                       ? "#3f8600"
                       : analysis.averageScore >= 60
-                      ? "#fa8c16"
-                      : "#cf1322",
+                        ? "#fa8c16"
+                        : "#cf1322",
                 }}
               />
             </Col>
@@ -170,8 +172,8 @@ const DetailAnalysis = () => {
                     analysis.passRate >= 80
                       ? "#3f8600"
                       : analysis.passRate >= 60
-                      ? "#fa8c16"
-                      : "#cf1322",
+                        ? "#fa8c16"
+                        : "#cf1322",
                 }}
               />
             </Col>
@@ -189,8 +191,8 @@ const DetailAnalysis = () => {
                     analysis.integrityScore >= 0.9
                       ? "#3f8600"
                       : analysis.integrityScore >= 0.7
-                      ? "#fa8c16"
-                      : "#cf1322",
+                        ? "#fa8c16"
+                        : "#cf1322",
                 }}
               />
             </Col>
@@ -295,7 +297,7 @@ const DetailAnalysis = () => {
               <Col xs={24} lg={12}>
                 <Card title="🏫 Performa per Kelas" size="small">
                   {analysis.performanceByKelas &&
-                  Object.keys(analysis.performanceByKelas).length > 0 ? (
+                    Object.keys(analysis.performanceByKelas).length > 0 ? (
                     Object.entries(analysis.performanceByKelas).map(
                       ([kelas, data]) => (
                         <Card
@@ -371,7 +373,7 @@ const DetailAnalysis = () => {
               <Col xs={24} lg={12}>
                 <Card title="✅ Soal Termudah" size="small">
                   {analysis.easiestQuestions &&
-                  analysis.easiestQuestions.length > 0 ? (
+                    analysis.easiestQuestions.length > 0 ? (
                     <List
                       size="small"
                       dataSource={analysis.easiestQuestions.slice(0, 10)}
@@ -409,7 +411,7 @@ const DetailAnalysis = () => {
               <Col xs={24} lg={12}>
                 <Card title="❌ Soal Tersulit" size="small">
                   {analysis.hardestQuestions &&
-                  analysis.hardestQuestions.length > 0 ? (
+                    analysis.hardestQuestions.length > 0 ? (
                     <List
                       size="small"
                       dataSource={analysis.hardestQuestions.slice(0, 10)}
@@ -461,13 +463,13 @@ const DetailAnalysis = () => {
                           {Object.values(analysis.questionDifficulty || {})
                             .length > 0
                             ? (
-                                (Object.values(
-                                  analysis.questionDifficulty
-                                ).reduce((a, b) => a + b, 0) /
-                                  Object.values(analysis.questionDifficulty)
-                                    .length) *
-                                100
-                              ).toFixed(1) + "%"
+                              (Object.values(
+                                analysis.questionDifficulty
+                              ).reduce((a, b) => a + b, 0) /
+                                Object.values(analysis.questionDifficulty)
+                                  .length) *
+                              100
+                            ).toFixed(1) + "%"
                             : "N/A"}
                         </Text>
                       </Col>
@@ -506,15 +508,15 @@ const DetailAnalysis = () => {
                     analysis.integrityScore >= 0.9
                       ? "Ujian Aman - Tidak ada indikasi kecurangan signifikan"
                       : analysis.integrityScore >= 0.7
-                      ? "Perlu Perhatian - Ada beberapa aktivitas mencurigakan"
-                      : "Risiko Tinggi - Terdeteksi banyak pelanggaran"
+                        ? "Perlu Perhatian - Ada beberapa aktivitas mencurigakan"
+                        : "Risiko Tinggi - Terdeteksi banyak pelanggaran"
                   }
                   type={
                     analysis.integrityScore >= 0.9
                       ? "success"
                       : analysis.integrityScore >= 0.7
-                      ? "warning"
-                      : "error"
+                        ? "warning"
+                        : "error"
                   }
                   showIcon
                   style={{ marginBottom: "16px" }}
@@ -552,8 +554,8 @@ const DetailAnalysis = () => {
                           analysis.integrityScore >= 0.9
                             ? "#52c41a"
                             : analysis.integrityScore >= 0.7
-                            ? "#faad14"
-                            : "#ff4d4f"
+                              ? "#faad14"
+                              : "#ff4d4f"
                         }
                       />
                     </div>
@@ -595,10 +597,10 @@ const DetailAnalysis = () => {
                               sev === "CRITICAL"
                                 ? "red"
                                 : sev === "HIGH"
-                                ? "orange"
-                                : sev === "MEDIUM"
-                                ? "blue"
-                                : "default"
+                                  ? "orange"
+                                  : sev === "MEDIUM"
+                                    ? "blue"
+                                    : "default"
                             }
                           >
                             {sev}
@@ -642,7 +644,7 @@ const DetailAnalysis = () => {
               <Col xs={24} lg={12}>
                 <Card title="💡 Rekomendasi Umum" size="small">
                   {analysis.recommendations &&
-                  analysis.recommendations.length > 0 ? (
+                    analysis.recommendations.length > 0 ? (
                     <List
                       size="small"
                       dataSource={analysis.recommendations}
@@ -666,7 +668,7 @@ const DetailAnalysis = () => {
               <Col xs={24} lg={12}>
                 <Card title="🔧 Saran Perbaikan" size="small">
                   {analysis.improvementSuggestions &&
-                  analysis.improvementSuggestions.length > 0 ? (
+                    analysis.improvementSuggestions.length > 0 ? (
                     <List
                       size="small"
                       dataSource={analysis.improvementSuggestions}
@@ -724,8 +726,8 @@ const DetailAnalysis = () => {
                             score >= 75
                               ? "#3f8600"
                               : score >= 60
-                              ? "#fa8c16"
-                              : "#cf1322",
+                                ? "#fa8c16"
+                                : "#cf1322",
                         }}
                       >
                         {score}

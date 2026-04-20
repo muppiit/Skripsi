@@ -71,7 +71,7 @@ public class HasilUjianRepository {
                 hasilUjian.getIdPeserta() != null ? hasilUjian.getIdPeserta() : "");
         client.insertRecord(table, rowKey, "main", "sessionId",
                 hasilUjian.getSessionId() != null ? hasilUjian.getSessionId() : "");
-        client.insertRecord(table, rowKey, "main", "idSchool",
+        client.insertRecord(table, rowKey, "main", "studyProgramId",
                 hasilUjian.getIdSchool() != null ? hasilUjian.getIdSchool() : "");
 
         if (hasilUjian.getAttemptNumber() != null) {
@@ -469,11 +469,25 @@ public class HasilUjianRepository {
             hasInsertedColumn = true;
         }
 
-        // Save School relationship
+        // Save study_program relationship
         if (hasilUjian.getSchool() != null && hasilUjian.getSchool().getIdSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", hasilUjian.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool",
+            client.insertRecord(table, rowKey, "study_program", "idSchool", hasilUjian.getSchool().getIdSchool());
+            client.insertRecord(table, rowKey, "study_program", "nameSchool",
                     hasilUjian.getSchool().getNameSchool() != null ? hasilUjian.getSchool().getNameSchool() : "");
+            hasInsertedColumn = true;
+        }
+
+        // Save kelas relationship
+        if (hasilUjian.getKelas() != null && hasilUjian.getKelas().getIdKelas() != null) {
+            client.insertRecord(table, rowKey, "kelas", "idKelas", hasilUjian.getKelas().getIdKelas());
+            client.insertRecord(table, rowKey, "kelas", "namaKelas",
+                    hasilUjian.getKelas().getNamaKelas() != null ? hasilUjian.getKelas().getNamaKelas() : "");
+            hasInsertedColumn = true;
+        }
+
+        // Save seasons relationship
+        if (hasilUjian.getSeasons() != null && hasilUjian.getSeasons().getIdSeason() != null) {
+            client.insertRecord(table, rowKey, "seasons", "idSeason", hasilUjian.getSeasons().getIdSeason());
             hasInsertedColumn = true;
         }
 
@@ -554,7 +568,7 @@ public class HasilUjianRepository {
                 indexedFields);
     }
 
-    public List<HasilUjian> findBySchool(String idSchool) throws IOException {
+    public List<HasilUjian> findByStudyProgram(String idStudyProgram) throws IOException {
         TableName tableHasilUjian = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
@@ -565,11 +579,15 @@ public class HasilUjianRepository {
                 tableHasilUjian.toString(),
                 columnMapping,
                 "main",
-                "idSchool",
-                idSchool,
+                "studyProgramId",
+                idStudyProgram,
                 HasilUjian.class,
                 1000,
                 indexedFields);
+    }
+
+    public List<HasilUjian> findBySchool(String idSchool) throws IOException {
+        return findByStudyProgram(idSchool);
     }
 
     public List<HasilUjian> findBySecurityStatus(String securityStatus, int limit) throws IOException {
@@ -617,7 +635,7 @@ public class HasilUjianRepository {
         columnMapping.put("idUjian", "idUjian");
         columnMapping.put("idPeserta", "idPeserta");
         columnMapping.put("sessionId", "sessionId");
-        columnMapping.put("idSchool", "idSchool");
+        columnMapping.put("studyProgramId", "idSchool");
         columnMapping.put("attemptNumber", "attemptNumber");
         columnMapping.put("statusPengerjaan", "statusPengerjaan");
         columnMapping.put("isAutoSubmit", "isAutoSubmit");
@@ -692,7 +710,9 @@ public class HasilUjianRepository {
         // Relationships
         columnMapping.put("ujian", "ujian");
         columnMapping.put("peserta", "peserta");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("seasons", "seasons");
 
         return columnMapping;
     }

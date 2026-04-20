@@ -27,7 +27,8 @@ public class KelasRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idKelas", "idKelas");
         columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("school", "school");
+        columnMapping.put("angkatan", "angkatan");
+        columnMapping.put("study_program", "study_program");
         return client.showListTable(tableKelas.toString(), columnMapping, Kelas.class, size);
     }
 
@@ -39,10 +40,10 @@ public class KelasRepository {
 
         client.insertRecord(tableKelas, rowKey, "main", "idKelas", rowKey);
         client.insertRecord(tableKelas, rowKey, "main", "namaKelas", kelas.getNamaKelas());
+        client.insertRecord(tableKelas, rowKey, "angkatan", "value", kelas.getAngkatan());
 
-        // Sekolah
-        client.insertRecord(tableKelas, rowKey, "school", "idSchool", kelas.getSchool().getIdSchool());
-        client.insertRecord(tableKelas, rowKey, "school", "nameSchool", kelas.getSchool().getNameSchool());
+        client.insertRecord(tableKelas, rowKey, "study_program", "id", kelas.getStudyProgram().getId());
+        client.insertRecord(tableKelas, rowKey, "study_program", "name", kelas.getStudyProgram().getName());
 
         client.insertRecord(tableKelas, rowKey, "detail", "created_by", "Doyatama");
         return kelas;
@@ -57,7 +58,8 @@ public class KelasRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idKelas", "idKelas");
         columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("school", "school");
+        columnMapping.put("angkatan", "angkatan");
+        columnMapping.put("study_program", "study_program");
 
         return client.showDataTable(tableKelas.toString(), columnMapping, kelasId, Kelas.class);
     }
@@ -69,7 +71,8 @@ public class KelasRepository {
         Map<String, String> columnMapping = new HashMap<>();
         columnMapping.put("idKelas", "idKelas");
         columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("school", "school");
+        columnMapping.put("angkatan", "angkatan");
+        columnMapping.put("study_program", "study_program");
 
         List<Kelas> kelass = new ArrayList<>();
         for (String kelasId : kelasIds) {
@@ -82,7 +85,7 @@ public class KelasRepository {
         return kelass;
     }
 
-    public List<Kelas> findKelasBySekolah(String schoolID, int size) throws IOException {
+    public List<Kelas> findKelasByStudyProgram(String studyProgramId, int size) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
         TableName tableKelas = TableName.valueOf(tableName);
@@ -91,10 +94,11 @@ public class KelasRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idKelas", "idKelas");
         columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("school", "school");
+        columnMapping.put("angkatan", "angkatan");
+        columnMapping.put("study_program", "study_program");
 
-        List<Kelas> kelas = client.getDataListByColumn(tableKelas.toString(), columnMapping, "school", "idSchool",
-                schoolID, Kelas.class, size);
+        List<Kelas> kelas = client.getDataListByColumn(tableKelas.toString(), columnMapping, "study_program", "id",
+                studyProgramId, Kelas.class, size);
         return kelas;
     }
 
@@ -107,13 +111,16 @@ public class KelasRepository {
             client.insertRecord(tableKelas, kelasId, "main", "namaKelas", kelas.getNamaKelas());
         }
 
-        // Sekolah
-        if (kelas.getSchool().getIdSchool() != null) {
-            client.insertRecord(tableKelas, kelasId, "school", "idSchool", kelas.getSchool().getIdSchool());
+        if (kelas.getAngkatan() != null) {
+            client.insertRecord(tableKelas, kelasId, "angkatan", "value", kelas.getAngkatan());
         }
 
-        if (kelas.getSchool().getNameSchool() != null) {
-            client.insertRecord(tableKelas, kelasId, "school", "nameSchool", kelas.getSchool().getNameSchool());
+        if (kelas.getStudyProgram() != null && kelas.getStudyProgram().getId() != null) {
+            client.insertRecord(tableKelas, kelasId, "study_program", "id", kelas.getStudyProgram().getId());
+        }
+
+        if (kelas.getStudyProgram() != null && kelas.getStudyProgram().getName() != null) {
+            client.insertRecord(tableKelas, kelasId, "study_program", "name", kelas.getStudyProgram().getName());
         }
 
         return kelas;

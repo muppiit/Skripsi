@@ -31,9 +31,7 @@ public class LectureRepository {
         columnMapping.put("address", "address");
         columnMapping.put("phone", "phone");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
         return client.showListTable(tableUsers.toString(), columnMapping, Lecture.class, size);
     }
 
@@ -54,15 +52,8 @@ public class LectureRepository {
         client.insertRecord(tableLecture, rowKey, "main", "address", lecture.getAddress());
         client.insertRecord(tableLecture, rowKey, "religion", "id", lecture.getReligion().getId());
         client.insertRecord(tableLecture, rowKey, "religion", "name", lecture.getReligion().getName());
-        client.insertRecord(tableLecture, rowKey, "bidangKeahlian", "id", lecture.getBidangKeahlian().getId());
-        client.insertRecord(tableLecture, rowKey, "bidangKeahlian", "bidang", lecture.getBidangKeahlian().getBidang());
-        client.insertRecord(tableLecture, rowKey, "programKeahlian", "id", lecture.getProgramKeahlian().getId());
-        client.insertRecord(tableLecture, rowKey, "programKeahlian", "program",
-                lecture.getProgramKeahlian().getProgram());
-        client.insertRecord(tableLecture, rowKey, "konsentrasiKeahlian", "id",
-                lecture.getKonsentrasiKeahlian().getId());
-        client.insertRecord(tableLecture, rowKey, "konsentrasiKeahlian", "konsentrasi",
-                lecture.getKonsentrasiKeahlian().getKonsentrasi());
+        client.insertRecord(tableLecture, rowKey, "study_program", "id", lecture.getStudyProgram().getId());
+        client.insertRecord(tableLecture, rowKey, "study_program", "name", lecture.getStudyProgram().getName());
         client.insertRecord(tableLecture, rowKey, "detail", "created_by", "Doyatama");
         return lecture;
     }
@@ -84,9 +75,7 @@ public class LectureRepository {
         columnMapping.put("address", "address");
         columnMapping.put("phone", "phone");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
 
         return client.showDataTable(tableUsers.toString(), columnMapping, lectureId, Lecture.class);
     }
@@ -107,9 +96,7 @@ public class LectureRepository {
         columnMapping.put("address", "address");
         columnMapping.put("phone", "phone");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
 
         List<Lecture> lectures = new ArrayList<>();
         for (String lectureId : lectureIds) {
@@ -136,9 +123,7 @@ public class LectureRepository {
         columnMapping.put("address", "address");
         columnMapping.put("phone", "phone");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
 
         List<Lecture> lectures = new ArrayList<>();
 
@@ -171,9 +156,7 @@ public class LectureRepository {
         columnMapping.put("address", "address");
         columnMapping.put("phone", "phone");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
 
         List<Lecture> lectures = new ArrayList<>();
         for (String lectureId : lectureIds) {
@@ -200,16 +183,8 @@ public class LectureRepository {
         client.insertRecord(tableLecture, lectureId, "main", "address", lecture.getAddress());
         client.insertRecord(tableLecture, lectureId, "religion", "id", lecture.getReligion().getId());
         client.insertRecord(tableLecture, lectureId, "religion", "name", lecture.getReligion().getName());
-        client.insertRecord(tableLecture, lectureId, "bidangKeahlian", "id", lecture.getBidangKeahlian().getId());
-        client.insertRecord(tableLecture, lectureId, "bidangKeahlian", "bidang",
-                lecture.getBidangKeahlian().getBidang());
-        client.insertRecord(tableLecture, lectureId, "programKeahlian", "id", lecture.getProgramKeahlian().getId());
-        client.insertRecord(tableLecture, lectureId, "programKeahlian", "program",
-                lecture.getProgramKeahlian().getProgram());
-        client.insertRecord(tableLecture, lectureId, "konsentrasiKeahlian", "id",
-                lecture.getKonsentrasiKeahlian().getId());
-        client.insertRecord(tableLecture, lectureId, "konsentrasiKeahlian", "konsentrasi",
-                lecture.getKonsentrasiKeahlian().getKonsentrasi());
+        client.insertRecord(tableLecture, lectureId, "study_program", "id", lecture.getStudyProgram().getId());
+        client.insertRecord(tableLecture, lectureId, "study_program", "name", lecture.getStudyProgram().getName());
         return lecture;
     }
 

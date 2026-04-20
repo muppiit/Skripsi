@@ -31,9 +31,11 @@ import {
   ToolOutlined,
 } from "@ant-design/icons";
 import { getUjian } from "@/api/ujian";
-import { getSchool } from "@/api/school";
+import { getStudyPrograms } from "@/api/studyProgram";
 import { reqUserInfo } from "@/api/user";
 import { getBankSoal } from "@/api/bankSoal";
+import { getKelas } from "@/api/kelas";
+import { getSemester } from "@/api/semester";
 import moment from "moment";
 
 const { TextArea } = Input;
@@ -49,8 +51,12 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [userInfo, setUserInfo] = useState("");
   const [userSchoolId, setUserSchoolId] = useState("");
   const [schoolList, setSchoolList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [semesterList, setSemesterList] = useState([]);
   const [bankSoalList, setBankSoalList] = useState([]);
   const [selectedBankSoal, setSelectedBankSoal] = useState([]);
+  const [selectedKelasFilter, setSelectedKelasFilter] = useState();
+  const [selectedSemesterFilter, setSelectedSemesterFilter] = useState();
   const [activeTab, setActiveTab] = useState("1");
   const [selectedBankSoalId, setSelectedBankSoalId] = useState(null);
 
@@ -80,20 +86,50 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
 
   const fetchSchoolList = async () => {
     try {
-      const result = await getSchool();
+      const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(result.data.content);
+        setSchoolList(
+          result.data.content.map((item) => ({
+            idStudyProgram: item.id,
+            nameStudyProgram: item.name,
+          }))
+        );
       } else {
-        message.error("Gagal mengambil data sekolah");
+        message.error("Gagal mengambil data study program");
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
     }
   };
 
-  const fetchBankSoal = async () => {
+  const fetchKelasList = async () => {
     try {
-      const result = await getBankSoal();
+      const result = await getKelas();
+      if (result.data.statusCode === 200) {
+        setKelasList(result.data.content || []);
+      }
+    } catch (error) {
+      message.error("Terjadi kesalahan saat mengambil data kelas: " + error.message);
+    }
+  };
+
+  const fetchSemesterList = async () => {
+    try {
+      const result = await getSemester();
+      if (result.data.statusCode === 200) {
+        setSemesterList(result.data.content || []);
+      }
+    } catch (error) {
+      message.error("Terjadi kesalahan saat mengambil data semester: " + error.message);
+    }
+  };
+
+  const fetchBankSoal = async (filters = {}) => {
+    try {
+      const result = await getBankSoal({
+        semesterId: filters.semesterId,
+        kelasId: filters.kelasId,
+      });
       if (result.data.statusCode === 200) {
         // Group by namaUjian, kumpulkan semua idBankSoal
         const grouped = result.data.content.reduce((acc, item) => {
@@ -104,12 +140,13 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
               idBankSoalList: [item.idBankSoal],
               jumlahSoal: 1,
               totalBobot: parseFloat(item.bobot) || 10,
-              school: item.school,
-              mapel: item.mapel,
+              study_program: item.study_program,
               kelas: item.kelas,
+              subject: item.subject,
               semester: item.semester,
               tahunAjaran: item.tahunAjaran,
-              konsentrasiKeahlianSekolah: item.konsentrasiKeahlianSekolah,
+              rps_detail: item.rps_detail,
+              seasons: item.seasons,
             };
           } else {
             acc[key].idBankSoalList.push(item.idBankSoal);
@@ -147,13 +184,24 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   useEffect(() => {
     fetchUserInfo();
     fetchSchoolList();
+    fetchKelasList();
+    fetchSemesterList();
     fetchBankSoal();
     fetchUjian();
   }, []);
 
   useEffect(() => {
+    setSelectedBankSoal([]);
+    setSelectedBankSoalId(null);
+    fetchBankSoal({
+      semesterId: selectedSemesterFilter,
+      kelasId: selectedKelasFilter,
+    });
+  }, [selectedSemesterFilter, selectedKelasFilter]);
+
+  useEffect(() => {
     if (userSchoolId) {
-      form.setFieldsValue({ idSchool: userSchoolId });
+      form.setFieldsValue({ idStudyProgram: userSchoolId });
     }
   }, [userSchoolId, form]);
 
@@ -187,10 +235,11 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
       const first = selectedBankSoal[0];
       const isCompatible =
         bankSoal.tahunAjaran?.idTahun === first.tahunAjaran?.idTahun &&
-        bankSoal.mapel?.idMapel === first.mapel?.idMapel &&
+        bankSoal.study_program?.id === first.study_program?.id &&
         bankSoal.kelas?.idKelas === first.kelas?.idKelas &&
-        bankSoal.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah ===
-          first.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah;
+        bankSoal.subject?.id === first.subject?.id &&
+        bankSoal.rps_detail?.id === first.rps_detail?.id &&
+        (bankSoal.seasons?.idSeason || null) === (first.seasons?.idSeason || null);
       if (!isCompatible) {
         message.error("Bank soal tidak kompatibel dengan yang sudah dipilih");
         return;
@@ -210,10 +259,18 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     const firstBankSoal = selectedBankSoal[0];
 
     return bankSoalList.filter((item) => {
+      if (selectedSemesterFilter && item.semester?.idSemester !== selectedSemesterFilter) {
+        return false;
+      }
+
+      if (selectedKelasFilter && item.kelas?.idKelas !== selectedKelasFilter) {
+        return false;
+      }
+
       // Don't show already selected bank soal
       if (
         selectedBankSoal.find(
-          (selected) => selected.idBankSoal === item.idBankSoal
+          (selected) => selected.namaBankSoal === item.namaBankSoal
         )
       ) {
         return false;
@@ -222,18 +279,20 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
       // Only show compatible bank soal
       return (
         item.tahunAjaran?.idTahun === firstBankSoal.tahunAjaran?.idTahun &&
-        item.mapel?.idMapel === firstBankSoal.mapel?.idMapel &&
+        item.study_program?.id === firstBankSoal.study_program?.id &&
         item.kelas?.idKelas === firstBankSoal.kelas?.idKelas &&
-        item.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah ===
-          firstBankSoal.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah
+        item.subject?.id === firstBankSoal.subject?.id &&
+        item.rps_detail?.id === firstBankSoal.rps_detail?.id &&
+        (item.seasons?.idSeason || null) ===
+        (firstBankSoal.seasons?.idSeason || null)
       );
     });
   };
 
   // Handle hapus bank soal
-  const handleRemoveBankSoal = (bankSoalId) => {
+  const handleRemoveBankSoal = (namaBankSoal) => {
     setSelectedBankSoal(
-      selectedBankSoal.filter((item) => item.idBankSoal !== bankSoalId)
+      selectedBankSoal.filter((item) => item.namaBankSoal !== namaBankSoal)
     );
     message.success("Bank soal berhasil dihapus");
   };
@@ -246,11 +305,12 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
 
     return {
       idTahun: firstBankSoal.tahunAjaran?.idTahun || null,
-      idKelas: firstBankSoal.kelas?.idKelas || null,
+      idStudyProgram: firstBankSoal.study_program?.id || null,
       idSemester: firstBankSoal.semester?.idSemester || null,
-      idMapel: firstBankSoal.mapel?.idMapel || null,
-      idKonsentrasiKeahlianSekolah:
-        firstBankSoal.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah || null,
+      idKelas: firstBankSoal.kelas?.idKelas || null,
+      idSubject: firstBankSoal.subject?.id || null,
+      idRps: firstBankSoal.rps_detail?.id || null,
+      idSeason: firstBankSoal.seasons?.idSeason || null,
     };
   };
 
@@ -271,7 +331,7 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         <div>
           <div style={{ fontWeight: "bold" }}>{text}</div>
           <div style={{ fontSize: "12px", color: "#666" }}>
-            {record.mapel?.name} - {record.kelas?.namaKelas} -{" "}
+            {record.subject?.name} - {record.study_program?.name} -{" "}
             {record.semester?.namaSemester}
           </div>
           <div style={{ fontSize: "11px", color: "#999" }}>
@@ -327,7 +387,7 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
           danger
           size="small"
           icon={<DeleteOutlined />}
-          onClick={() => handleRemoveBankSoal(record.idBankSoal)}
+          onClick={() => handleRemoveBankSoal(record.namaBankSoal)}
           title="Hapus bank soal"
         />
       ),
@@ -454,14 +514,15 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
 
         // Relations - dari bank soal yang dipilih
         idTahun: relationData.idTahun,
-        idKelas: relationData.idKelas,
+        idStudyProgram: values.idStudyProgram || relationData.idStudyProgram,
         idSemester: relationData.idSemester,
-        idMapel: relationData.idMapel,
-        idKonsentrasiKeahlianSekolah: relationData.idKonsentrasiKeahlianSekolah,
+        idKelas: relationData.idKelas,
+        idSubject: relationData.idSubject,
+        idRps: relationData.idRps,
+        idSeason: relationData.idSeason,
 
         // User and school relations
         idCreatedBy: userInfo,
-        idSchool: values.idSchool,
       };
 
       console.log("Formatted ujian data for backend:", ujianData);
@@ -503,7 +564,7 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     // Reset school ID to user's school
     if (userSchoolId) {
       setTimeout(() => {
-        form.setFieldsValue({ idSchool: userSchoolId });
+        form.setFieldsValue({ idStudyProgram: userSchoolId });
       }, 0);
     }
 
@@ -527,7 +588,6 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const renderRelationInfo = () => {
     if (selectedBankSoal.length === 0) return null;
 
-    const relationData = getRelationDataFromBankSoal();
     const firstBankSoal = selectedBankSoal[0];
 
     return (
@@ -547,9 +607,9 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <div style={{ marginBottom: 8 }}>
-              <strong>Kelas:</strong>
+              <strong>Study Program:</strong>
               <div style={{ color: "#666" }}>
-                {firstBankSoal.kelas?.namaKelas || "-"}
+                {firstBankSoal.study_program?.name || "-"}
               </div>
             </div>
           </Col>
@@ -563,18 +623,33 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <div style={{ marginBottom: 8 }}>
-              <strong>Mata Pelajaran:</strong>
+              <strong>Kelas:</strong>
               <div style={{ color: "#666" }}>
-                {firstBankSoal.mapel?.name || "-"}
+                {firstBankSoal.kelas?.namaKelas || "-"}
               </div>
             </div>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <div style={{ marginBottom: 8 }}>
-              <strong>Konsentrasi Keahlian:</strong>
+              <strong>Subject:</strong>
               <div style={{ color: "#666" }}>
-                {firstBankSoal.konsentrasiKeahlianSekolah
-                  ?.namaKonsentrasiSekolah || "-"}
+                {firstBankSoal.subject?.name || "-"}
+              </div>
+            </div>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <div style={{ marginBottom: 8 }}>
+              <strong>RPS Detail:</strong>
+              <div style={{ color: "#666" }}>
+                {firstBankSoal.rps_detail?.sub_cp_mk || "-"}
+              </div>
+            </div>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <div style={{ marginBottom: 8 }}>
+              <strong>Season:</strong>
+              <div style={{ color: "#666" }}>
+                {firstBankSoal.seasons?.idSeason || "-"}
               </div>
             </div>
           </Col>
@@ -637,17 +712,17 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
             <Row gutter={16}>
               <Col xs={24} sm={24} md={24}>
                 <Form.Item
-                  label="Sekolah:"
-                  name="idSchool"
+                  label="Study Program:"
+                  name="idStudyProgram"
                   style={{ display: "none" }}
-                  rules={[{ required: true, message: "Sekolah diperlukan" }]}
+                  rules={[{ required: true, message: "Study program diperlukan" }]}
                 >
                   <Select defaultValue={userSchoolId} disabled>
                     {schoolList
-                      .filter(({ idSchool }) => idSchool === userSchoolId)
-                      .map(({ idSchool, nameSchool }) => (
-                        <Option key={idSchool} value={idSchool}>
-                          {nameSchool}
+                      .filter(({ idStudyProgram }) => idStudyProgram === userSchoolId)
+                      .map(({ idStudyProgram, nameStudyProgram }) => (
+                        <Option key={idStudyProgram} value={idStudyProgram}>
+                          {nameStudyProgram}
                         </Option>
                       ))}
                   </Select>
@@ -996,6 +1071,35 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         >
           <Card title="Pilih Bank Soal" size="small">
             <Row gutter={16}>
+              <Col xs={24} sm={12} md={6}>
+                <Select
+                  placeholder="Filter Semester"
+                  allowClear
+                  value={selectedSemesterFilter}
+                  onChange={(value) => setSelectedSemesterFilter(value)}
+                  style={{ width: "100%" }}
+                  options={(semesterList || []).map((item) => ({
+                    label: item.namaSemester,
+                    value: item.idSemester,
+                  }))}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Select
+                  placeholder="Filter Kelas"
+                  allowClear
+                  value={selectedKelasFilter}
+                  onChange={(value) => setSelectedKelasFilter(value)}
+                  style={{ width: "100%" }}
+                  options={(kelasList || []).map((item) => ({
+                    label: item.namaKelas,
+                    value: item.idKelas,
+                  }))}
+                />
+              </Col>
+            </Row>
+
+            <Row gutter={16} style={{ marginTop: 12 }}>
               <Col xs={24} sm={18} md={20}>
                 <Select
                   placeholder="Pilih bank soal untuk ditambahkan"
@@ -1017,15 +1121,15 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                           {item.namaBankSoal}
                         </div>
                         <div style={{ fontSize: "12px", color: "#666" }}>
-                          {item.mapel?.name} - {item.kelas?.namaKelas} -{" "}
+                          {item.subject?.name} - {item.study_program?.name} -{" "}
                           {item.semester?.namaSemester} ({item.jumlahSoal} soal,
-                          Bobot:{" "}
+                          Bobot: {" "}
                           {(item.totalBobot || item.jumlahSoal * 10).toFixed(1)}
                           )
                         </div>
                         <div style={{ fontSize: "11px", color: "#999" }}>
                           {item.tahunAjaran?.tahunAjaran} -{" "}
-                          {item.school?.nameSchool}
+                          {item.study_program?.name}
                         </div>
                       </div>
                     </Option>
@@ -1088,7 +1192,7 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                 <Table
                   columns={bankSoalColumns}
                   dataSource={selectedBankSoal}
-                  rowKey="idBankSoal"
+                  rowKey="namaBankSoal"
                   pagination={false}
                   size="small"
                   scroll={{ x: 600 }}
@@ -1453,16 +1557,16 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                     Mulai:{" "}
                     {form.getFieldValue("waktuMulaiDijadwalkan")
                       ? form
-                          .getFieldValue("waktuMulaiDijadwalkan")
-                          .format("DD/MM/YYYY HH:mm")
+                        .getFieldValue("waktuMulaiDijadwalkan")
+                        .format("DD/MM/YYYY HH:mm")
                       : "Belum diset"}
                   </li>
                   <li>
                     Selesai:{" "}
                     {form.getFieldValue("waktuSelesaiOtomatis")
                       ? form
-                          .getFieldValue("waktuSelesaiOtomatis")
-                          .format("DD/MM/YYYY HH:mm")
+                        .getFieldValue("waktuSelesaiOtomatis")
+                        .format("DD/MM/YYYY HH:mm")
                       : "Belum diset"}
                   </li>
                   <li>
@@ -1477,8 +1581,8 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                     Batas Akhir Mulai:{" "}
                     {form.getFieldValue("batasAkhirMulai")
                       ? form
-                          .getFieldValue("batasAkhirMulai")
-                          .format("DD/MM/YYYY HH:mm")
+                        .getFieldValue("batasAkhirMulai")
+                        .format("DD/MM/YYYY HH:mm")
                       : "Tidak diset"}
                   </li>
                   <li>
@@ -1505,13 +1609,13 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                         <Col xs={24} sm={12} md={8}>
                           <div style={{ fontSize: "12px" }}>
                             <strong>Mata Pelajaran:</strong>{" "}
-                            {item.mapel?.name || "-"}
+                            {item.subject?.name || "-"}
                           </div>
                         </Col>
                         <Col xs={24} sm={12} md={8}>
                           <div style={{ fontSize: "12px" }}>
-                            <strong>Kelas:</strong>{" "}
-                            {item.kelas?.namaKelas || "-"}
+                            <strong>Study Program:</strong>{" "}
+                            {item.study_program?.name || "-"}
                           </div>
                         </Col>
                         <Col xs={24} sm={12} md={8}>

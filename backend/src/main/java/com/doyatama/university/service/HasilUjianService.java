@@ -119,7 +119,7 @@ public class HasilUjianService {
      * VALIDATION
      */
     public PagedResponse<HasilUjian> getHasilByUjian(String idUjian, int page, int size, Boolean includeAnalytics,
-            String schoolId)
+            String schoolId, String kelasId, String seasonId)
             throws IOException {
         logger.debug("Mengambil hasil ujian untuk ujian: {} di sekolah: {}", idUjian, schoolId);
 
@@ -132,6 +132,8 @@ public class HasilUjianService {
         results = results.stream()
                 .filter(hasil -> schoolId.equals(hasil.getIdSchool()))
                 .collect(Collectors.toList());
+
+        results = filterHasilByKelasAndSeason(results, kelasId, seasonId);
 
         if (includeAnalytics != null && includeAnalytics) {
             calculateComparativeAnalytics(results);
@@ -281,6 +283,14 @@ public class HasilUjianService {
         }
         if (hasilUjian.getStatusPengerjaan() == null) {
             hasilUjian.setStatusPengerjaan(isAutoSubmit ? "TIMEOUT" : "SELESAI");
+        }
+
+        // Sinkronkan konteks relasi ujian (kelas + season) untuk analisis per kelas.
+        Ujian ujianKonteks = ujianRepository.findById(session.getIdUjian());
+        if (ujianKonteks != null) {
+            hasilUjian.setUjian(ujianKonteks);
+            hasilUjian.setKelas(ujianKonteks.getKelas());
+            hasilUjian.setSeasons(ujianKonteks.getSeasons());
         }
 
         // Override answers jika ada final answers
@@ -578,7 +588,16 @@ public class HasilUjianService {
      * Ambil statistik untuk ujian
      */
     public Map<String, Object> getUjianStatistics(String idUjian) throws IOException {
+        return getUjianStatistics(idUjian, null, null);
+    }
+
+    /**
+     * Ambil statistik untuk ujian dengan filter kelas dan season.
+     */
+    public Map<String, Object> getUjianStatistics(String idUjian, String kelasId, String seasonId)
+            throws IOException {
         List<HasilUjian> results = hasilUjianRepository.findByUjian(idUjian);
+        results = filterHasilByKelasAndSeason(results, kelasId, seasonId);
 
         Map<String, Object> stats = new HashMap<>();
 
@@ -586,8 +605,10 @@ public class HasilUjianService {
             return stats;
         }
 
+        final int totalParticipants = results.size();
+
         // Statistik dasar
-        stats.put("totalParticipants", results.size());
+        stats.put("totalParticipants", totalParticipants);
         stats.put("completedParticipants",
                 results.stream().filter(h -> "SELESAI".equals(h.getStatusPengerjaan())).count());
         stats.put("incompleteParticipants",
@@ -617,7 +638,7 @@ public class HasilUjianService {
                 .forEach(h -> gradeDistribution.merge(h.getNilaiHuruf(), 1, Integer::sum));
 
         gradeDistribution
-                .forEach((grade, count) -> gradePercentages.put(grade, (double) count / results.size() * 100.0));
+                .forEach((grade, count) -> gradePercentages.put(grade, (double) count / totalParticipants * 100.0));
 
         stats.put("gradeDistribution", gradeDistribution);
         stats.put("gradePercentages", gradePercentages);
@@ -625,8 +646,8 @@ public class HasilUjianService {
         // Analisis lulus/tidak lulus
         long passedCount = results.stream().filter(h -> Boolean.TRUE.equals(h.getLulus())).count();
         stats.put("passedCount", passedCount);
-        stats.put("failedCount", results.size() - passedCount);
-        stats.put("passRate", results.size() > 0 ? (double) passedCount / results.size() * 100.0 : 0.0);
+        stats.put("failedCount", totalParticipants - passedCount);
+        stats.put("passRate", totalParticipants > 0 ? (double) passedCount / totalParticipants * 100.0 : 0.0);
 
         return stats;
     }
@@ -762,7 +783,7 @@ public class HasilUjianService {
      * Generate analytics sekolah
      */
     private Map<String, Object> generateSchoolAnalytics(String idSchool) throws IOException {
-        List<HasilUjian> schoolResults = hasilUjianRepository.findBySchool(idSchool);
+        List<HasilUjian> schoolResults = hasilUjianRepository.findByStudyProgram(idSchool);
         Map<String, Object> analytics = new HashMap<>();
 
         if (schoolResults.isEmpty()) {
@@ -932,6 +953,14 @@ public class HasilUjianService {
             }
         }
 
+        if (hasil.getKelas() == null && hasil.getUjian() != null) {
+            hasil.setKelas(hasil.getUjian().getKelas());
+        }
+
+        if (hasil.getSeasons() == null && hasil.getUjian() != null) {
+            hasil.setSeasons(hasil.getUjian().getSeasons());
+        }
+
         if (hasil.getPeserta() == null && hasil.getIdPeserta() != null) {
             User peserta = userRepository.findById(hasil.getIdPeserta());
             hasil.setPeserta(peserta);
@@ -941,6 +970,53 @@ public class HasilUjianService {
             School school = schoolRepository.findById(hasil.getIdSchool());
             hasil.setSchool(school);
         }
+    }
+
+    private List<HasilUjian> filterHasilByKelasAndSeason(List<HasilUjian> results, String kelasId, String seasonId) {
+        if (results == null) {
+            return new ArrayList<>();
+        }
+
+        return results.stream()
+                .filter(hasil -> kelasId == null || kelasId.trim().isEmpty()
+                        || matchesKelas(hasil, kelasId))
+                .filter(hasil -> seasonId == null || seasonId.trim().isEmpty()
+                        || matchesSeason(hasil, seasonId))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesKelas(HasilUjian hasil, String kelasId) {
+        if (hasil == null || kelasId == null || kelasId.trim().isEmpty()) {
+            return true;
+        }
+
+        if (hasil.getKelas() != null && kelasId.equals(hasil.getKelas().getIdKelas())) {
+            return true;
+        }
+
+        if (hasil.getUjian() != null && hasil.getUjian().getKelas() != null
+                && kelasId.equals(hasil.getUjian().getKelas().getIdKelas())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean matchesSeason(HasilUjian hasil, String seasonId) {
+        if (hasil == null || seasonId == null || seasonId.trim().isEmpty()) {
+            return true;
+        }
+
+        if (hasil.getSeasons() != null && seasonId.equals(hasil.getSeasons().getIdSeason())) {
+            return true;
+        }
+
+        if (hasil.getUjian() != null && hasil.getUjian().getSeasons() != null
+                && seasonId.equals(hasil.getUjian().getSeasons().getIdSeason())) {
+            return true;
+        }
+
+        return false;
     }
 
     private void calculateComparativeAnalytics(List<HasilUjian> results) {
@@ -1408,7 +1484,7 @@ public class HasilUjianService {
         if (ujianId != null && !ujianId.trim().isEmpty()) {
             hasilUjianList = hasilUjianRepository.findByUjian(ujianId);
         } else {
-            hasilUjianList = hasilUjianRepository.findBySchool(schoolId);
+            hasilUjianList = hasilUjianRepository.findByStudyProgram(schoolId);
         }
 
         // Filter by search if provided

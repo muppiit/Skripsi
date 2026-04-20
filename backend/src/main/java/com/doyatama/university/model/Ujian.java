@@ -57,8 +57,12 @@ public class Ujian {
 
     // Relasi Utama: Konteks dari Ujian ini
     private TahunAjaran tahunAjaran;
+    private StudyProgram study_program;
     private Kelas kelas;
+    private Season seasons;
     private Semester semester;
+    private Subject subject;
+    private RPS rps;
     private Mapel mapel;
     private KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolah;
     private User createdBy;
@@ -428,6 +432,14 @@ public class Ujian {
         this.tahunAjaran = tahunAjaran;
     }
 
+    public StudyProgram getStudy_program() {
+        return study_program;
+    }
+
+    public void setStudy_program(StudyProgram study_program) {
+        this.study_program = study_program;
+    }
+
     public Kelas getKelas() {
         return kelas;
     }
@@ -436,12 +448,36 @@ public class Ujian {
         this.kelas = kelas;
     }
 
+    public Season getSeasons() {
+        return seasons;
+    }
+
+    public void setSeasons(Season seasons) {
+        this.seasons = seasons;
+    }
+
     public Semester getSemester() {
         return semester;
     }
 
     public void setSemester(Semester semester) {
         this.semester = semester;
+    }
+
+    public Subject getSubject() {
+        return subject;
+    }
+
+    public void setSubject(Subject subject) {
+        this.subject = subject;
+    }
+
+    public RPS getRps() {
+        return rps;
+    }
+
+    public void setRps(RPS rps) {
+        this.rps = rps;
     }
 
     public Mapel getMapel() {

@@ -16,12 +16,14 @@ export async function safeGetHasilByUjian(idUjian, options = {}) {
   } = options; // Add includeAnalytics and includeSecurityData
 
   try {
-    // Pass includeAnalytics and includeSecurityData to the underlying API call
-    const result = await getHasilByUjian(
-      idUjian,
+    const result = await getHasilByUjian(idUjian, {
       includeAnalytics,
-      includeSecurityData
-    );
+      includeSecurityData,
+      kelasId: options.kelasId,
+      seasonId: options.seasonId,
+      page: options.page,
+      size: options.size,
+    });
     return {
       success: true,
       data: result.data,
@@ -121,6 +123,12 @@ export function transformHasilUjianData(hasil, index = 0) {
     // Exam information
     namaUjian: hasil.ujian?.namaUjian || "Ujian",
     ujianNama: hasil.ujian?.namaUjian || "Ujian",
+    kelasId: hasil.kelas?.idKelas || hasil.ujian?.kelas?.idKelas || "",
+    namaKelas:
+      hasil.kelas?.namaKelas || hasil.ujian?.kelas?.namaKelas || "Tidak Diketahui",
+    seasonId: hasil.seasons?.idSeason || hasil.ujian?.seasons?.idSeason || "",
+    namaSeason:
+      hasil.seasons?.idSeason || hasil.ujian?.seasons?.idSeason || "Tidak Diketahui",
 
     // Performance data - using consistent field names based on actual response
     nilai: hasil.persentase || hasil.totalSkor || 0, // Use persentase as primary nilai

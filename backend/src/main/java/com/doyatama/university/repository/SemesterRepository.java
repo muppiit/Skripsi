@@ -24,7 +24,7 @@ public class SemesterRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idSemester", "idSemester");
         columnMapping.put("namaSemester", "namaSemester");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
         return client.showListTable(tableSemester.toString(), columnMapping, Semester.class, size);
     }
 
@@ -36,9 +36,8 @@ public class SemesterRepository {
         client.insertRecord(tableSemester, rowKey, "main", "idSemester", rowKey);
         client.insertRecord(tableSemester, rowKey, "main", "namaSemester", semester.getNamaSemester());
 
-        // School
-        client.insertRecord(tableSemester, rowKey, "school", "idSchool", semester.getSchool().getIdSchool());
-        client.insertRecord(tableSemester, rowKey, "school", "nameSchool", semester.getSchool().getNameSchool());
+        client.insertRecord(tableSemester, rowKey, "study_program", "idSchool", semester.getStudyProgram().getId());
+        client.insertRecord(tableSemester, rowKey, "study_program", "nameSchool", semester.getStudyProgram().getName());
 
         client.insertRecord(tableSemester, rowKey, "detail", "created_by", "Doyatama");
         return semester;
@@ -53,7 +52,7 @@ public class SemesterRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idSemester", "idSemester");
         columnMapping.put("namaSemester", "namaSemester");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
 
         return client.showDataTable(tableSemester.toString(), columnMapping, semesterId, Semester.class);
     }
@@ -67,7 +66,7 @@ public class SemesterRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idSemester", "idSemester");
         columnMapping.put("namaSemester", "namaSemester");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
 
         List<Semester> semesterList = new ArrayList<>();
         for (String semesterId : semesterIds) {
@@ -85,23 +84,23 @@ public class SemesterRepository {
         Map<String, String> columnMapping = new HashMap<>();
         columnMapping.put("idSemester", "idSemester");
         columnMapping.put("namaSemester", "namaSemester");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "study_program");
         List<Semester> semesterList = client.getDataListByColumn(tableSemester.toString(), columnMapping, "user", "id",
                 userId, Semester.class, size);
 
         return semesterList;
     }
 
-    public List<Semester> findSemesterBySekolah(String schoolId, int size) throws IOException {
+    public List<Semester> findSemesterByStudyProgram(String studyProgramId, int size) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
         TableName tableSemester = TableName.valueOf(tableName);
         Map<String, String> columnMapping = new HashMap<>();
         columnMapping.put("idSemester", "idSemester");
         columnMapping.put("namaSemester", "namaSemester");
-        columnMapping.put("school", "school");
-        List<Semester> semesterList = client.getDataListByColumn(tableSemester.toString(), columnMapping, "school",
-                "idSchool", schoolId, Semester.class, size);
+        columnMapping.put("study_program", "study_program");
+        List<Semester> semesterList = client.getDataListByColumn(tableSemester.toString(), columnMapping,
+                "study_program", "idSchool", studyProgramId, Semester.class, size);
 
         return semesterList;
     }
@@ -115,11 +114,11 @@ public class SemesterRepository {
             client.insertRecord(tableSemester, semesterId, "main", "namaSemester", semester.getNamaSemester());
         }
 
-        // School
-        if (semester.getSchool() != null) {
-            client.insertRecord(tableSemester, semesterId, "school", "idSchool", semester.getSchool().getIdSchool());
-            client.insertRecord(tableSemester, semesterId, "school", "nameSchool",
-                    semester.getSchool().getNameSchool());
+        if (semester.getStudyProgram() != null) {
+            client.insertRecord(tableSemester, semesterId, "study_program", "idSchool",
+                    semester.getStudyProgram().getId());
+            client.insertRecord(tableSemester, semesterId, "study_program", "nameSchool",
+                    semester.getStudyProgram().getName());
         }
 
         return semester;

@@ -566,12 +566,12 @@ const ATP = () => {
       // Global search filter
       const matchSearch = searchQuery
         ? item.namaAtp?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.acp?.namaAcp
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          item.acp?.elemen?.namaElemen
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase())
+        item.acp?.namaAcp
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        item.acp?.elemen?.namaElemen
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase())
         : true;
 
       return matchSearch;
@@ -928,9 +928,8 @@ const ATP = () => {
                 console.error(`❌ Full error creating Elemen:`, error);
                 const errorMsg = `ATP "${cleanText(
                   row[idx("namaAtp")]
-                )}" gagal diimpor karena gagal membuat Elemen "${
-                  rowData.namaElemen
-                }": ${error.message}`;
+                )}" gagal diimpor karena gagal membuat Elemen "${rowData.namaElemen
+                  }": ${error.message}`;
                 errorMessages.push(errorMsg);
                 console.error(errorMsg);
                 errorCount++;
@@ -941,9 +940,8 @@ const ATP = () => {
             if (!elemenId) {
               const errorMsg = `ATP "${cleanText(
                 row[idx("namaAtp")]
-              )}" dengan Elemen "${
-                rowData.namaElemen
-              }" gagal diimpor karena Elemen tidak dapat ditemukan atau dibuat`;
+              )}" dengan Elemen "${rowData.namaElemen
+                }" gagal diimpor karena Elemen tidak dapat ditemukan atau dibuat`;
               errorMessages.push(errorMsg);
               console.warn(errorMsg);
               errorCount++;
@@ -988,9 +986,8 @@ const ATP = () => {
                 console.error(`❌ Full error creating ACP:`, error);
                 const errorMsg = `ATP "${cleanText(
                   row[idx("namaAtp")]
-                )}" gagal diimpor karena gagal membuat ACP "${
-                  rowData.namaAcp
-                }": ${error.message}`;
+                )}" gagal diimpor karena gagal membuat ACP "${rowData.namaAcp
+                  }": ${error.message}`;
                 errorMessages.push(errorMsg);
                 console.error(errorMsg);
                 errorCount++;
@@ -1001,9 +998,8 @@ const ATP = () => {
             if (!acpId) {
               const errorMsg = `ATP "${cleanText(
                 row[idx("namaAtp")]
-              )}" dengan ACP "${
-                rowData.namaAcp
-              }" gagal diimpor karena ACP tidak dapat ditemukan atau dibuat`;
+              )}" dengan ACP "${rowData.namaAcp
+                }" gagal diimpor karena ACP tidak dapat ditemukan atau dibuat`;
               errorMessages.push(errorMsg);
               console.warn(errorMsg);
               errorCount++;
@@ -1513,14 +1509,14 @@ const ATP = () => {
               &quot;Genap&quot;
               <br />• <strong>namaKelas:</strong> &quot;X&quot;, &quot;XI&quot;,
               atau &quot;XII&quot;
-              <br />• <strong>namaMapel:</strong> &quot;Matematika&quot;,
-              &quot;Bahasa Indonesia&quot;, dll.
-              <br />• <strong>namaElemen:</strong> &quot;Geometri&quot;,
-              &quot;Bilangan&quot;, dll.
-              <br />• <strong>namaAcp:</strong> &quot;Peserta didik dapat
-              menyelesaikan...&quot;
-              <br />• <strong>namaKonsentrasiSekolah:</strong> &quot;Desain
-              Komunikasi Visual&quot;, dll.
+              <br />• <strong>namaMapel:</strong> &quot;Pemrograman Dasar&quot;,
+              &quot;Algoritma dan Struktur Data&quot;, dll.
+              <br />• <strong>namaElemen:</strong> &quot;Perulangan&quot;,
+              &quot;Array&quot;, dll.
+              <br />• <strong>namaAcp:</strong> &quot;Peserta didik mampu
+              menerapkan...&quot;
+              <br />• <strong>namaKonsentrasiSekolah:</strong> &quot;Teknik
+              Informatika&quot;, dll.
               <br />• <strong>idSchool:</strong> &quot;RWK001&quot; (nilai
               tetap/paten)
               <br />

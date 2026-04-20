@@ -27,73 +27,125 @@ public class ExcelUploadService {
         List<RPS> rpsList = new ArrayList<>();
         try {
             XSSFWorkbook workbook = new XSSFWorkbook(inputStream);
+
+            // Try to get sheet by name "RPS" or default to first sheet
             XSSFSheet sheet = workbook.getSheet("RPS");
+            if (sheet == null && workbook.getNumberOfSheets() > 0) {
+                sheet = workbook.getSheetAt(0);
+            }
 
             if (sheet == null) {
                 workbook.close();
-                throw new IllegalArgumentException("Sheet 'RPS' does not exist in the Excel file.");
+                throw new IllegalArgumentException("Tidak ada sheet yang ditemukan dalam file Excel");
             }
 
             int rowIndex = 0;
             for (Row row : sheet) {
+                // Skip header row
                 if (rowIndex == 0) {
                     rowIndex++;
                     continue;
                 }
-                Iterator<Cell> cellIterator = row.iterator();
-                int cellIndex = 0;
-                RPS rps = new RPS();
-                while (cellIterator.hasNext()) {
-                    Cell cell = cellIterator.next();
-                    switch (cellIndex) {
-                        case 0:
-                            rps.setId(cell.getStringCellValue());
-                            break;
-                        case 1:
-                            rps.setName(cell.getStringCellValue());
-                            break;
-                        case 2:
-                            rps.setSks((int) cell.getNumericCellValue());
-                            break;
-                        case 3:
-                            rps.setSemester((int) cell.getNumericCellValue());
-                            break;
-                        case 4:
-                            rps.setCpl_prodi(cell.getStringCellValue());
-                            break;
-                        case 5:
-                            rps.setCpl_mk(cell.getStringCellValue());
-                            break;
-                        case 6:
-                            // Assuming subject name is in a single cell
-                            String subjectName = cell.getStringCellValue().trim();
-                            Subject subject = new Subject();
-                            subject.setName(subjectName);
-                            rps.setSubject(subject);
-                            break;
-                        case 7:
-                            // Assuming dev_lecturers are in a single cell, comma-separated
-                            String[] devLecturersArray = cell.getStringCellValue().split(";");
-                            List<Lecture> devLecturers = new ArrayList<>();
-                            for (String lecturerName : devLecturersArray) {
-                                Lecture lecture = new Lecture();
-                                lecture.setName(lecturerName.trim());
-                                devLecturers.add(lecture);
-                            }
-                            rps.setDev_lecturers(devLecturers);
-                            break;
 
-                        default:
-                            break;
-                    }
-                    cellIndex++;
+                // Skip empty rows
+                if (row.getPhysicalNumberOfCells() == 0) {
+                    continue;
                 }
-                rpsList.add(rps);
+
+                try {
+                    Iterator<Cell> cellIterator = row.iterator();
+                    int cellIndex = 0;
+                    RPS rps = new RPS();
+
+                    while (cellIterator.hasNext()) {
+                        Cell cell = cellIterator.next();
+
+                        try {
+                            switch (cellIndex) {
+                                case 0: // ID
+                                    if (cell.getCellType() == CellType.STRING) {
+                                        rps.setId(cell.getStringCellValue().trim());
+                                    }
+                                    break;
+                                case 1: // Name
+                                    if (cell.getCellType() == CellType.STRING) {
+                                        rps.setName(cell.getStringCellValue().trim());
+                                    }
+                                    break;
+                                case 2: // SKS
+                                    if (cell.getCellType() == CellType.NUMERIC) {
+                                        rps.setSks((int) cell.getNumericCellValue());
+                                    }
+                                    break;
+                                case 3: // Semester
+                                    if (cell.getCellType() == CellType.NUMERIC) {
+                                        rps.setSemester((int) cell.getNumericCellValue());
+                                    }
+                                    break;
+                                case 4: // CPL Prodi
+                                    if (cell.getCellType() == CellType.STRING) {
+                                        rps.setCpl_prodi(cell.getStringCellValue().trim());
+                                    }
+                                    break;
+                                case 5: // CPL MK
+                                    if (cell.getCellType() == CellType.STRING) {
+                                        rps.setCpl_mk(cell.getStringCellValue().trim());
+                                    }
+                                    break;
+                                case 6: // Subject
+                                    if (cell.getCellType() == CellType.STRING) {
+                                        String subjectName = cell.getStringCellValue().trim();
+                                        Subject subject = new Subject();
+                                        subject.setName(subjectName);
+                                        rps.setSubject(subject);
+                                    }
+                                    break;
+                                case 7: // Dev Lecturers
+                                    if (cell.getCellType() == CellType.STRING) {
+                                        String[] devLecturersArray = cell.getStringCellValue().split("[;,]");
+                                        List<Lecture> devLecturers = new ArrayList<>();
+                                        for (String lecturerName : devLecturersArray) {
+                                            String trimmedName = lecturerName.trim();
+                                            if (!trimmedName.isEmpty()) {
+                                                Lecture lecture = new Lecture();
+                                                lecture.setName(trimmedName);
+                                                devLecturers.add(lecture);
+                                            }
+                                        }
+                                        rps.setDev_lecturers(devLecturers);
+                                    }
+                                    break;
+
+                                default:
+                                    break;
+                            }
+                        } catch (Exception cellEx) {
+                            // Log cell parsing error but continue
+                            System.err.println("Error parsing cell " + cellIndex + " in row " + rowIndex + ": "
+                                    + cellEx.getMessage());
+                        }
+
+                        cellIndex++;
+                    }
+
+                    // Only add if ID and Name are present
+                    if (rps.getId() != null && !rps.getId().isEmpty() &&
+                            rps.getName() != null && !rps.getName().isEmpty()) {
+                        rpsList.add(rps);
+                    }
+
+                } catch (Exception rowEx) {
+                    // Log row parsing error but continue
+                    System.err.println("Error parsing row " + rowIndex + ": " + rowEx.getMessage());
+                }
+
                 rowIndex++;
             }
             workbook.close();
         } catch (Exception e) {
+            System.err.println("Error reading Excel file: " + e.getMessage());
             e.printStackTrace();
+            // Return empty list if parsing fails completely
         }
         return rpsList;
     }

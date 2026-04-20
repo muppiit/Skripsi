@@ -7,10 +7,13 @@ import com.doyatama.university.model.Atp;
 import com.doyatama.university.model.BankSoal;
 import com.doyatama.university.model.Elemen;
 import com.doyatama.university.model.Kelas;
+import com.doyatama.university.model.RPSDetail;
+import com.doyatama.university.model.Season;
+import com.doyatama.university.model.Subject;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.Taksonomi;
 import com.doyatama.university.model.KonsentrasiKeahlianSekolah;
 import com.doyatama.university.model.Mapel;
-import com.doyatama.university.model.School;
 import com.doyatama.university.model.Semester;
 import com.doyatama.university.model.SoalUjian;
 import com.doyatama.university.model.TahunAjaran;
@@ -25,7 +28,10 @@ import com.doyatama.university.repository.KelasRepository;
 import com.doyatama.university.repository.TaksonomiRepository;
 import com.doyatama.university.repository.KonsentrasiKeahlianSekolahRepository;
 import com.doyatama.university.repository.MapelRepository;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.RPSDetailRepository;
+import com.doyatama.university.repository.SeasonRepository;
+import com.doyatama.university.repository.SubjectRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.repository.SemesterRepository;
 import com.doyatama.university.repository.SoalUjianRepository;
 import com.doyatama.university.repository.TahunAjaranRepository;
@@ -50,20 +56,23 @@ public class BankSoalService {
     private ElemenRepository elemenRepository = new ElemenRepository();
     private AcpRepository acpRepository = new AcpRepository();
     private TaksonomiRepository taksonomiRepository = new TaksonomiRepository();
-    private SchoolRepository schoolRepository = new SchoolRepository();
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
+    private SubjectRepository subjectRepository = new SubjectRepository();
+    private RPSDetailRepository rpsDetailRepository = new RPSDetailRepository();
+    private SeasonRepository seasonRepository = new SeasonRepository();
     private KonsentrasiKeahlianSekolahRepository konsentrasiKeahlianSekolahRepository = new KonsentrasiKeahlianSekolahRepository();
 
-    public PagedResponse<BankSoal> getAllBankSoal(int page, int size, String userID, String schoolID)
+    public PagedResponse<BankSoal> getAllBankSoal(int page, int size, String userID, String schoolID,
+            String semesterId, String kelasId)
             throws IOException {
         validatePageNumberAndSize(page, size);
 
-        List<BankSoal> bankSoalResponse;
-
-        if (schoolID.equalsIgnoreCase("*")) {
-            bankSoalResponse = bankSoalRepository.findAll(size);
-        } else {
-            bankSoalResponse = bankSoalRepository.findBankSoalBySekolah(schoolID, size);
-        }
+        String studyProgramFilter = schoolID.equalsIgnoreCase("*") ? "*" : schoolID;
+        List<BankSoal> bankSoalResponse = bankSoalRepository.findBankSoalByFilters(
+                studyProgramFilter,
+                semesterId,
+                kelasId,
+                size);
 
         return new PagedResponse<>(bankSoalResponse, bankSoalResponse.size(), "Successfully get data", 200);
     }
@@ -90,17 +99,20 @@ public class BankSoalService {
 
         // Get related entities
         TahunAjaran tahunAjaranResponse = tahunAjaranRepository.findById(bankSoalRequest.getIdTahun());
-        Kelas kelasResponse = kelasRepository.findById(bankSoalRequest.getIdKelas());
         Semester semesterResponse = semesterRepository.findById(bankSoalRequest.getIdSemester());
-        Mapel mapelResponse = mapelRepository.findById(bankSoalRequest.getIdMapel());
-        Elemen elemenResponse = elemenRepository.findById(bankSoalRequest.getIdElemen());
-        Acp acpResponse = acpRepository.findById(bankSoalRequest.getIdAcp());
-        Atp atpResponse = atpRepository.findById(bankSoalRequest.getIdAtp());
         SoalUjian soalUjianResponse = soalUjianRepository.findById(bankSoalRequest.getIdSoalUjian());
         Taksonomi taksonomiResponse = taksonomiRepository.findById(bankSoalRequest.getIdTaksonomi());
-        KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolahResponse = konsentrasiKeahlianSekolahRepository
-                .findById(bankSoalRequest.getIdKonsentrasiSekolah());
-        School schoolResponse = schoolRepository.findById(bankSoalRequest.getIdSchool());
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(
+                bankSoalRequest.getIdStudyProgram() != null ? bankSoalRequest.getIdStudyProgram()
+                        : bankSoalRequest.getIdSchool());
+        Subject subjectResponse = subjectRepository.findById(bankSoalRequest.getIdSubject());
+        RPSDetail rpsDetailResponse = rpsDetailRepository.findById(bankSoalRequest.getIdRpsDetail());
+        Kelas kelasResponse = bankSoalRequest.getIdKelas() != null
+                ? kelasRepository.findById(bankSoalRequest.getIdKelas())
+                : null;
+        Season seasonResponse = bankSoalRequest.getIdSeason() != null
+                ? seasonRepository.findById(bankSoalRequest.getIdSeason())
+                : null;
 
         // Validate question type
         if (bankSoalRequest.getJenisSoal() == null) {
@@ -118,16 +130,14 @@ public class BankSoalService {
 
         bankSoal.setCreatedAt(bankSoalRequest.getCreatedAt() != null ? bankSoalRequest.getCreatedAt() : Instant.now());
         bankSoal.setSoalUjian(soalUjianResponse);
+        bankSoal.setStudy_program(studyProgramResponse);
+        bankSoal.setSubject(subjectResponse);
+        bankSoal.setRps_detail(rpsDetailResponse);
         bankSoal.setTaksonomi(taksonomiResponse);
-        bankSoal.setKonsentrasiKeahlianSekolah(konsentrasiKeahlianSekolahResponse);
         bankSoal.setTahunAjaran(tahunAjaranResponse);
         bankSoal.setSemester(semesterResponse);
         bankSoal.setKelas(kelasResponse);
-        bankSoal.setMapel(mapelResponse);
-        bankSoal.setElemen(elemenResponse);
-        bankSoal.setAcp(acpResponse);
-        bankSoal.setAtp(atpResponse);
-        bankSoal.setSchool(schoolResponse);
+        bankSoal.setSeasons(seasonResponse);
 
         // Handle different question types
         switch (bankSoalRequest.getJenisSoal().toUpperCase()) {
@@ -263,17 +273,20 @@ public class BankSoalService {
 
         // Get related entities
         TahunAjaran tahunAjaranResponse = tahunAjaranRepository.findById(bankSoalRequest.getIdTahun());
-        Kelas kelasResponse = kelasRepository.findById(bankSoalRequest.getIdKelas());
         Semester semesterResponse = semesterRepository.findById(bankSoalRequest.getIdSemester());
-        Mapel mapelResponse = mapelRepository.findById(bankSoalRequest.getIdMapel());
-        Elemen elemenResponse = elemenRepository.findById(bankSoalRequest.getIdElemen());
-        Acp acpResponse = acpRepository.findById(bankSoalRequest.getIdAcp());
-        Atp atpResponse = atpRepository.findById(bankSoalRequest.getIdAtp());
         SoalUjian soalUjianResponse = soalUjianRepository.findById(bankSoalRequest.getIdSoalUjian());
         Taksonomi taksonomiResponse = taksonomiRepository.findById(bankSoalRequest.getIdTaksonomi());
-        KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolahResponse = konsentrasiKeahlianSekolahRepository
-                .findById(bankSoalRequest.getIdKonsentrasiSekolah());
-        School schoolResponse = schoolRepository.findById(bankSoalRequest.getIdSchool());
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(
+                bankSoalRequest.getIdStudyProgram() != null ? bankSoalRequest.getIdStudyProgram()
+                        : bankSoalRequest.getIdSchool());
+        Subject subjectResponse = subjectRepository.findById(bankSoalRequest.getIdSubject());
+        RPSDetail rpsDetailResponse = rpsDetailRepository.findById(bankSoalRequest.getIdRpsDetail());
+        Kelas kelasResponse = bankSoalRequest.getIdKelas() != null
+                ? kelasRepository.findById(bankSoalRequest.getIdKelas())
+                : null;
+        Season seasonResponse = bankSoalRequest.getIdSeason() != null
+                ? seasonRepository.findById(bankSoalRequest.getIdSeason())
+                : null;
 
         // Build updated BankSoal object
         BankSoal updatedBankSoal = new BankSoal();
@@ -286,16 +299,14 @@ public class BankSoalService {
 
         updatedBankSoal.setCreatedAt(existingBankSoal.getCreatedAt()); // Keep original creation date
         updatedBankSoal.setSoalUjian(soalUjianResponse);
+        updatedBankSoal.setStudy_program(studyProgramResponse);
+        updatedBankSoal.setSubject(subjectResponse);
+        updatedBankSoal.setRps_detail(rpsDetailResponse);
         updatedBankSoal.setTaksonomi(taksonomiResponse);
-        updatedBankSoal.setKonsentrasiKeahlianSekolah(konsentrasiKeahlianSekolahResponse);
         updatedBankSoal.setTahunAjaran(tahunAjaranResponse);
         updatedBankSoal.setSemester(semesterResponse);
         updatedBankSoal.setKelas(kelasResponse);
-        updatedBankSoal.setMapel(mapelResponse);
-        updatedBankSoal.setElemen(elemenResponse);
-        updatedBankSoal.setAcp(acpResponse);
-        updatedBankSoal.setAtp(atpResponse);
-        updatedBankSoal.setSchool(schoolResponse);
+        updatedBankSoal.setSeasons(seasonResponse);
 
         // Handle different question types
         switch (bankSoalRequest.getJenisSoal().toUpperCase()) {

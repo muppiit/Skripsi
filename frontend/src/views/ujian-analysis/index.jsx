@@ -197,8 +197,7 @@ const AnalisisUjian = () => {
 
       // Save PDF
       doc.save(
-        `Analisis_Ujian_${data.ujianNama?.replace(/\s+/g, "_") || "Report"}_${
-          new Date().toISOString().split("T")[0]
+        `Analisis_Ujian_${data.ujianNama?.replace(/\s+/g, "_") || "Report"}_${new Date().toISOString().split("T")[0]
         }.pdf`
       );
 
@@ -245,7 +244,9 @@ const AnalisisUjian = () => {
             );
             // Fallback to hasil ujian if analysis not available
             try {
-              result = await getHasilByUjian(filterUjian, true); // Include analytics
+              result = await getHasilByUjian(filterUjian, {
+                includeAnalytics: true,
+              }); // Include analytics
               result._dataSource = "hasil-ujian"; // Mark fallback data source
               console.log("Fallback to Hasil Ujian API:", result);
             } catch (fallbackError) {
@@ -539,12 +540,12 @@ const AnalisisUjian = () => {
                 score >= 80
                   ? "A"
                   : score >= 70
-                  ? "B"
-                  : score >= 60
-                  ? "C"
-                  : score >= 50
-                  ? "D"
-                  : "E",
+                    ? "B"
+                    : score >= 60
+                      ? "C"
+                      : score >= 50
+                        ? "D"
+                        : "E",
               lulus: (item.passedCount || 0) > 0,
 
               // Question breakdown - Ujian level summary
@@ -575,8 +576,8 @@ const AnalisisUjian = () => {
                 integrityScore > 70
                   ? "HIGH"
                   : integrityScore > 40
-                  ? "MEDIUM"
-                  : "LOW",
+                    ? "MEDIUM"
+                    : "LOW",
 
               // Class information - From ujian analysis
               kelas:
@@ -703,11 +704,10 @@ const AnalisisUjian = () => {
                 console.warn(`Failed to fetch user ${studentId}:`, error);
                 return {
                   id: studentId,
-                  name: `ID: ${
-                    studentId.length > 10
+                  name: `ID: ${studentId.length > 10
                       ? studentId.substring(0, 8) + "..."
                       : studentId
-                  }`,
+                    }`,
                 };
               }
             });
@@ -732,11 +732,10 @@ const AnalisisUjian = () => {
           // Fallback: Create default names for unknown IDs
           const fallbackCache = { ...studentNamesCache };
           uncachedIds.forEach((studentId) => {
-            fallbackCache[studentId] = `ID: ${
-              studentId.length > 10
+            fallbackCache[studentId] = `ID: ${studentId.length > 10
                 ? studentId.substring(0, 8) + "..."
                 : studentId
-            }`;
+              }`;
           });
 
           setStudentNamesCache(fallbackCache);
@@ -937,8 +936,8 @@ const AnalisisUjian = () => {
                   record.nilai >= 80
                     ? "green"
                     : record.nilai >= 60
-                    ? "orange"
-                    : "red",
+                      ? "orange"
+                      : "red",
               }}
             />{" "}
             <Text strong>{record.nilai}</Text> / 100
@@ -1046,11 +1045,11 @@ const AnalisisUjian = () => {
     avgScore:
       siswaData.length > 0
         ? parseFloat(
-            (
-              siswaData.reduce((sum, item) => sum + (item.nilai || 0), 0) /
-              siswaData.length
-            ).toFixed(1)
-          )
+          (
+            siswaData.reduce((sum, item) => sum + (item.nilai || 0), 0) /
+            siswaData.length
+          ).toFixed(1)
+        )
         : 0,
     totalViolations: siswaData.reduce(
       (sum, item) => sum + (item.violationCount || 0),
@@ -1062,13 +1061,13 @@ const AnalisisUjian = () => {
     avgIntegrityScore:
       siswaData.length > 0
         ? parseFloat(
-            (
-              siswaData.reduce(
-                (sum, item) => sum + (item.integrityScore || 0),
-                0
-              ) / siswaData.length
-            ).toFixed(1)
-          )
+          (
+            siswaData.reduce(
+              (sum, item) => sum + (item.integrityScore || 0),
+              0
+            ) / siswaData.length
+          ).toFixed(1)
+        )
         : 0,
     lulusCount: siswaData.filter((item) => item.lulus).length,
   };
@@ -1111,17 +1110,17 @@ const AnalisisUjian = () => {
     const avgDifficultyIndex =
       totalQuestions > 0
         ? Object.values(data.questionDifficulty || {}).reduce(
-            (sum, val) => sum + val,
-            0
-          ) / totalQuestions
+          (sum, val) => sum + val,
+          0
+        ) / totalQuestions
         : 0;
 
     const securityStatus =
       data.integrityScore >= 0.9
         ? "AMAN"
         : data.integrityScore >= 0.7
-        ? "PERLU_PERHATIAN"
-        : "RISIKO_TINGGI";
+          ? "PERLU_PERHATIAN"
+          : "RISIKO_TINGGI";
 
     // Helper function untuk difficulty level color
     const getDifficultyColor = (level) => {
@@ -1263,15 +1262,15 @@ const AnalisisUjian = () => {
                           data.averageScore >= 80
                             ? "green"
                             : data.averageScore >= 60
-                            ? "orange"
-                            : "red"
+                              ? "orange"
+                              : "red"
                         }
                       >
                         {data.averageScore >= 80
                           ? "EXCELLENT"
                           : data.averageScore >= 60
-                          ? "GOOD"
-                          : "NEEDS IMPROVEMENT"}
+                            ? "GOOD"
+                            : "NEEDS IMPROVEMENT"}
                       </Tag>
                     }
                   >
@@ -1287,8 +1286,8 @@ const AnalisisUjian = () => {
                               data.averageScore >= 75
                                 ? "#3f8600"
                                 : data.averageScore >= 60
-                                ? "#fa8c16"
-                                : "#cf1322",
+                                  ? "#fa8c16"
+                                  : "#cf1322",
                           }}
                         />
                       </Col>
@@ -1303,8 +1302,8 @@ const AnalisisUjian = () => {
                               data.passRate >= 80
                                 ? "#3f8600"
                                 : data.passRate >= 60
-                                ? "#fa8c16"
-                                : "#cf1322",
+                                  ? "#fa8c16"
+                                  : "#cf1322",
                           }}
                         />
                       </Col>
@@ -1326,8 +1325,8 @@ const AnalisisUjian = () => {
                               securityStatus === "AMAN"
                                 ? "#3f8600"
                                 : securityStatus === "PERLU_PERHATIAN"
-                                ? "#fa8c16"
-                                : "#cf1322",
+                                  ? "#fa8c16"
+                                  : "#cf1322",
                           }}
                         />
                       </Col>
@@ -1344,11 +1343,10 @@ const AnalisisUjian = () => {
                         {
                           icon: "🎯",
                           title: "Performa Siswa",
-                          content: `${
-                            data.totalParticipants
-                          } siswa mengikuti ujian dengan rata-rata ${data.averageScore?.toFixed(
-                            1
-                          )} poin`,
+                          content: `${data.totalParticipants
+                            } siswa mengikuti ujian dengan rata-rata ${data.averageScore?.toFixed(
+                              1
+                            )} poin`,
                         },
                         {
                           icon: "📚",
@@ -1368,11 +1366,9 @@ const AnalisisUjian = () => {
                         {
                           icon: "🔒",
                           title: "Integritas Ujian",
-                          content: `${
-                            data.suspiciousSubmissions || 0
-                          } pelanggaran terdeteksi pada ${
-                            data.flaggedParticipants || 0
-                          } siswa`,
+                          content: `${data.suspiciousSubmissions || 0
+                            } pelanggaran terdeteksi pada ${data.flaggedParticipants || 0
+                            } siswa`,
                         },
                       ]}
                       renderItem={(item) => (
@@ -1690,7 +1686,7 @@ const AnalisisUjian = () => {
                 <Col xs={24} lg={12}>
                   <Card title="🏫 Performa per Kelas" size="small">
                     {data.performanceByKelas &&
-                    Object.keys(data.performanceByKelas).length > 0 ? (
+                      Object.keys(data.performanceByKelas).length > 0 ? (
                       Object.entries(data.performanceByKelas).map(
                         ([kelas, klasData]) => (
                           <Card
@@ -1997,7 +1993,7 @@ const AnalisisUjian = () => {
                 <Col xs={24} lg={12}>
                   <Card title="✅ Soal Termudah" size="small">
                     {data.easiestQuestions &&
-                    data.easiestQuestions.length > 0 ? (
+                      data.easiestQuestions.length > 0 ? (
                       <List
                         size="small"
                         dataSource={data.easiestQuestions.slice(0, 5)}
@@ -2025,7 +2021,7 @@ const AnalisisUjian = () => {
                                   >
                                     {(
                                       data.questionDifficulty?.[questionId] *
-                                        100 || 0
+                                      100 || 0
                                     ).toFixed(1)}
                                     % benar
                                   </Text>
@@ -2052,7 +2048,7 @@ const AnalisisUjian = () => {
                 <Col xs={24} lg={12}>
                   <Card title="❌ Soal Tersulit" size="small">
                     {data.hardestQuestions &&
-                    data.hardestQuestions.length > 0 ? (
+                      data.hardestQuestions.length > 0 ? (
                       <List
                         size="small"
                         dataSource={data.hardestQuestions.slice(0, 5)}
@@ -2080,7 +2076,7 @@ const AnalisisUjian = () => {
                                   >
                                     {(
                                       data.questionDifficulty?.[questionId] *
-                                        100 || 0
+                                      100 || 0
                                     ).toFixed(1)}
                                     % benar
                                   </Text>
@@ -2192,8 +2188,8 @@ const AnalisisUjian = () => {
                                   percentage >= 75
                                     ? "#52c41a"
                                     : percentage >= 50
-                                    ? "#faad14"
-                                    : "#ff4d4f"
+                                      ? "#faad14"
+                                      : "#ff4d4f"
                                 }
                               />
                             </div>
@@ -2243,15 +2239,15 @@ const AnalisisUjian = () => {
                       data.integrityScore >= 0.9
                         ? "🛡️ Ujian Aman - Tidak ada indikasi kecurangan signifikan"
                         : data.integrityScore >= 0.7
-                        ? "⚠️ Perlu Perhatian - Ada beberapa aktivitas mencurigakan"
-                        : "🚨 Risiko Tinggi - Terdeteksi banyak pelanggaran"
+                          ? "⚠️ Perlu Perhatian - Ada beberapa aktivitas mencurigakan"
+                          : "🚨 Risiko Tinggi - Terdeteksi banyak pelanggaran"
                     }
                     type={
                       data.integrityScore >= 0.9
                         ? "success"
                         : data.integrityScore >= 0.7
-                        ? "warning"
-                        : "error"
+                          ? "warning"
+                          : "error"
                     }
                     showIcon
                     style={{ marginBottom: "16px" }}
@@ -2283,8 +2279,8 @@ const AnalisisUjian = () => {
                             data.integrityScore >= 0.9
                               ? "#52c41a"
                               : data.integrityScore >= 0.7
-                              ? "#faad14"
-                              : "#ff4d4f"
+                                ? "#faad14"
+                                : "#ff4d4f"
                           }
                         />
                       </div>
@@ -2367,10 +2363,10 @@ const AnalisisUjian = () => {
                                   sev === "CRITICAL"
                                     ? "red"
                                     : sev === "HIGH"
-                                    ? "orange"
-                                    : sev === "MEDIUM"
-                                    ? "blue"
-                                    : "default"
+                                      ? "orange"
+                                      : sev === "MEDIUM"
+                                        ? "blue"
+                                        : "default"
                                 }
                               >
                                 {sev}
@@ -2384,12 +2380,12 @@ const AnalisisUjian = () => {
                             render: (time) =>
                               time
                                 ? new Date(time).toLocaleString("id-ID", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                                 : "-",
                             width: 130,
                           },
@@ -2477,7 +2473,7 @@ const AnalisisUjian = () => {
                 <Col xs={24} lg={12}>
                   <Card title="🔧 Saran Perbaikan" size="small">
                     {data.improvementSuggestions &&
-                    data.improvementSuggestions.length > 0 ? (
+                      data.improvementSuggestions.length > 0 ? (
                       <List
                         size="small"
                         dataSource={data.improvementSuggestions}
@@ -2754,7 +2750,7 @@ const AnalisisUjian = () => {
               value={
                 ((summaryStats.totalSiswa - summaryStats.highRiskStudents) /
                   Math.max(summaryStats.totalSiswa, 1)) *
-                  100 || 0
+                100 || 0
               }
               prefix={<CheckCircleOutlined />}
               precision={1}
@@ -2777,7 +2773,7 @@ const AnalisisUjian = () => {
               percent={
                 (summaryStats.highRiskStudents /
                   Math.max(summaryStats.totalSiswa, 1)) *
-                  100 || 0
+                100 || 0
               }
               size="small"
               strokeColor="#ff4d4f"
@@ -2797,7 +2793,7 @@ const AnalisisUjian = () => {
               percent={
                 (summaryStats.needsReview /
                   Math.max(summaryStats.totalSiswa, 1)) *
-                  100 || 0
+                100 || 0
               }
               size="small"
               strokeColor="#faad14"
@@ -2818,8 +2814,8 @@ const AnalisisUjian = () => {
                   summaryStats.avgIntegrityScore >= 90
                     ? "#3f8600"
                     : summaryStats.avgIntegrityScore >= 70
-                    ? "#faad14"
-                    : "#cf1322",
+                      ? "#faad14"
+                      : "#cf1322",
               }}
             />
             <Progress
@@ -2829,8 +2825,8 @@ const AnalisisUjian = () => {
                 summaryStats.avgIntegrityScore >= 90
                   ? "#52c41a"
                   : summaryStats.avgIntegrityScore >= 70
-                  ? "#faad14"
-                  : "#ff4d4f"
+                    ? "#faad14"
+                    : "#ff4d4f"
               }
               showInfo={false}
             />
@@ -2877,7 +2873,7 @@ const AnalisisUjian = () => {
                 percent={
                   (siswaData.filter((s) => s.nilai >= 90).length /
                     Math.max(siswaData.length, 1)) *
-                    100 || 0
+                  100 || 0
                 }
                 size={50}
                 strokeColor="#52c41a"
@@ -2907,7 +2903,7 @@ const AnalisisUjian = () => {
                   (siswaData.filter((s) => s.nilai >= 75 && s.nilai < 90)
                     .length /
                     Math.max(siswaData.length, 1)) *
-                    100 || 0
+                  100 || 0
                 }
                 size={50}
                 strokeColor="#1890ff"
@@ -2932,7 +2928,7 @@ const AnalisisUjian = () => {
                 percent={
                   (siswaData.filter((s) => s.nilai < 75).length /
                     Math.max(siswaData.length, 1)) *
-                    100 || 0
+                  100 || 0
                 }
                 size={50}
                 strokeColor="#ff4d4f"
@@ -2949,15 +2945,15 @@ const AnalisisUjian = () => {
                 summaryStats.avgIntegrityScore >= 90
                   ? "Status Keamanan: AMAN"
                   : summaryStats.avgIntegrityScore >= 70
-                  ? "Status Keamanan: PERLU PERHATIAN"
-                  : "Status Keamanan: RISIKO TINGGI"
+                    ? "Status Keamanan: PERLU PERHATIAN"
+                    : "Status Keamanan: RISIKO TINGGI"
               }
               type={
                 summaryStats.avgIntegrityScore >= 90
                   ? "success"
                   : summaryStats.avgIntegrityScore >= 70
-                  ? "warning"
-                  : "error"
+                    ? "warning"
+                    : "error"
               }
               showIcon
               style={{ marginBottom: "16px" }}

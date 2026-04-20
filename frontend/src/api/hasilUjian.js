@@ -51,12 +51,21 @@ export function getHasilByPesertaAndUjian(idPeserta, idUjian, options = {}) {
  * Mengubah parameter includeAnalytics menjadi objek options
  */
 export function getHasilByUjian(idUjian, options = {}) {
+  const normalizedOptions =
+    typeof options === "boolean"
+      ? { includeAnalytics: options }
+      : options || {};
+
   return request({
     url: `/hasil-ujian/ujian/${idUjian}`,
     method: "get",
     params: {
-      includeAnalytics: options.includeAnalytics || false,
-      includeSecurityData: options.includeSecurityData || false, // Tambahkan ini
+      includeAnalytics: normalizedOptions.includeAnalytics || false,
+      includeSecurityData: normalizedOptions.includeSecurityData || false,
+      kelasId: normalizedOptions.kelasId,
+      seasonId: normalizedOptions.seasonId,
+      page: normalizedOptions.page,
+      size: normalizedOptions.size,
     },
   });
 }
@@ -184,10 +193,14 @@ export function verifyResult(hasilUjianId, verificationData) {
 /**
  * Get statistics untuk ujian
  */
-export function getUjianStatistics(idUjian) {
+export function getUjianStatistics(idUjian, options = {}) {
   return request({
     url: `/hasil-ujian/statistics/ujian/${idUjian}`,
     method: "get",
+    params: {
+      kelasId: options.kelasId,
+      seasonId: options.seasonId,
+    },
   });
 }
 

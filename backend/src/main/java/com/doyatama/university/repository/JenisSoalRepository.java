@@ -14,7 +14,7 @@ import org.apache.hadoop.hbase.TableName;
 public class JenisSoalRepository {
 
     Configuration conf = HBaseConfiguration.create();
-    String tableName = "jenis_soal";
+    String tableName = "jenisSoal";
 
     public List<JenisSoal> findAll(int size) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
@@ -25,7 +25,7 @@ public class JenisSoalRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idJenisSoal", "idJenisSoal");
         columnMapping.put("namaJenisSoal", "namaJenisSoal");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
         return client.showListTable(tableJenisSoal.toString(), columnMapping, JenisSoal.class, size);
     }
 
@@ -36,9 +36,10 @@ public class JenisSoalRepository {
         TableName tableJenisSoal = TableName.valueOf(tableName);
         client.insertRecord(tableJenisSoal, rowKey, "main", "idJenisSoal", rowKey);
         client.insertRecord(tableJenisSoal, rowKey, "main", "namaJenisSoal", jenisSoal.getNamaJenisSoal());
-        // School
-        client.insertRecord(tableJenisSoal, rowKey, "school", "idSchool", jenisSoal.getSchool().getIdSchool());
-        client.insertRecord(tableJenisSoal, rowKey, "school", "nameSchool", jenisSoal.getSchool().getNameSchool());
+        // Study program compatibility stored in the legacy model field
+        client.insertRecord(tableJenisSoal, rowKey, "study_program", "idSchool", jenisSoal.getSchool().getIdSchool());
+        client.insertRecord(tableJenisSoal, rowKey, "study_program", "nameSchool",
+                jenisSoal.getSchool().getNameSchool());
 
         client.insertRecord(tableJenisSoal, rowKey, "detail", "created_by", "Polinema");
         return jenisSoal;
@@ -53,7 +54,7 @@ public class JenisSoalRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idJenisSoal", "idJenisSoal");
         columnMapping.put("namaJenisSoal", "namaJenisSoal");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
         return client.showDataTable(tableJenisSoal.toString(), columnMapping, jenisSoalId, JenisSoal.class);
     }
@@ -67,7 +68,7 @@ public class JenisSoalRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idJenisSoal", "idJenisSoal");
         columnMapping.put("namaJenisSoal", "namaJenisSoal");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
         List<JenisSoal> jenisSoalList = new ArrayList<>();
         for (String jenisSoalId : jenisSoalIds) {
@@ -80,7 +81,7 @@ public class JenisSoalRepository {
         return jenisSoalList;
     }
 
-    public List<JenisSoal> findJenisSoalBySekolah(String schoolId, int size) throws IOException {
+    public List<JenisSoal> findJenisSoalByStudyProgram(String studyProgramId, int size) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
         TableName tableJenisSoal = TableName.valueOf(tableName);
@@ -89,11 +90,15 @@ public class JenisSoalRepository {
         // Add the mappings to the HashMap
         columnMapping.put("idJenisSoal", "idJenisSoal");
         columnMapping.put("namaJenisSoal", "namaJenisSoal");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
-        List<JenisSoal> jenisSoalList = client.getDataListByColumn(tableJenisSoal.toString(), columnMapping, "school",
-                "idSchool", schoolId, JenisSoal.class, size);
+        List<JenisSoal> jenisSoalList = client.getDataListByColumn(tableJenisSoal.toString(), columnMapping,
+                "study_program", "idSchool", studyProgramId, JenisSoal.class, size);
         return jenisSoalList;
+    }
+
+    public List<JenisSoal> findJenisSoalBySekolah(String schoolId, int size) throws IOException {
+        return findJenisSoalByStudyProgram(schoolId, size);
     }
 
     public JenisSoal update(String jenisSoalId, JenisSoal jenisSoal) throws IOException {
@@ -105,10 +110,11 @@ public class JenisSoalRepository {
             client.insertRecord(tableJenisSoal, jenisSoalId, "main", "namaJenisSoal", jenisSoal.getNamaJenisSoal());
         }
 
-        // School
+        // Study program compatibility stored in the legacy model field
         if (jenisSoal.getSchool() != null) {
-            client.insertRecord(tableJenisSoal, jenisSoalId, "school", "idSchool", jenisSoal.getSchool().getIdSchool());
-            client.insertRecord(tableJenisSoal, jenisSoalId, "school", "nameSchool",
+            client.insertRecord(tableJenisSoal, jenisSoalId, "study_program", "idSchool",
+                    jenisSoal.getSchool().getIdSchool());
+            client.insertRecord(tableJenisSoal, jenisSoalId, "study_program", "nameSchool",
                     jenisSoal.getSchool().getNameSchool());
         }
 

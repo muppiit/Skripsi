@@ -5,11 +5,12 @@ import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.BankSoal;
 import com.doyatama.university.model.BankSoalUjian;
 import com.doyatama.university.model.Kelas;
-import com.doyatama.university.model.KonsentrasiKeahlianSekolah;
-import com.doyatama.university.model.Mapel;
-import com.doyatama.university.model.School;
+import com.doyatama.university.model.Season;
 import com.doyatama.university.model.Semester;
+import com.doyatama.university.model.RPS;
 import com.doyatama.university.model.TahunAjaran;
+import com.doyatama.university.model.StudyProgram;
+import com.doyatama.university.model.Subject;
 import com.doyatama.university.model.Ujian;
 import com.doyatama.university.model.User;
 import com.doyatama.university.model.UjianAnalysis;
@@ -18,11 +19,12 @@ import com.doyatama.university.payload.PagedResponse;
 import com.doyatama.university.payload.UjianRequest;
 import com.doyatama.university.repository.BankSoalRepository;
 import com.doyatama.university.repository.KelasRepository;
-import com.doyatama.university.repository.KonsentrasiKeahlianSekolahRepository;
-import com.doyatama.university.repository.MapelRepository;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.RPSRepository;
+import com.doyatama.university.repository.SeasonRepository;
 import com.doyatama.university.repository.SemesterRepository;
 import com.doyatama.university.repository.TahunAjaranRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
+import com.doyatama.university.repository.SubjectRepository;
 import com.doyatama.university.repository.UjianRepository;
 import com.doyatama.university.repository.UserRepository;
 import com.doyatama.university.util.AppConstants;
@@ -48,11 +50,12 @@ public class UjianService {
     private UjianRepository ujianRepository = new UjianRepository();
     private BankSoalRepository bankSoalRepository = new BankSoalRepository();
     private TahunAjaranRepository tahunAjaranRepository = new TahunAjaranRepository();
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
     private KelasRepository kelasRepository = new KelasRepository();
+    private SeasonRepository seasonRepository = new SeasonRepository();
     private SemesterRepository semesterRepository = new SemesterRepository();
-    private MapelRepository mapelRepository = new MapelRepository();
-    private KonsentrasiKeahlianSekolahRepository konsentrasiKeahlianSekolahRepository = new KonsentrasiKeahlianSekolahRepository();
-    private SchoolRepository schoolRepository = new SchoolRepository();
+    private SubjectRepository subjectRepository = new SubjectRepository();
+    private RPSRepository rpsRepository = new RPSRepository();
     private UserRepository userRepository = new UserRepository();
     @Autowired
     private UjianAnalysisService ujianAnalysisService;
@@ -60,7 +63,8 @@ public class UjianService {
     @Autowired
     private HasilUjianService hasilUjianService;
 
-    public PagedResponse<Ujian> getAllUjian(int page, int size, String userID, String schoolID) throws IOException {
+    public PagedResponse<Ujian> getAllUjian(int page, int size, String userID, String schoolID,
+            String semesterId, String kelasId) throws IOException {
         validatePageNumberAndSize(page, size);
 
         List<Ujian> ujianResponse;
@@ -69,6 +73,20 @@ public class UjianService {
             ujianResponse = ujianRepository.findAll(size);
         } else {
             ujianResponse = ujianRepository.findUjianBySekolah(schoolID, size);
+        }
+
+        if (semesterId != null && !semesterId.trim().isEmpty()) {
+            ujianResponse = ujianResponse.stream()
+                    .filter(ujian -> ujian.getSemester() != null
+                            && semesterId.equals(ujian.getSemester().getIdSemester()))
+                    .collect(Collectors.toList());
+        }
+
+        if (kelasId != null && !kelasId.trim().isEmpty()) {
+            ujianResponse = ujianResponse.stream()
+                    .filter(ujian -> ujian.getKelas() != null
+                            && kelasId.equals(ujian.getKelas().getIdKelas()))
+                    .collect(Collectors.toList());
         }
 
         // Enrich ujian data with participant counts
@@ -217,13 +235,21 @@ public class UjianService {
             ujian.setTahunAjaran(tahunAjaran);
         }
 
-        if (ujianRequest.getIdKelas() != null) {
-            Kelas kelas = kelasRepository.findById(ujianRequest.getIdKelas());
-            if (kelas == null) {
-                throw new ResourceNotFoundException("Kelas not found with id: " + ujianRequest.getIdKelas(),
-                        "idKelas", ujianRequest.getIdKelas());
+        if (ujianRequest.getIdStudyProgram() != null) {
+            StudyProgram studyProgram = studyProgramRepository.findById(ujianRequest.getIdStudyProgram());
+            if (studyProgram == null) {
+                throw new ResourceNotFoundException(
+                        "Study program not found with id: " + ujianRequest.getIdStudyProgram(),
+                        "idStudyProgram", ujianRequest.getIdStudyProgram());
             }
-            ujian.setKelas(kelas);
+            ujian.setStudy_program(studyProgram);
+        }
+
+        if (ujianRequest.getIdStudyProgram() == null && ujianRequest.getIdSchool() != null) {
+            StudyProgram studyProgram = studyProgramRepository.findById(ujianRequest.getIdSchool());
+            if (studyProgram != null) {
+                ujian.setStudy_program(studyProgram);
+            }
         }
 
         if (ujianRequest.getIdSemester() != null) {
@@ -235,33 +261,42 @@ public class UjianService {
             ujian.setSemester(semester);
         }
 
-        if (ujianRequest.getIdMapel() != null) {
-            Mapel mapel = mapelRepository.findById(ujianRequest.getIdMapel());
-            if (mapel == null) {
-                throw new ResourceNotFoundException("Mapel not found with id: " + ujianRequest.getIdMapel(),
-                        "idMapel", ujianRequest.getIdMapel());
+        if (ujianRequest.getIdKelas() != null) {
+            Kelas kelas = kelasRepository.findById(ujianRequest.getIdKelas());
+            if (kelas == null) {
+                throw new ResourceNotFoundException("Kelas not found with id: " + ujianRequest.getIdKelas(),
+                        "idKelas", ujianRequest.getIdKelas());
             }
-            ujian.setMapel(mapel);
+            ujian.setKelas(kelas);
         }
 
-        if (ujianRequest.getIdKonsentrasiKeahlianSekolah() != null) {
-            KonsentrasiKeahlianSekolah kks = konsentrasiKeahlianSekolahRepository
-                    .findById(ujianRequest.getIdKonsentrasiKeahlianSekolah());
-            if (kks == null) {
-                throw new ResourceNotFoundException("Konsentrasi Keahlian Sekolah not found with id: "
-                        + ujianRequest.getIdKonsentrasiKeahlianSekolah(), "idKonsentrasiKeahlianSekolah",
-                        ujianRequest.getIdKonsentrasiKeahlianSekolah());
+        if (ujianRequest.getIdSubject() != null) {
+            Subject subject = subjectRepository.findById(ujianRequest.getIdSubject());
+            if (subject == null) {
+                throw new ResourceNotFoundException("Subject not found with id: " + ujianRequest.getIdSubject(),
+                        "idSubject", ujianRequest.getIdSubject());
             }
-            ujian.setKonsentrasiKeahlianSekolah(kks);
+            ujian.setSubject(subject);
         }
 
-        if (ujianRequest.getIdSchool() != null) {
-            School school = schoolRepository.findById(ujianRequest.getIdSchool());
-            if (school == null) {
-                throw new ResourceNotFoundException("School not found with id: " + ujianRequest.getIdSchool(),
-                        "idSchool", ujianRequest.getIdSchool());
+        if (ujianRequest.getIdRps() != null) {
+            RPS rps = rpsRepository.findById(ujianRequest.getIdRps());
+            if (rps == null) {
+                throw new ResourceNotFoundException("RPS not found with id: "
+                        + ujianRequest.getIdRps(), "idRps",
+                        ujianRequest.getIdRps());
             }
-            ujian.setSchool(school);
+            ujian.setRps(rps);
+        }
+
+        if (ujianRequest.getIdSeason() != null) {
+            Season season = seasonRepository.findById(ujianRequest.getIdSeason());
+            if (season == null) {
+                throw new ResourceNotFoundException("Season not found with id: "
+                        + ujianRequest.getIdSeason(), "idSeason",
+                        ujianRequest.getIdSeason());
+            }
+            ujian.setSeasons(season);
         }
 
         if (ujianRequest.getIdCreatedBy() != null) {
@@ -351,8 +386,9 @@ public class UjianService {
             throw new IllegalArgumentException("Nama ujian wajib diisi");
         }
 
-        if (request.getIdSchool() == null || request.getIdSchool().trim().isEmpty()) {
-            throw new IllegalArgumentException("ID sekolah wajib diisi");
+        if ((request.getIdStudyProgram() == null || request.getIdStudyProgram().trim().isEmpty())
+                && (request.getIdSchool() == null || request.getIdSchool().trim().isEmpty())) {
+            throw new IllegalArgumentException("ID study program wajib diisi");
         }
 
         if (request.getIdCreatedBy() == null || request.getIdCreatedBy().trim().isEmpty()) {
@@ -588,7 +624,7 @@ public class UjianService {
             // Create request for comprehensive analysis generation
             com.doyatama.university.payload.UjianAnalysisRequest.GenerateAnalysisRequest request = new com.doyatama.university.payload.UjianAnalysisRequest.GenerateAnalysisRequest();
             request.setIdUjian(ujian.getIdUjian());
-            request.setIdSchool(ujian.getSchool() != null ? ujian.getSchool().getIdSchool() : "");
+            request.setIdSchool(ujian.getStudy_program() != null ? ujian.getStudy_program().getId() : "");
             request.setAnalysisType("COMPREHENSIVE");
             request.setIncludeDescriptiveStats(true);
             request.setIncludeItemAnalysis(true);
@@ -639,7 +675,8 @@ public class UjianService {
     }
 
     /**
-     * Enrich ujian with complete relational data (kelas, mapel, semester, etc.)
+     * Enrich ujian with complete relational data (study program, subject, semester,
+     * etc.)
      */
     public void enrichUjianWithRelationalData(Ujian ujian) {
         try {
@@ -651,11 +688,11 @@ public class UjianService {
                 }
             }
 
-            // Enrich kelas
-            if (ujian.getKelas() != null && ujian.getKelas().getIdKelas() != null) {
-                Kelas kelas = kelasRepository.findById(ujian.getKelas().getIdKelas());
-                if (kelas != null) {
-                    ujian.setKelas(kelas);
+            // Enrich study program
+            if (ujian.getStudy_program() != null && ujian.getStudy_program().getId() != null) {
+                StudyProgram studyProgram = studyProgramRepository.findById(ujian.getStudy_program().getId());
+                if (studyProgram != null) {
+                    ujian.setStudy_program(studyProgram);
                 }
             }
 
@@ -667,29 +704,35 @@ public class UjianService {
                 }
             }
 
-            // Enrich mapel
-            if (ujian.getMapel() != null && ujian.getMapel().getIdMapel() != null) {
-                Mapel mapel = mapelRepository.findById(ujian.getMapel().getIdMapel());
-                if (mapel != null) {
-                    ujian.setMapel(mapel);
+            // Enrich kelas
+            if (ujian.getKelas() != null && ujian.getKelas().getIdKelas() != null) {
+                Kelas kelas = kelasRepository.findById(ujian.getKelas().getIdKelas());
+                if (kelas != null) {
+                    ujian.setKelas(kelas);
                 }
             }
 
-            // Enrich konsentrasi keahlian sekolah
-            if (ujian.getKonsentrasiKeahlianSekolah() != null
-                    && ujian.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah() != null) {
-                KonsentrasiKeahlianSekolah konsentrasi = konsentrasiKeahlianSekolahRepository
-                        .findById(ujian.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah());
-                if (konsentrasi != null) {
-                    ujian.setKonsentrasiKeahlianSekolah(konsentrasi);
+            // Enrich subject
+            if (ujian.getSubject() != null && ujian.getSubject().getId() != null) {
+                Subject subject = subjectRepository.findById(ujian.getSubject().getId());
+                if (subject != null) {
+                    ujian.setSubject(subject);
                 }
             }
 
-            // Enrich school
-            if (ujian.getSchool() != null && ujian.getSchool().getIdSchool() != null) {
-                School school = schoolRepository.findById(ujian.getSchool().getIdSchool());
-                if (school != null) {
-                    ujian.setSchool(school);
+            // Enrich rps
+            if (ujian.getRps() != null && ujian.getRps().getId() != null) {
+                RPS rps = rpsRepository.findById(ujian.getRps().getId());
+                if (rps != null) {
+                    ujian.setRps(rps);
+                }
+            }
+
+            // Enrich season
+            if (ujian.getSeasons() != null && ujian.getSeasons().getIdSeason() != null) {
+                Season season = seasonRepository.findById(ujian.getSeasons().getIdSeason());
+                if (season != null) {
+                    ujian.setSeasons(season);
                 }
             }
 

@@ -1,2 +1,2 @@
-﻿namaUjian,pertanyaan,bobot,opsiA,opsiB,opsiC,opsiD,opsiE,jawabanBenar,idSchool,tahunAjaran,namaSemester,namaKelas,namaMapel,namaElemen,namaAcp,namaAtp,namaKonsentrasiSekolah,namaTaksonomi
-UTS IPA,Manakah yang termasuk planet dalam tata surya? (Pilih lebih dari 1),15,Merkurius,Venus,Matahari,Bumi,Bulan,"A,B,D",RWK001,2025/2026,Ganjil,X,IPA,Tata Surya,Identifikasi Planet,Klasifikasi Benda Langit,Rekayasa Perangkat Lunak,C2
+﻿namaUjian,pertanyaan,bobot,opsiA,opsiB,opsiC,opsiD,opsiE,jawabanBenar,idStudyProgram,tahunAjaran,namaSemester,subject,rps_detail,idSubject,idRpsDetail,namaTaksonomi
+UTS Algoritma,Manakah yang termasuk karakteristik algoritma yang baik? (Pilih lebih dari 1),15,Jelas,Efisien,Random,Terdapat input dan output,Tidak berhingga,"A,B,D",RWK001,2025/2026,Ganjil,Algoritma dan Struktur Data,CP MK 2,SUB002,RPD002,C2

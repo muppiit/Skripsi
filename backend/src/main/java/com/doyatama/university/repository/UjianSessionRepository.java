@@ -99,7 +99,13 @@ public class UjianSessionRepository {
             client.insertRecord(table, rowKey, "main", "submittedAt", ujianSession.getSubmittedAt().toString());
         }
 
-        client.insertRecord(table, rowKey, "main", "idSchool", ujianSession.getIdSchool());
+        client.insertRecord(table, rowKey, "main", "studyProgramId", ujianSession.getIdSchool());
+        if (ujianSession.getIdKelas() != null) {
+            client.insertRecord(table, rowKey, "main", "idKelas", ujianSession.getIdKelas());
+        }
+        if (ujianSession.getIdSeason() != null) {
+            client.insertRecord(table, rowKey, "main", "idSeason", ujianSession.getIdSeason());
+        }
         client.insertRecord(table, rowKey, "main", "createdAt", ujianSession.getCreatedAt().toString());
         client.insertRecord(table, rowKey, "main", "updatedAt", ujianSession.getUpdatedAt().toString());
     }
@@ -124,10 +130,20 @@ public class UjianSessionRepository {
             client.insertRecord(table, rowKey, "peserta", "username", ujianSession.getPeserta().getUsername());
         }
 
-        // Save School relationship
+        // Save study_program relationship
         if (ujianSession.getSchool() != null && ujianSession.getSchool().getIdSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", ujianSession.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool", ujianSession.getSchool().getNameSchool());
+            client.insertRecord(table, rowKey, "study_program", "idSchool", ujianSession.getSchool().getIdSchool());
+            client.insertRecord(table, rowKey, "study_program", "nameSchool", ujianSession.getSchool().getNameSchool());
+        }
+
+        if (ujianSession.getKelas() != null && ujianSession.getKelas().getIdKelas() != null) {
+            client.insertRecord(table, rowKey, "kelas", "idKelas", ujianSession.getKelas().getIdKelas());
+            client.insertRecord(table, rowKey, "kelas", "namaKelas", ujianSession.getKelas().getNamaKelas());
+            client.insertRecord(table, rowKey, "kelas", "angkatan", ujianSession.getKelas().getAngkatan());
+        }
+
+        if (ujianSession.getSeasons() != null && ujianSession.getSeasons().getIdSeason() != null) {
+            client.insertRecord(table, rowKey, "seasons", "idSeason", ujianSession.getSeasons().getIdSeason());
         }
     }
 
@@ -319,7 +335,7 @@ public class UjianSessionRepository {
                 .collect(Collectors.toList());
     }
 
-    public List<UjianSession> findActiveSessionsBySchool(String schoolId, int limit) throws IOException {
+    public List<UjianSession> findActiveSessionsByStudyProgram(String studyProgramId, int limit) throws IOException {
         TableName tableUjianSession = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
@@ -331,8 +347,8 @@ public class UjianSessionRepository {
                 tableUjianSession.toString(),
                 columnMapping,
                 "main",
-                "idSchool",
-                schoolId,
+                "studyProgramId",
+                studyProgramId,
                 UjianSession.class,
                 limit * 2,
                 indexedFields);
@@ -343,6 +359,10 @@ public class UjianSessionRepository {
                 .filter(session -> session.getIsSubmitted() == null || !session.getIsSubmitted())
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+
+    public List<UjianSession> findActiveSessionsBySchool(String schoolId, int limit) throws IOException {
+        return findActiveSessionsByStudyProgram(schoolId, limit);
     }
 
     public List<UjianSession> findSessionsByStatus(String status, int limit) throws IOException {
@@ -363,7 +383,7 @@ public class UjianSessionRepository {
                 indexedFields);
     }
 
-    public List<UjianSession> findSessionsByStatusAndSchool(String status, String schoolId, int limit)
+    public List<UjianSession> findSessionsByStatusAndStudyProgram(String status, String studyProgramId, int limit)
             throws IOException {
         TableName tableUjianSession = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
@@ -376,8 +396,8 @@ public class UjianSessionRepository {
                 tableUjianSession.toString(),
                 columnMapping,
                 "main",
-                "idSchool",
-                schoolId,
+                "studyProgramId",
+                studyProgramId,
                 UjianSession.class,
                 limit * 2,
                 indexedFields);
@@ -386,6 +406,11 @@ public class UjianSessionRepository {
                 .filter(session -> status.equals(session.getStatus()))
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+
+    public List<UjianSession> findSessionsByStatusAndSchool(String status, String schoolId, int limit)
+            throws IOException {
+        return findSessionsByStatusAndStudyProgram(status, schoolId, limit);
     }
 
     /**
@@ -408,7 +433,9 @@ public class UjianSessionRepository {
         columnMapping.put("isSubmitted", "isSubmitted");
         columnMapping.put("isAutoSubmit", "isAutoSubmit");
         columnMapping.put("submittedAt", "submittedAt");
-        columnMapping.put("idSchool", "idSchool");
+        columnMapping.put("studyProgramId", "idSchool");
+        columnMapping.put("idKelas", "idKelas");
+        columnMapping.put("idSeason", "idSeason");
         columnMapping.put("createdAt", "createdAt");
         columnMapping.put("updatedAt", "updatedAt");
 
@@ -426,7 +453,9 @@ public class UjianSessionRepository {
         // Relationships
         columnMapping.put("ujian", "ujian");
         columnMapping.put("peserta", "peserta");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("seasons", "seasons");
 
         return columnMapping;
     }
@@ -552,7 +581,7 @@ public class UjianSessionRepository {
     }
 
     public long countBySchoolAndStatus(String schoolId, String status) throws IOException {
-        List<UjianSession> sessions = findActiveSessionsBySchool(schoolId, 1000); // Get large number for counting
+        List<UjianSession> sessions = findActiveSessionsByStudyProgram(schoolId, 1000); // Get large number for counting
         return sessions.stream()
                 .filter(session -> status == null || status.equals(session.getStatus()))
                 .count();

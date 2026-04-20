@@ -53,6 +53,10 @@ public class UjianRequest {
     private String idSemester;
     private String idMapel;
     private String idKonsentrasiKeahlianSekolah;
+    private String idSeason;
+    private String idStudyProgram;
+    private String idSubject;
+    private String idRps;
     private String idCreatedBy;
     private String idSchool;
 
@@ -363,6 +367,14 @@ public class UjianRequest {
         this.idKonsentrasiKeahlianSekolah = idKonsentrasiKeahlianSekolah;
     }
 
+    public String getIdSeason() {
+        return idSeason;
+    }
+
+    public void setIdSeason(String idSeason) {
+        this.idSeason = idSeason;
+    }
+
     public String getIdCreatedBy() {
         return idCreatedBy;
     }
@@ -377,5 +389,29 @@ public class UjianRequest {
 
     public void setIdSchool(String idSchool) {
         this.idSchool = idSchool;
+    }
+
+    public String getIdStudyProgram() {
+        return idStudyProgram;
+    }
+
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
+    }
+
+    public String getIdSubject() {
+        return idSubject;
+    }
+
+    public void setIdSubject(String idSubject) {
+        this.idSubject = idSubject;
+    }
+
+    public String getIdRps() {
+        return idRps;
+    }
+
+    public void setIdRps(String idRps) {
+        this.idRps = idRps;
     }
 }

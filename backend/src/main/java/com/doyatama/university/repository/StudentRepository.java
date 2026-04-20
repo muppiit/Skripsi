@@ -32,9 +32,9 @@ public class StudentRepository {
         columnMapping.put("place_born", "place_born");
         columnMapping.put("address", "address");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("angkatan", "angkatan");
 
         return client.showListTable(tableUsers.toString(), columnMapping, Student.class, size);
     }
@@ -53,9 +53,9 @@ public class StudentRepository {
         columnMapping.put("place_born", "place_born");
         columnMapping.put("address", "address");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("angkatan", "angkatan");
 
         List<Student> students = new ArrayList<>();
         for (String studentId : studentIds) {
@@ -82,9 +82,9 @@ public class StudentRepository {
         columnMapping.put("place_born", "place_born");
         columnMapping.put("address", "address");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("angkatan", "angkatan");
 
         List<List<Student>> students2D = new ArrayList<>();
 
@@ -119,15 +119,12 @@ public class StudentRepository {
         client.insertRecord(tableStudent, rowKey, "main", "address", student.getAddress());
         client.insertRecord(tableStudent, rowKey, "religion", "id", student.getReligion().getId());
         client.insertRecord(tableStudent, rowKey, "religion", "name", student.getReligion().getName());
-        client.insertRecord(tableStudent, rowKey, "bidangKeahlian", "id", student.getBidangKeahlian().getId());
-        client.insertRecord(tableStudent, rowKey, "bidangKeahlian", "bidang", student.getBidangKeahlian().getBidang());
-        client.insertRecord(tableStudent, rowKey, "programKeahlian", "id", student.getProgramKeahlian().getId());
-        client.insertRecord(tableStudent, rowKey, "programKeahlian", "program",
-                student.getProgramKeahlian().getProgram());
-        client.insertRecord(tableStudent, rowKey, "konsentrasiKeahlian", "id",
-                student.getKonsentrasiKeahlian().getId());
-        client.insertRecord(tableStudent, rowKey, "konsentrasiKeahlian", "konsentrasi",
-                student.getKonsentrasiKeahlian().getKonsentrasi());
+        client.insertRecord(tableStudent, rowKey, "study_program", "id", student.getStudyProgram().getId());
+        client.insertRecord(tableStudent, rowKey, "study_program", "name", student.getStudyProgram().getName());
+        client.insertRecord(tableStudent, rowKey, "kelas", "idKelas", student.getKelas().getIdKelas());
+        client.insertRecord(tableStudent, rowKey, "kelas", "namaKelas", student.getKelas().getNamaKelas());
+        client.insertRecord(tableStudent, rowKey, "kelas", "angkatan", student.getKelas().getAngkatan());
+        client.insertRecord(tableStudent, rowKey, "angkatan", "value", student.getAngkatan());
         client.insertRecord(tableStudent, rowKey, "detail", "created_by", "Doyatama");
         return student;
     }
@@ -148,9 +145,9 @@ public class StudentRepository {
         columnMapping.put("place_born", "place_born");
         columnMapping.put("address", "address");
         columnMapping.put("religion", "religion");
-        columnMapping.put("bidangKeahlian", "bidangKeahlian");
-        columnMapping.put("programKeahlian", "programKeahlian");
-        columnMapping.put("konsentrasiKeahlian", "konsentrasiKeahlian");
+        columnMapping.put("study_program", "study_program");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("angkatan", "angkatan");
 
         return client.showDataTable(tableUsers.toString(), columnMapping, studentId, Student.class);
     }
@@ -167,16 +164,12 @@ public class StudentRepository {
         client.insertRecord(tableStudent, studentId, "main", "address", student.getAddress());
         client.insertRecord(tableStudent, studentId, "religion", "id", student.getReligion().getId());
         client.insertRecord(tableStudent, studentId, "religion", "name", student.getReligion().getName());
-        client.insertRecord(tableStudent, studentId, "bidangKeahlian", "id", student.getBidangKeahlian().getId());
-        client.insertRecord(tableStudent, studentId, "bidangKeahlian", "bidang",
-                student.getBidangKeahlian().getBidang());
-        client.insertRecord(tableStudent, studentId, "programKeahlian", "id", student.getProgramKeahlian().getId());
-        client.insertRecord(tableStudent, studentId, "programKeahlian", "program",
-                student.getProgramKeahlian().getProgram());
-        client.insertRecord(tableStudent, studentId, "konsentrasiKeahlian", "id",
-                student.getKonsentrasiKeahlian().getId());
-        client.insertRecord(tableStudent, studentId, "konsentrasiKeahlian", "konsentrasi",
-                student.getKonsentrasiKeahlian().getKonsentrasi());
+        client.insertRecord(tableStudent, studentId, "study_program", "id", student.getStudyProgram().getId());
+        client.insertRecord(tableStudent, studentId, "study_program", "name", student.getStudyProgram().getName());
+        client.insertRecord(tableStudent, studentId, "kelas", "idKelas", student.getKelas().getIdKelas());
+        client.insertRecord(tableStudent, studentId, "kelas", "namaKelas", student.getKelas().getNamaKelas());
+        client.insertRecord(tableStudent, studentId, "kelas", "angkatan", student.getKelas().getAngkatan());
+        client.insertRecord(tableStudent, studentId, "angkatan", "value", student.getAngkatan());
         client.insertRecord(tableStudent, studentId, "detail", "created_by", "Doyatama");
         return student;
     }

@@ -120,10 +120,10 @@ public class UjianRepository {
             client.insertRecord(table, rowKey, "tahunAjaran", "tahunAjaran", ujian.getTahunAjaran().getTahunAjaran());
         }
 
-        // Save Kelas
-        if (ujian.getKelas() != null && ujian.getKelas().getIdKelas() != null) {
-            client.insertRecord(table, rowKey, "kelas", "idKelas", ujian.getKelas().getIdKelas());
-            client.insertRecord(table, rowKey, "kelas", "namaKelas", ujian.getKelas().getNamaKelas());
+        // Save study_program
+        if (ujian.getStudy_program() != null && ujian.getStudy_program().getId() != null) {
+            client.insertRecord(table, rowKey, "study_program", "id", ujian.getStudy_program().getId());
+            client.insertRecord(table, rowKey, "study_program", "name", ujian.getStudy_program().getName());
         }
 
         // Save Semester
@@ -132,25 +132,27 @@ public class UjianRepository {
             client.insertRecord(table, rowKey, "semester", "namaSemester", ujian.getSemester().getNamaSemester());
         }
 
-        // Save Mapel
-        if (ujian.getMapel() != null && ujian.getMapel().getIdMapel() != null) {
-            client.insertRecord(table, rowKey, "mapel", "idMapel", ujian.getMapel().getIdMapel());
-            client.insertRecord(table, rowKey, "mapel", "name", ujian.getMapel().getName());
+        // Save Kelas
+        if (ujian.getKelas() != null && ujian.getKelas().getIdKelas() != null) {
+            client.insertRecord(table, rowKey, "kelas", "idKelas", ujian.getKelas().getIdKelas());
+            client.insertRecord(table, rowKey, "kelas", "namaKelas", ujian.getKelas().getNamaKelas());
         }
 
-        // Save KonsentrasiKeahlianSekolah
-        if (ujian.getKonsentrasiKeahlianSekolah() != null
-                && ujian.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah() != null) {
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "idKonsentrasiSekolah",
-                    ujian.getKonsentrasiKeahlianSekolah().getIdKonsentrasiSekolah());
-            client.insertRecord(table, rowKey, "konsentrasiKeahlianSekolah", "namaKonsentrasiSekolah",
-                    ujian.getKonsentrasiKeahlianSekolah().getNamaKonsentrasiSekolah());
+        // Save Subject
+        if (ujian.getSubject() != null && ujian.getSubject().getId() != null) {
+            client.insertRecord(table, rowKey, "subject", "id", ujian.getSubject().getId());
+            client.insertRecord(table, rowKey, "subject", "name", ujian.getSubject().getName());
         }
 
-        // Save School
-        if (ujian.getSchool() != null && ujian.getSchool().getIdSchool() != null) {
-            client.insertRecord(table, rowKey, "school", "idSchool", ujian.getSchool().getIdSchool());
-            client.insertRecord(table, rowKey, "school", "nameSchool", ujian.getSchool().getNameSchool());
+        // Save RPS
+        if (ujian.getRps() != null && ujian.getRps().getId() != null) {
+            client.insertRecord(table, rowKey, "rps", "id", ujian.getRps().getId());
+            client.insertRecord(table, rowKey, "rps", "namaRps", ujian.getRps().getName());
+        }
+
+        // Save Season
+        if (ujian.getSeasons() != null && ujian.getSeasons().getIdSeason() != null) {
+            client.insertRecord(table, rowKey, "seasons", "idSeason", ujian.getSeasons().getIdSeason());
         }
 
         // Save CreatedBy User
@@ -273,7 +275,7 @@ public class UjianRepository {
         return client.showDataTable(tableUjian.toString(), columnMapping, ujianId, Ujian.class);
     }
 
-    public List<Ujian> findUjianBySekolah(String schoolID, int size) throws IOException {
+    public List<Ujian> findUjianByStudyProgram(String studyProgramID, int size) throws IOException {
         TableName tableUjian = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
@@ -283,14 +285,18 @@ public class UjianRepository {
         List<Ujian> ujianList = client.getDataListByColumnIndeks(
                 tableUjian.toString(),
                 columnMapping,
-                "school",
-                "idSchool",
-                schoolID,
+                "study_program",
+                "id",
+                studyProgramID,
                 Ujian.class,
                 size,
                 indexedFields);
 
         return ujianList;
+    }
+
+    public List<Ujian> findUjianBySekolah(String schoolID, int size) throws IOException {
+        return findUjianByStudyProgram(schoolID, size);
     }
 
     public List<Ujian> findByStatus(String status, int size) throws IOException {
@@ -313,7 +319,8 @@ public class UjianRepository {
         return ujianList;
     }
 
-    public List<Ujian> findByStatusAndSekolah(String status, String schoolID, int size) throws IOException {
+    public List<Ujian> findByStatusAndStudyProgram(String status, String studyProgramID, int size)
+            throws IOException {
         TableName tableUjian = TableName.valueOf(tableName);
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
@@ -324,9 +331,9 @@ public class UjianRepository {
         List<Ujian> ujianList = client.getDataListByColumnIndeks(
                 tableUjian.toString(),
                 columnMapping,
-                "school",
-                "idSchool",
-                schoolID,
+                "study_program",
+                "id",
+                studyProgramID,
                 Ujian.class,
                 size * 2, // Get more to account for filtering
                 indexedFields);
@@ -338,12 +345,20 @@ public class UjianRepository {
                 .collect(Collectors.toList());
     }
 
+    public List<Ujian> findByStatusAndSekolah(String status, String schoolID, int size) throws IOException {
+        return findByStatusAndStudyProgram(status, schoolID, size);
+    }
+
     public List<Ujian> findActiveUjian(int size) throws IOException {
         return findByStatus("AKTIF", size);
     }
 
+    public List<Ujian> findActiveUjianByStudyProgram(String studyProgramID, int size) throws IOException {
+        return findByStatusAndStudyProgram("AKTIF", studyProgramID, size);
+    }
+
     public List<Ujian> findActiveUjianBySekolah(String schoolID, int size) throws IOException {
-        return findByStatusAndSekolah("AKTIF", schoolID, size);
+        return findActiveUjianByStudyProgram(schoolID, size);
     }
 
     /**
@@ -354,7 +369,7 @@ public class UjianRepository {
         // First get by school if specified
         List<Ujian> ujianList;
         if (schoolID != null && !schoolID.equals("*")) {
-            ujianList = findUjianBySekolah(schoolID, size * 3); // Get more for filtering
+            ujianList = findUjianByStudyProgram(schoolID, size * 3); // Get more for filtering
         } else {
             ujianList = findAll(size * 3);
         }
@@ -374,7 +389,7 @@ public class UjianRepository {
     public List<Ujian> findLiveUjian(String schoolID, int size) throws IOException {
         List<Ujian> ujianList;
         if (schoolID != null && !schoolID.equals("*")) {
-            ujianList = findUjianBySekolah(schoolID, size * 2);
+            ujianList = findUjianByStudyProgram(schoolID, size * 2);
         } else {
             ujianList = findAll(size * 2);
         }
@@ -391,7 +406,7 @@ public class UjianRepository {
     public long countByStatusAndSchool(String status, String schoolID) throws IOException {
         List<Ujian> ujianList;
         if (schoolID != null && !schoolID.equals("*")) {
-            ujianList = findUjianBySekolah(schoolID, 1000); // Get large number for counting
+            ujianList = findUjianByStudyProgram(schoolID, 1000); // Get large number for counting
         } else {
             ujianList = findAll(1000);
         }
@@ -399,6 +414,10 @@ public class UjianRepository {
         return ujianList.stream()
                 .filter(ujian -> status == null || status.equals(ujian.getStatusUjian()))
                 .count();
+    }
+
+    public long countByStatusAndStudyProgram(String status, String studyProgramID) throws IOException {
+        return countByStatusAndSchool(status, studyProgramID);
     }
 
     /**
@@ -449,11 +468,12 @@ public class UjianRepository {
 
         // Relationships
         columnMapping.put("tahunAjaran", "tahunAjaran");
-        columnMapping.put("kelas", "kelas");
+        columnMapping.put("study_program", "study_program");
         columnMapping.put("semester", "semester");
-        columnMapping.put("mapel", "mapel");
-        columnMapping.put("konsentrasiKeahlianSekolah", "konsentrasiKeahlianSekolah");
-        columnMapping.put("school", "school");
+        columnMapping.put("kelas", "kelas");
+        columnMapping.put("subject", "subject");
+        columnMapping.put("rps", "rps");
+        columnMapping.put("seasons", "seasons");
         columnMapping.put("createdBy", "createdBy");
         columnMapping.put("bankSoalList", "bankSoalList");
 

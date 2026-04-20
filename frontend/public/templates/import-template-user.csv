@@ -1,6 +1,6 @@
 name,username,email,password,roles
 John Doe,johndoe,john@example.com,password123,Administrator
-Maria Santos,maria123,maria@example.com,mypassword,Guru
-Ahmad Wijaya,ahmad,ahmad@example.com,pass123,Operator
-Siti Nurhaliza,siti,-,siti123,Siswa
+Maria Santos,maria123,maria@example.com,mypassword,Operator
+Ahmad Wijaya,ahmad,ahmad@example.com,pass123,Guru
+Siti Nurhaliza,siti,-,siti123,Student
 Budi Santoso,budi,budi@example.com,budipass,3

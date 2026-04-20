@@ -6,19 +6,14 @@ import {
   Input,
   Modal,
   Select,
-  Table,
-  Tabs,
   Row,
   Col,
   message,
 } from "antd";
-import { getKelas } from "@/api/kelas";
-import { getSchool } from "@/api/school";
+import { getStudyPrograms } from "@/api/studyProgram";
 import { reqUserInfo } from "@/api/user";
 
-const { TextArea } = Input;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const EditKelasForm = ({
   visible,
@@ -28,70 +23,51 @@ const EditKelasForm = ({
   currentRowData,
 }) => {
   const [form] = Form.useForm();
-  const [kelas, setKelas] = useState([]);
-
-  const [tableLoading, setTableLoading] = useState(false);
-  const [userSchoolId, setUserSchoolId] = useState([]); // State untuk menyimpan ID sekolah user
-  const [schoolList, setSchoolList] = useState([]);
+  const [userStudyProgramId, setUserStudyProgramId] = useState("");
+  const [studyProgramList, setStudyProgramList] = useState([]);
 
   const fetchUserInfo = async () => {
     try {
-      const response = await reqUserInfo(); // Ambil data user dari API
-      setUserSchoolId(response.data.school_id); // Simpan ID sekolah user ke state
-      console.log("User School ID: ", response.data.school_id);
+      const response = await reqUserInfo();
+      setUserStudyProgramId(response.data.school_id);
     } catch (error) {
       message.error("Gagal mengambil informasi pengguna");
     }
   };
 
-  const fetchSchoolList = async () => {
+  const fetchStudyProgramList = async () => {
     try {
-      const result = await getSchool();
+      const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(result.data.content);
+        setStudyProgramList(result.data.content || []);
       } else {
         message.error("Gagal mengambil data");
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
-    }
-  };
-
-  const fetchKelas = async () => {
-    setTableLoading(true);
-    try {
-      const result = await getKelas();
-      if (result.data.statusCode === 200) {
-        setKelas(result.data.content);
-      } else {
-        message.error("Gagal mengambil data");
-      }
-    } catch (error) {
-      message.error("Terjadi kesalahan: " + error.message);
-    } finally {
-      setTableLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUserInfo();
-    fetchSchoolList();
-    fetchKelas();
+    fetchStudyProgramList();
 
     if (currentRowData) {
+      const currentStudyProgram = currentRowData.studyProgram || currentRowData.study_program;
       form.setFieldsValue({
         idKelas: currentRowData.idKelas,
-        idSchool: currentRowData.school?.idSchool,
+        idStudyProgram: currentStudyProgram?.id,
         namaKelas: currentRowData.namaKelas,
+        angkatan: currentRowData.angkatan,
       });
     }
   }, [currentRowData, form]);
 
   useEffect(() => {
-    if (userSchoolId) {
-      form.setFieldsValue({ idSchool: userSchoolId });
+    if (userStudyProgramId) {
+      form.setFieldsValue({ idStudyProgram: userStudyProgramId });
     }
-  }, [userSchoolId, form]);
+  }, [userStudyProgramId, form]);
 
   const handleSubmit = async () => {
     try {
@@ -119,17 +95,17 @@ const EditKelasForm = ({
         <Row gutter={16}>
           <Col xs={24} sm={24} md={24}>
             <Form.Item
-              label="Sekolah:"
-              name="idSchool"
+              label="Program Studi:"
+              name="idStudyProgram"
               style={{ display: "none" }}
-              rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
+              rules={[{ required: true, message: "Silahkan pilih Program Studi" }]}
             >
-              <Select defaultValue={userSchoolId} disabled>
-                {schoolList
-                  .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                  .map(({ idSchool, nameSchool }) => (
-                    <Option key={idSchool} value={idSchool}>
-                      {nameSchool}
+              <Select defaultValue={userStudyProgramId} disabled>
+                {studyProgramList
+                  .filter(({ id }) => id === userStudyProgramId)
+                  .map(({ id, name }) => (
+                    <Option key={id} value={id}>
+                      {name}
                     </Option>
                   ))}
               </Select>
@@ -142,6 +118,15 @@ const EditKelasForm = ({
               rules={[{ required: true, message: "Silahkan isikan Kelas" }]}
             >
               <Input placeholder="Kelas" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={24} md={24}>
+            <Form.Item
+              label="Angkatan :"
+              name="angkatan"
+              rules={[{ required: true, message: "Silahkan isikan Angkatan" }]}
+            >
+              <Input placeholder="Contoh: 2023" />
             </Form.Item>
           </Col>
         </Row>

@@ -103,6 +103,8 @@ public class HasilUjian {
     private Ujian ujian;
     private User peserta;
     private School school;
+    private Kelas kelas;
+    private Season seasons;
 
     // TAMBAHAN: Fields untuk violation tracking
     private String violationType;
@@ -711,6 +713,22 @@ public class HasilUjian {
 
     public void setSchool(School school) {
         this.school = school;
+    }
+
+    public Kelas getKelas() {
+        return kelas;
+    }
+
+    public void setKelas(Kelas kelas) {
+        this.kelas = kelas;
+    }
+
+    public Season getSeasons() {
+        return seasons;
+    }
+
+    public void setSeasons(Season seasons) {
+        this.seasons = seasons;
     }
 
     // TAMBAHAN: Method untuk menambahkan cheat detection ke metadata

@@ -7,6 +7,8 @@ import com.doyatama.university.model.HasilUjian;
 import com.doyatama.university.model.Ujian;
 import com.doyatama.university.model.User;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.Season;
+import com.doyatama.university.model.Student;
 import com.doyatama.university.model.BankSoalUjian;
 import com.doyatama.university.payload.UjianSessionRequest;
 import com.doyatama.university.repository.UjianSessionRepository;
@@ -14,6 +16,7 @@ import com.doyatama.university.repository.HasilUjianRepository;
 import com.doyatama.university.repository.UjianRepository;
 import com.doyatama.university.repository.UserRepository;
 import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.SeasonRepository;
 import com.doyatama.university.util.AppConstants;
 
 import org.springframework.beans.factory.annotation.Autowired; // PERBAIKAN: Import @Autowired
@@ -56,6 +59,9 @@ public class UjianSessionService {
     private SchoolRepository schoolRepository;
 
     @Autowired
+    private SeasonRepository seasonRepository;
+
+    @Autowired
     private HasilUjianService hasilUjianService; // TAMBAHAN
 
     // ==================== SESSION MANAGEMENT ====================
@@ -76,13 +82,29 @@ public class UjianSessionService {
             throw new ResourceNotFoundException("Ujian", "id", request.getIdUjian());
         }
 
+        // Get participant info
+        User peserta = userRepository.findById(request.getIdPeserta());
+        if (peserta == null) {
+            throw new ResourceNotFoundException("User", "id", request.getIdPeserta());
+        }
+
+        // Validasi akses ujian berdasarkan seasons, kelas, dan semester ujian.
+        validatePesertaSeasonEnrollment(ujian, peserta);
+
         // Validate ujian status and timing
         validateUjianForStart(ujian);
+
+        School school = schoolRepository.findById(schoolId);
+        if (school == null) {
+            throw new ResourceNotFoundException("School", "id", schoolId);
+        }
 
         // Check if participant already has active session
         UjianSession existingSession = ujianSessionRepository.findActiveSessionByUjianAndPeserta(
                 request.getIdUjian(), request.getIdPeserta());
         if (existingSession != null) {
+            applyUjianContextToSession(existingSession, ujian, school);
+
             // Allow resume if session is not submitted and time is still available
             if (!existingSession.getIsSubmitted() && isSessionStillValid(existingSession)) {
                 logger.info("Resuming existing session: {} for participant: {}",
@@ -121,17 +143,6 @@ public class UjianSessionService {
         // Check attempt limits
         validateAttemptLimits(ujian, request.getIdPeserta());
 
-        // Get participant and school info
-        User peserta = userRepository.findById(request.getIdPeserta());
-        if (peserta == null) {
-            throw new ResourceNotFoundException("User", "id", request.getIdPeserta());
-        }
-
-        School school = schoolRepository.findById(schoolId);
-        if (school == null) {
-            throw new ResourceNotFoundException("School", "id", schoolId);
-        }
-
         // Calculate time remaining
         Integer timeRemaining = calculateTimeRemaining(ujian);
 
@@ -150,6 +161,7 @@ public class UjianSessionService {
         session.setUjian(ujian);
         session.setPeserta(peserta);
         session.setSchool(school);
+        applyUjianContextToSession(session, ujian, school);
 
         // Set session metadata
         Map<String, Object> metadata = new HashMap<>();
@@ -165,6 +177,27 @@ public class UjianSessionService {
 
         logger.info("Session started successfully: {}", savedSession.getSessionId());
         return savedSession;
+    }
+
+    private void applyUjianContextToSession(UjianSession session, Ujian ujian, School school) {
+        if (session == null || ujian == null) {
+            return;
+        }
+
+        if (ujian.getKelas() != null) {
+            session.setKelas(ujian.getKelas());
+            session.setIdKelas(ujian.getKelas().getIdKelas());
+        }
+
+        if (ujian.getSeasons() != null) {
+            session.setSeasons(ujian.getSeasons());
+            session.setIdSeason(ujian.getSeasons().getIdSeason());
+        }
+
+        if (school != null) {
+            session.setSchool(school);
+            session.setIdSchool(school.getIdSchool());
+        }
     }
 
     /**
@@ -476,6 +509,15 @@ public class UjianSessionService {
                 }
             }
 
+            User peserta = userRepository.findById(idPeserta);
+            if (peserta == null) {
+                validation.put("canStart", false);
+                validation.put("reason", "Peserta tidak ditemukan");
+                return validation;
+            }
+
+            validatePesertaSeasonEnrollment(ujian, peserta);
+
             // Check existing active session
             UjianSession existingSession = getActiveSession(idUjian, idPeserta);
             if (existingSession != null) {
@@ -522,7 +564,7 @@ public class UjianSessionService {
         } catch (Exception e) {
             logger.error("Error validating can start", e);
             validation.put("canStart", false);
-            validation.put("reason", "Terjadi kesalahan sistem");
+            validation.put("reason", e instanceof BadRequestException ? e.getMessage() : "Terjadi kesalahan sistem");
         }
 
         return validation;
@@ -541,7 +583,7 @@ public class UjianSessionService {
         if ("*".equals(schoolId)) {
             activeSessions = ujianSessionRepository.findAllActiveSessions(size);
         } else {
-            activeSessions = ujianSessionRepository.findActiveSessionsBySchool(schoolId, size);
+            activeSessions = ujianSessionRepository.findActiveSessionsByStudyProgram(schoolId, size);
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -680,7 +722,7 @@ public class UjianSessionService {
             if ("*".equals(schoolId)) {
                 allSessions = ujianSessionRepository.findAllActiveSessions(1000);
             } else {
-                allSessions = ujianSessionRepository.findActiveSessionsBySchool(schoolId, 1000);
+                allSessions = ujianSessionRepository.findActiveSessionsByStudyProgram(schoolId, 1000);
             }
 
             // Current active sessions
@@ -1041,6 +1083,48 @@ public class UjianSessionService {
             return previousAttempts.size() < ujian.getMaxAttempts();
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    private void validatePesertaSeasonEnrollment(Ujian ujian, User peserta) throws IOException {
+        if (ujian == null || peserta == null) {
+            throw new BadRequestException("Data ujian/peserta tidak valid");
+        }
+
+        if (ujian.getSeasons() == null || ujian.getSeasons().getIdSeason() == null
+                || ujian.getSeasons().getIdSeason().trim().isEmpty()) {
+            throw new BadRequestException("Ujian belum dikonfigurasi seasons");
+        }
+
+        Season season = seasonRepository.findById(ujian.getSeasons().getIdSeason());
+        if (season == null) {
+            throw new BadRequestException("Seasons untuk ujian tidak ditemukan");
+        }
+
+        if (ujian.getKelas() != null && ujian.getKelas().getIdKelas() != null
+                && season.getKelas() != null && season.getKelas().getIdKelas() != null
+                && !ujian.getKelas().getIdKelas().equals(season.getKelas().getIdKelas())) {
+            throw new BadRequestException("Konfigurasi ujian tidak konsisten dengan kelas pada seasons");
+        }
+
+        if (ujian.getSemester() != null && ujian.getSemester().getIdSemester() != null
+                && season.getSemester() != null && season.getSemester().getIdSemester() != null
+                && !ujian.getSemester().getIdSemester().equals(season.getSemester().getIdSemester())) {
+            throw new BadRequestException("Konfigurasi ujian tidak konsisten dengan semester pada seasons");
+        }
+
+        List<Student> enrolledStudents = season.getStudent();
+        if (enrolledStudents == null || enrolledStudents.isEmpty()) {
+            throw new BadRequestException("Seasons belum memiliki peserta terdaftar");
+        }
+
+        boolean terdaftar = enrolledStudents.stream()
+                .filter(student -> student != null)
+                .anyMatch(student -> peserta.getId().equals(student.getId())
+                        || (peserta.getUsername() != null && peserta.getUsername().equals(student.getNisn())));
+
+        if (!terdaftar) {
+            throw new BadRequestException("Peserta tidak terdaftar pada seasons ujian ini");
         }
     }
 }

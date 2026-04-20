@@ -50,6 +50,9 @@ import * as XLSX from "xlsx"; // Pastikan 'xlsx' terinstal: npm install xlsx
 // Jika Anda menggunakan alias seperti '@/', pastikan dikonfigurasi di jsconfig.json/tsconfig.json Anda.
 import { getUjian } from "@/api/ujian";
 import { getHasilByUjian, getHasilUjian } from "@/api/hasilUjian";
+import { getKelas } from "@/api/kelas";
+import { getSemester } from "@/api/semester";
+import { getSeason } from "@/api/season";
 import {
   getCheatDetectionByStudent,
   getViolations, // Used for fetching all violations
@@ -78,8 +81,12 @@ const ReportNilaiSiswa = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [ujianList, setUjianList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
+  const [semesterList, setSemesterList] = useState([]);
+  const [seasonList, setSeasonList] = useState([]);
   const [selectedUjian, setSelectedUjian] = useState(null);
   const [selectedKelas, setSelectedKelas] = useState(null);
+  const [selectedSemester, setSelectedSemester] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [dateRange, setDateRange] = useState([]);
   const [detailModal, setDetailModal] = useState({
@@ -165,11 +172,34 @@ const ReportNilaiSiswa = () => {
   // Fetch kelas list for filter
   const fetchKelasList = useCallback(async () => {
     try {
-      // For now, we set an empty class list as the API might not be available
-      setKelasList([]);
+      const response = await getKelas();
+      const content = response.data?.content || response.data || [];
+      setKelasList(Array.isArray(content) ? content : []);
     } catch (error) {
       console.error("Error fetching kelas list:", error);
       message.error("Gagal memuat daftar kelas");
+    }
+  }, []);
+
+  const fetchSemesterList = useCallback(async () => {
+    try {
+      const response = await getSemester();
+      const content = response.data?.content || response.data || [];
+      setSemesterList(Array.isArray(content) ? content : []);
+    } catch (error) {
+      console.error("Error fetching semester list:", error);
+      message.error("Gagal memuat daftar semester");
+    }
+  }, []);
+
+  const fetchSeasonList = useCallback(async () => {
+    try {
+      const response = await getSeason();
+      const content = response.data?.content || response.data || [];
+      setSeasonList(Array.isArray(content) ? content : []);
+    } catch (error) {
+      console.error("Error fetching season list:", error);
+      message.error("Gagal memuat daftar season");
     }
   }, []);
 
@@ -220,11 +250,11 @@ const ReportNilaiSiswa = () => {
     const rataRata =
       total > 0
         ? (
-            data.reduce(
-              (sum, item) => sum + (parseFloat(item.nilai || item.skor) || 0),
-              0
-            ) / total
-          ).toFixed(2)
+          data.reduce(
+            (sum, item) => sum + (parseFloat(item.nilai || item.skor) || 0),
+            0
+          ) / total
+        ).toFixed(2)
         : 0;
 
     setStatistics({
@@ -305,6 +335,8 @@ const ReportNilaiSiswa = () => {
         // Tambahkan parameter untuk memastikan data peserta di-include
         const result = await safeGetHasilByUjian(selectedUjian, {
           showErrorMessage: false,
+          kelasId: selectedKelas,
+          seasonId: selectedSeason,
           // Tambahkan parameter ini jika API mendukung
           include: [
             "peserta",
@@ -368,6 +400,18 @@ const ReportNilaiSiswa = () => {
         }
       }
 
+      if (selectedKelas) {
+        allReports = allReports.filter(
+          (item) => item.kelasId === selectedKelas
+        );
+      }
+
+      if (selectedSeason) {
+        allReports = allReports.filter(
+          (item) => item.seasonId === selectedSeason
+        );
+      }
+
       // Filter by date range if specified
       if (dateRange.length === 2) {
         allReports = allReports.filter((item) => {
@@ -386,7 +430,7 @@ const ReportNilaiSiswa = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedUjian, dateRange]);
+  }, [selectedUjian, selectedKelas, selectedSeason, dateRange]);
 
   // Show violations modal (for specific student's exam dengan deduplication)
   const showViolationsModal = (record) => {
@@ -414,12 +458,16 @@ const ReportNilaiSiswa = () => {
   useEffect(() => {
     fetchUjianList();
     fetchKelasList();
+    fetchSemesterList();
+    fetchSeasonList();
     fetchBankSoalDetails(); // Fetch bank soal untuk detail export
     // Call the new function to fetch ALL violations initially
     fetchAllViolationDetection();
   }, [
     fetchUjianList,
     fetchKelasList,
+    fetchSemesterList,
+    fetchSeasonList,
     fetchBankSoalDetails,
     fetchAllViolationDetection,
   ]);
@@ -719,14 +767,12 @@ const ReportNilaiSiswa = () => {
         return uniqueViolations
           .map(
             (v) =>
-              `[waktu deteksi: ${
-                v.detectedAt || v.timestamp || v.detectionTime
-                  ? dayjs(
-                      v.detectedAt || v.timestamp || v.detectionTime
-                    ).format("DD/MM/YYYY HH:mm:ss")
-                  : "-"
-              }, type : ${
-                v.typeViolation || v.violationType || v.type || "UNKNOWN"
+              `[waktu deteksi: ${v.detectedAt || v.timestamp || v.detectionTime
+                ? dayjs(
+                  v.detectedAt || v.timestamp || v.detectionTime
+                ).format("DD/MM/YYYY HH:mm:ss")
+                : "-"
+              }, type : ${v.typeViolation || v.violationType || v.type || "UNKNOWN"
               }]`
           )
           .join(", ");
@@ -806,9 +852,8 @@ const ReportNilaiSiswa = () => {
           ? `${item.ujian.durasiMenit} menit`
           : "-",
         "Durasi Pengerjaan": item.durasiPengerjaan
-          ? `${Math.floor(item.durasiPengerjaan / 60)}m ${
-              item.durasiPengerjaan % 60
-            }s`
+          ? `${Math.floor(item.durasiPengerjaan / 60)}m ${item.durasiPengerjaan % 60
+          }s`
           : "-",
         "Sisa Waktu": (() => {
           const durasiUjianMenit = item.ujian?.durasiMenit || 0;
@@ -1076,18 +1121,15 @@ const ReportNilaiSiswa = () => {
         const studentViolations = deduplicateViolations(violationsFromMetadata);
 
         console.log(
-          `Excel Export - Student ${
-            item.peserta?.name || item.namaSiswa
-          }: Found ${violationsFromMetadata.length} -> ${
-            studentViolations.length
+          `Excel Export - Student ${item.peserta?.name || item.namaSiswa
+          }: Found ${violationsFromMetadata.length} -> ${studentViolations.length
           } violations (after deduplication)`
         );
 
         // Add violations to details
         studentViolations.forEach((violation, violationIndex) => {
           console.log(
-            `Processing violation ${violationIndex + 1} for ${
-              item.peserta?.name
+            `Processing violation ${violationIndex + 1} for ${item.peserta?.name
             }:`,
             violation
           );
@@ -1113,13 +1155,13 @@ const ReportNilaiSiswa = () => {
               violation.severity || violation.level || "Tidak Diketahui",
             "Waktu Deteksi":
               violation.detectedAt ||
-              violation.detectionTime ||
-              violation.timestamp
+                violation.detectionTime ||
+                violation.timestamp
                 ? dayjs(
-                    violation.detectedAt ||
-                      violation.detectionTime ||
-                      violation.timestamp
-                  ).format("DD/MM/YYYY HH:mm:ss")
+                  violation.detectedAt ||
+                  violation.detectionTime ||
+                  violation.timestamp
+                ).format("DD/MM/YYYY HH:mm:ss")
                 : "Tidak Tersedia",
             "Detail Evidence": violation.evidence
               ? JSON.stringify(violation.evidence).substring(0, 200) + "..."
@@ -1308,6 +1350,8 @@ const ReportNilaiSiswa = () => {
   const resetFilters = () => {
     setSelectedUjian(null);
     setSelectedKelas(null);
+    setSelectedSemester(null);
+    setSelectedSeason(null);
     setDateRange([]);
     setSearchText("");
   };
@@ -1625,10 +1669,48 @@ const ReportNilaiSiswa = () => {
               >
                 {kelasList.map((kelas, index) => (
                   <Option
-                    key={kelas.id ? `kelas-${kelas.id}` : `kelas-${index}`}
-                    value={kelas.id || `temp-${index}`}
+                    key={kelas.idKelas || `kelas-${index}`}
+                    value={kelas.idKelas}
                   >
-                    {kelas.name || `Kelas ${index + 1}`}
+                    {kelas.namaKelas || kelas.name || `Kelas ${index + 1}`}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={6}>
+              <Select
+                placeholder="Pilih Semester"
+                value={selectedSemester}
+                onChange={setSelectedSemester}
+                allowClear
+                style={{ width: "100%" }}
+              >
+                {semesterList.map((semester, index) => (
+                  <Option
+                    key={semester.idSemester || `semester-${index}`}
+                    value={semester.idSemester}
+                  >
+                    {semester.namaSemester || semester.name || `Semester ${index + 1}`}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={6}>
+              <Select
+                placeholder="Pilih Season"
+                value={selectedSeason}
+                onChange={setSelectedSeason}
+                allowClear
+                style={{ width: "100%" }}
+              >
+                {seasonList.map((season, index) => (
+                  <Option
+                    key={season.idSeason || `season-${index}`}
+                    value={season.idSeason}
+                  >
+                    {(season.kelas?.namaKelas || season.namaKelas || `Kelas ${index + 1}`) +
+                      " - " +
+                      (season.semester?.namaSemester || season.namaSemester || `Semester ${index + 1}`)}
                   </Option>
                 ))}
               </Select>
@@ -1665,8 +1747,7 @@ const ReportNilaiSiswa = () => {
             columns={columns}
             dataSource={filteredData}
             rowKey={(record) =>
-              `${record.siswaId || record.idPeserta}-${
-                record.ujianId || record.idUjian
+              `${record.siswaId || record.idPeserta}-${record.ujianId || record.idUjian
               }-${record.waktuMulai || Math.random()}`
             }
             pagination={{
@@ -1805,22 +1886,21 @@ const ReportNilaiSiswa = () => {
               <Descriptions.Item label="Waktu Mulai">
                 {detailModal.data.waktuMulai
                   ? dayjs(detailModal.data.waktuMulai).format(
-                      "DD/MM/YYYY HH:mm:ss"
-                    )
+                    "DD/MM/YYYY HH:mm:ss"
+                  )
                   : "-"}
               </Descriptions.Item>
               <Descriptions.Item label="Waktu Selesai">
                 {detailModal.data.waktuSelesai
                   ? dayjs(detailModal.data.waktuSelesai).format(
-                      "DD/MM/YYYY HH:mm:ss"
-                    )
+                    "DD/MM/YYYY HH:mm:ss"
+                  )
                   : "-"}
               </Descriptions.Item>
               <Descriptions.Item label="Durasi Pengerjaan">
                 {detailModal.data.durasiPengerjaan
-                  ? `${Math.floor(detailModal.data.durasiPengerjaan / 60)}m ${
-                      detailModal.data.durasiPengerjaan % 60
-                    }s`
+                  ? `${Math.floor(detailModal.data.durasiPengerjaan / 60)}m ${detailModal.data.durasiPengerjaan % 60
+                  }s`
                   : "-"}
               </Descriptions.Item>
               <Descriptions.Item label="Sisa Waktu">
@@ -1927,10 +2007,10 @@ const ReportNilaiSiswa = () => {
               <Descriptions.Item label="Akurasi Jawaban">
                 {detailModal.data.metadata?.answeredQuestions > 0
                   ? `${Math.round(
-                      (detailModal.data.jumlahBenar /
-                        detailModal.data.metadata.answeredQuestions) *
-                        100
-                    )}%`
+                    (detailModal.data.jumlahBenar /
+                      detailModal.data.metadata.answeredQuestions) *
+                    100
+                  )}%`
                   : "0%"}
               </Descriptions.Item>
             </Descriptions>
@@ -1939,8 +2019,8 @@ const ReportNilaiSiswa = () => {
 
             {(detailModal.data?.jawabanPeserta &&
               Object.keys(detailModal.data.jawabanPeserta).length > 0) ||
-            (detailModal.data?.ujian?.bankSoalList &&
-              detailModal.data.ujian.bankSoalList.length > 0) ? (
+              (detailModal.data?.ujian?.bankSoalList &&
+                detailModal.data.ujian.bankSoalList.length > 0) ? (
               <div style={{ maxHeight: "500px", overflow: "auto" }}>
                 <Table
                   size="small"
@@ -1969,8 +2049,8 @@ const ReportNilaiSiswa = () => {
                                           record.jawabanSiswa === key
                                             ? "#e6f7ff"
                                             : record.jawabanBenar?.includes(key)
-                                            ? "#f6ffed"
-                                            : "#fafafa",
+                                              ? "#f6ffed"
+                                              : "#fafafa",
                                       }}
                                     >
                                       <Text strong>{key}.</Text> {value}
@@ -2023,22 +2103,22 @@ const ReportNilaiSiswa = () => {
                                           )
                                             ? "#e6f7ff"
                                             : record.jawabanBenar?.includes(key)
-                                            ? "#f6ffed"
-                                            : "#fafafa",
+                                              ? "#f6ffed"
+                                              : "#fafafa",
                                       }}
                                     >
                                       <Text strong>{key}.</Text> {value}
                                       {record.jawabanSiswaArray?.includes(
                                         key
                                       ) && (
-                                        <Tag
-                                          color="blue"
-                                          size="small"
-                                          style={{ marginLeft: "8px" }}
-                                        >
-                                          Dipilih
-                                        </Tag>
-                                      )}
+                                          <Tag
+                                            color="blue"
+                                            size="small"
+                                            style={{ marginLeft: "8px" }}
+                                          >
+                                            Dipilih
+                                          </Tag>
+                                        )}
                                       {record.jawabanBenar?.includes(key) && (
                                         <Tag
                                           color="green"
@@ -2165,9 +2245,8 @@ const ReportNilaiSiswa = () => {
                                           style={{
                                             margin: "2px",
                                             backgroundColor: pairColor,
-                                            border: `1px solid ${
-                                              isBenar ? "#52c41a" : "#ff4d4f"
-                                            }`,
+                                            border: `1px solid ${isBenar ? "#52c41a" : "#ff4d4f"
+                                              }`,
                                             color: "#000",
                                           }}
                                         >
@@ -2222,9 +2301,8 @@ const ReportNilaiSiswa = () => {
                                       style={{
                                         margin: "4px 0",
                                         padding: "4px 8px",
-                                        border: `1px solid ${
-                                          isSelected ? "#1890ff" : "#d9d9d9"
-                                        }`,
+                                        border: `1px solid ${isSelected ? "#1890ff" : "#d9d9d9"
+                                          }`,
                                         borderRadius: "4px",
                                         backgroundColor: pairColor,
                                         fontWeight: isSelected
@@ -2273,9 +2351,8 @@ const ReportNilaiSiswa = () => {
                                       style={{
                                         margin: "4px 0",
                                         padding: "4px 8px",
-                                        border: `1px solid ${
-                                          isSelected ? "#1890ff" : "#d9d9d9"
-                                        }`,
+                                        border: `1px solid ${isSelected ? "#1890ff" : "#d9d9d9"
+                                          }`,
                                         borderRadius: "4px",
                                         backgroundColor: pairColor,
                                         fontWeight: isSelected
@@ -2629,10 +2706,10 @@ const ReportNilaiSiswa = () => {
                               type === "PILIHAN_GANDA"
                                 ? "blue"
                                 : type === "ESSAY"
-                                ? "green"
-                                : type === "COCOK"
-                                ? "orange"
-                                : "default"
+                                  ? "green"
+                                  : type === "COCOK"
+                                    ? "orange"
+                                    : "default"
                             }
                           >
                             {type}
@@ -2796,10 +2873,10 @@ const ReportNilaiSiswa = () => {
                           violation.severity === "HIGH"
                             ? "red"
                             : violation.severity === "MEDIUM"
-                            ? "orange"
-                            : violation.severity === "LOW"
-                            ? "yellow"
-                            : "default"
+                              ? "orange"
+                              : violation.severity === "LOW"
+                                ? "yellow"
+                                : "default"
                         }
                       >
                         {violation.severity || "Tidak diketahui"}
@@ -2809,22 +2886,22 @@ const ReportNilaiSiswa = () => {
                       {/* Handle null detectedAt */}
                       {violation.detectedAt
                         ? dayjs(violation.detectedAt).format(
-                            "DD/MM/YYYY HH:mm:ss"
-                          )
+                          "DD/MM/YYYY HH:mm:ss"
+                        )
                         : "Tidak tersedia"}
                     </Descriptions.Item>
                     {/* Jumlah Pelanggaran dihapus karena sudah di-deduplicate */}
                     {(violation.details ||
                       Object.keys(violation.evidence || {}).length > 0) && (
-                      <Descriptions.Item label="Detail">
-                        <Text type="secondary">
-                          {violation.details ||
-                            (Object.keys(violation.evidence || {}).length > 0
-                              ? JSON.stringify(violation.evidence, null, 2)
-                              : "Tidak ada detail")}
-                        </Text>
-                      </Descriptions.Item>
-                    )}
+                        <Descriptions.Item label="Detail">
+                          <Text type="secondary">
+                            {violation.details ||
+                              (Object.keys(violation.evidence || {}).length > 0
+                                ? JSON.stringify(violation.evidence, null, 2)
+                                : "Tidak ada detail")}
+                          </Text>
+                        </Descriptions.Item>
+                      )}
                   </Descriptions>
                 </Card>
               ))

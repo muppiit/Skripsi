@@ -21,14 +21,18 @@ public class BankSoal {
 
     private SoalUjian soalUjian;
     private TahunAjaran tahunAjaran;
+    private StudyProgram study_program;
+    private Subject subject;
     private Kelas kelas;
     private Semester semester;
+    private Season seasons;
     private Mapel mapel;
     private Elemen elemen;
     private Acp acp;
     private Atp atp;
     private Taksonomi taksonomi; // taksonomi kesulitan
     private KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolah;
+    private RPSDetail rps_detail;
     private School school;
 
     public BankSoal() {
@@ -176,12 +180,36 @@ public class BankSoal {
         this.soalUjian = soalUjian;
     }
 
+    public StudyProgram getStudy_program() {
+        return study_program;
+    }
+
+    public void setStudy_program(StudyProgram study_program) {
+        this.study_program = study_program;
+    }
+
+    public Subject getSubject() {
+        return subject;
+    }
+
+    public void setSubject(Subject subject) {
+        this.subject = subject;
+    }
+
     public KonsentrasiKeahlianSekolah getKonsentrasiKeahlianSekolah() {
         return konsentrasiKeahlianSekolah;
     }
 
     public void setKonsentrasiKeahlianSekolah(KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolah) {
         this.konsentrasiKeahlianSekolah = konsentrasiKeahlianSekolah;
+    }
+
+    public RPSDetail getRps_detail() {
+        return rps_detail;
+    }
+
+    public void setRps_detail(RPSDetail rps_detail) {
+        this.rps_detail = rps_detail;
     }
 
     public Atp getAtp() {
@@ -214,6 +242,14 @@ public class BankSoal {
 
     public void setSemester(Semester semester) {
         this.semester = semester;
+    }
+
+    public Season getSeasons() {
+        return seasons;
+    }
+
+    public void setSeasons(Season seasons) {
+        this.seasons = seasons;
     }
 
     public Mapel getMapel() {

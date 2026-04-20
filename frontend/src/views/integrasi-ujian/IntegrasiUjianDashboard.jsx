@@ -68,7 +68,10 @@ const IntegrasiUjianDashboard = () => {
       console.log(`Loading participant data for ujian: ${ujian.idUjian}`);
 
       // Fetch hasil ujian (participant results)
-      const hasilResponse = await getHasilByUjian(ujian.idUjian, true, 1000);
+      const hasilResponse = await getHasilByUjian(ujian.idUjian, {
+        includeAnalytics: true,
+        size: 1000,
+      });
       const hasilData = hasilResponse.data?.content || [];
 
       console.log("Participant results count:", hasilData.length);
@@ -131,7 +134,7 @@ const IntegrasiUjianDashboard = () => {
       const participantIds = enrichedParticipants.map((p) => p.idPeserta);
       if (participantIds.length > 0) {
         await fetchParticipantNames(participantIds);
-      }      setEnrichedParticipants(enrichedParticipants);
+      } setEnrichedParticipants(enrichedParticipants);
       setPesertaData(hasilData);
 
       // Generate analysis from enriched participants
@@ -139,7 +142,7 @@ const IntegrasiUjianDashboard = () => {
       const passedParticipants = enrichedParticipants.filter(p => p.lulus).length;
       const totalViolations = enrichedParticipants.reduce((sum, p) => sum + p.violationCount, 0);
       const flaggedParticipants = enrichedParticipants.filter(p => p.violationCount > 0).length;
-      const averageScore = totalParticipants > 0 ? 
+      const averageScore = totalParticipants > 0 ?
         enrichedParticipants.reduce((sum, p) => sum + (p.totalSkor || 0), 0) / totalParticipants : 0;
       const averageIntegrityScore = totalParticipants > 0 ?
         enrichedParticipants.reduce((sum, p) => sum + (p.integrityScore || 0), 0) / totalParticipants : 0;
@@ -156,7 +159,8 @@ const IntegrasiUjianDashboard = () => {
 
       setAnalysis(analysisData);
 
-      console.log("Enriched participants:", enrichedParticipants.length);    } catch (e) {
+      console.log("Enriched participants:", enrichedParticipants.length);
+    } catch (e) {
       console.error("Error in handleSelectUjian:", e);
       setEnrichedParticipants([]);
       setPesertaData([]);
@@ -473,72 +477,72 @@ const IntegrasiUjianDashboard = () => {
                   dataSource={allViolations}
                   rowKey="idDetection"
                   size="small"
-                columns={[
-                  {
-                    title: "Peserta",
-                    dataIndex: "idPeserta",
-                    key: "idPeserta",
-                    render: (idPeserta) => (
-                      <div>
-                        <div style={{ fontWeight: "bold" }}>
-                          {participantNames[idPeserta] || idPeserta}
-                        </div>
-                        {participantNames[idPeserta] && (
-                          <div style={{ fontSize: "12px", color: "#666" }}>
-                            ID: {idPeserta}
+                  columns={[
+                    {
+                      title: "Peserta",
+                      dataIndex: "idPeserta",
+                      key: "idPeserta",
+                      render: (idPeserta) => (
+                        <div>
+                          <div style={{ fontWeight: "bold" }}>
+                            {participantNames[idPeserta] || idPeserta}
                           </div>
-                        )}
-                      </div>
-                    ),
-                  },
-                  {
-                    title: "Jenis Pelanggaran",
-                    dataIndex: "typeViolation",
-                    key: "typeViolation",
-                  },
-                  {
-                    title: "Severity",
-                    dataIndex: "severity",
-                    key: "severity",
-                    render: (sev) => (
-                      <Tag
-                        color={
-                          sev === "CRITICAL"
-                            ? "red"
-                            : sev === "HIGH"
-                            ? "orange"
-                            : "blue"
-                        }
-                      >
-                        {sev}
-                      </Tag>
-                    ),
-                  },
-                  {
-                    title: "Waktu",
-                    dataIndex: "detectedAt",
-                    key: "detectedAt",
-                    render: (t) => (t ? new Date(t).toLocaleString() : "-"),
-                  },
-                  {
-                    title: "Details",
-                    dataIndex: "details",
-                    key: "details",
-                    render: (details) => (
-                      <div style={{ fontSize: "12px", color: "#666" }}>
-                        {details || "No additional details"}
-                      </div>
-                    ),
-                  },                ]}
-                pagination={{ pageSize: 5 }}
-              />
-            ) : (
-              <div
-                style={{ textAlign: "center", padding: "20px", color: "#666" }}
-              >
-                <Tag color="green">Tidak ada pelanggaran terdeteksi</Tag>
-              </div>
-            );
+                          {participantNames[idPeserta] && (
+                            <div style={{ fontSize: "12px", color: "#666" }}>
+                              ID: {idPeserta}
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    },
+                    {
+                      title: "Jenis Pelanggaran",
+                      dataIndex: "typeViolation",
+                      key: "typeViolation",
+                    },
+                    {
+                      title: "Severity",
+                      dataIndex: "severity",
+                      key: "severity",
+                      render: (sev) => (
+                        <Tag
+                          color={
+                            sev === "CRITICAL"
+                              ? "red"
+                              : sev === "HIGH"
+                                ? "orange"
+                                : "blue"
+                          }
+                        >
+                          {sev}
+                        </Tag>
+                      ),
+                    },
+                    {
+                      title: "Waktu",
+                      dataIndex: "detectedAt",
+                      key: "detectedAt",
+                      render: (t) => (t ? new Date(t).toLocaleString() : "-"),
+                    },
+                    {
+                      title: "Details",
+                      dataIndex: "details",
+                      key: "details",
+                      render: (details) => (
+                        <div style={{ fontSize: "12px", color: "#666" }}>
+                          {details || "No additional details"}
+                        </div>
+                      ),
+                    },]}
+                  pagination={{ pageSize: 5 }}
+                />
+              ) : (
+                <div
+                  style={{ textAlign: "center", padding: "20px", color: "#666" }}
+                >
+                  <Tag color="green">Tidak ada pelanggaran terdeteksi</Tag>
+                </div>
+              );
             })()}{" "}            <Divider>Distribusi Nilai Peserta</Divider>
             {enrichedParticipants.length > 0 ? (
               <Table
@@ -620,9 +624,8 @@ const IntegrasiUjianDashboard = () => {
                         <div style={{ color: "#666" }}>
                           Durasi:{" "}
                           {record.durasiPengerjaan
-                            ? `${Math.floor(record.durasiPengerjaan / 60)}m ${
-                                record.durasiPengerjaan % 60
-                              }s`
+                            ? `${Math.floor(record.durasiPengerjaan / 60)}m ${record.durasiPengerjaan % 60
+                            }s`
                             : "-"}
                         </div>
                       </div>
@@ -642,7 +645,7 @@ const IntegrasiUjianDashboard = () => {
                         </div>
                       </div>
                     ),
-                  },                  {
+                  }, {
                     title: "Pelanggaran",
                     key: "violations",
                     render: (_, record) => {
@@ -681,63 +684,63 @@ const IntegrasiUjianDashboard = () => {
                         map[v.idPeserta][v.typeViolation] = 0;
                       map[v.idPeserta][v.typeViolation]++;
                     });
-                  // Flatten to array
-                  const rows = [];
-                  Object.entries(map).forEach(([idPeserta, types]) => {
-                    Object.entries(types).forEach(([typeViolation, count]) => {
-                      rows.push({ idPeserta, typeViolation, count });
+                    // Flatten to array
+                    const rows = [];
+                    Object.entries(map).forEach(([idPeserta, types]) => {
+                      Object.entries(types).forEach(([typeViolation, count]) => {
+                        rows.push({ idPeserta, typeViolation, count });
+                      });
                     });
-                  });
-                  return rows;
-                })()}
-                rowKey={(r) => r.idPeserta + r.typeViolation}
-                size="small"
-                columns={[
-                  {
-                    title: "Peserta",
-                    dataIndex: "idPeserta",
-                    key: "idPeserta",
-                    render: (idPeserta) => (
-                      <div>
-                        <div style={{ fontWeight: "bold" }}>
-                          {participantNames[idPeserta] || idPeserta}
-                        </div>
-                        {participantNames[idPeserta] && (
-                          <div style={{ fontSize: "12px", color: "#666" }}>
-                            ID: {idPeserta}
+                    return rows;
+                  })()}
+                  rowKey={(r) => r.idPeserta + r.typeViolation}
+                  size="small"
+                  columns={[
+                    {
+                      title: "Peserta",
+                      dataIndex: "idPeserta",
+                      key: "idPeserta",
+                      render: (idPeserta) => (
+                        <div>
+                          <div style={{ fontWeight: "bold" }}>
+                            {participantNames[idPeserta] || idPeserta}
                           </div>
-                        )}
-                      </div>
-                    ),
-                  },
-                  {
-                    title: "Jenis Pelanggaran",
-                    dataIndex: "typeViolation",
-                    key: "typeViolation",
-                  },
-                  {
-                    title: "Jumlah",
-                    dataIndex: "count",
-                    key: "count",
-                    render: (count) => (
-                      <Tag
-                        color={
-                          count > 5 ? "red" : count > 2 ? "orange" : "blue"
-                        }
-                      >
-                        {count}
-                      </Tag>
-                    ),
-                  },                ]}
-                pagination={{ pageSize: 10 }}
-              />
-            ) : (
-              <div
-                style={{ textAlign: "center", padding: "20px", color: "#666" }}
-              >
-                <Tag color="green">Tidak ada pelanggaran untuk direkap</Tag>
-              </div>
-            );
+                          {participantNames[idPeserta] && (
+                            <div style={{ fontSize: "12px", color: "#666" }}>
+                              ID: {idPeserta}
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    },
+                    {
+                      title: "Jenis Pelanggaran",
+                      dataIndex: "typeViolation",
+                      key: "typeViolation",
+                    },
+                    {
+                      title: "Jumlah",
+                      dataIndex: "count",
+                      key: "count",
+                      render: (count) => (
+                        <Tag
+                          color={
+                            count > 5 ? "red" : count > 2 ? "orange" : "blue"
+                          }
+                        >
+                          {count}
+                        </Tag>
+                      ),
+                    },]}
+                  pagination={{ pageSize: 10 }}
+                />
+              ) : (
+                <div
+                  style={{ textAlign: "center", padding: "20px", color: "#666" }}
+                >
+                  <Tag color="green">Tidak ada pelanggaran untuk direkap</Tag>
+                </div>
+              );
             })()}
           </>
         )}
