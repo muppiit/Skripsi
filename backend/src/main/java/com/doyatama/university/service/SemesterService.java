@@ -3,6 +3,7 @@ package com.doyatama.university.service;
 import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.Semester;
+import com.doyatama.university.model.School;
 import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.payload.SemesterRequest;
 import com.doyatama.university.payload.DefaultResponse;
@@ -46,10 +47,18 @@ public class SemesterService {
         StudyProgram studyProgramResponse = studyProgramRepository
                 .findById(semesterRequest.getEffectiveStudyProgramId());
 
+        if (studyProgramResponse == null || studyProgramResponse.getId() == null) {
+            throw new IllegalArgumentException("Program Studi tidak ditemukan");
+        }
+
+        School school = new School();
+        school.setIdSchool(studyProgramResponse.getId());
+        school.setNameSchool(studyProgramResponse.getName());
+
         Semester semester = new Semester();
         semester.setIdSemester(semesterRequest.getIdSemester());
         semester.setNamaSemester(semesterRequest.getNamaSemester());
-        semester.setStudyProgram(studyProgramResponse);
+        semester.setStudyProgram(school);
         return semesterRepository.save(semester);
     }
 
@@ -66,12 +75,16 @@ public class SemesterService {
         StudyProgram studyProgramResponse = studyProgramRepository
                 .findById(semesterRequest.getEffectiveStudyProgramId());
 
-        if (studyProgramResponse.getId() != null) {
+        if (studyProgramResponse != null && studyProgramResponse.getId() != null) {
+            School school = new School();
+            school.setIdSchool(studyProgramResponse.getId());
+            school.setNameSchool(studyProgramResponse.getName());
+
             semester.setNamaSemester(semesterRequest.getNamaSemester());
-            semester.setStudyProgram(studyProgramResponse);
+            semester.setStudyProgram(school);
             return semesterRepository.update(semesterId, semester);
         } else {
-            return null;
+            throw new IllegalArgumentException("Program Studi tidak ditemukan");
         }
     }
 

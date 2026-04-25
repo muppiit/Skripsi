@@ -1,84 +1,45 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
-import { Form, Input, Modal, Select, Tabs, Row, Col, message } from "antd";
-import { getTahunAjaran } from "@/api/tahun-ajaran";
+import { Form, Input, Modal, Select, Row, Col, message } from "antd";
 import { getStudyPrograms } from "@/api/studyProgram";
-import { reqUserInfo } from "@/api/user";
-import { use } from "react";
 
-const { TextArea } = Input;
 const { Option } = Select;
 
 const AddTahunAjaranForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
-  const [tahunAjaran, setTahunAjaran] = useState([]);
+  const [studyProgramList, setStudyProgramList] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
 
-  const [tableLoading, setTableLoading] = useState(false);
-  const [userSchoolId, setUserSchoolId] = useState([]); // State untuk menyimpan ID sekolah user
-  const [schoolList, setSchoolList] = useState([]);
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await reqUserInfo(); // Ambil data user dari API
-      setUserSchoolId(response.data.school_id); // Simpan ID sekolah user ke state
-      console.log("User School ID: ", response.data.school_id);
-    } catch (error) {
-      message.error("Gagal mengambil informasi pengguna");
-    }
-  };
-
-  const fetchSchoolList = async () => {
+  const fetchStudyProgramList = async () => {
+    setLoadingPrograms(true);
     try {
       const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(
-          result.data.content.map((item) => ({
-            idSchool: item.id,
-            nameSchool: item.name,
-          }))
-        );
+        setStudyProgramList(result.data.content);
       } else {
-        message.error("Gagal mengambil data");
+        message.error("Gagal mengambil data program studi");
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
+    } finally {
+      setLoadingPrograms(false);
     }
   };
 
-  const fetchTahunAjaran = async () => {
-    setTableLoading(true);
-    try {
-      const result = await getTahunAjaran();
-      if (result.data.statusCode === 200) {
-        setTahunAjaran(result.data.content);
-      } else {
-        message.error("Gagal mengambil data");
-      }
-    } catch (error) {
-      message.error("Terjadi kesalahan: " + error.message);
-    }
-    setTableLoading(false);
-  };
-
   useEffect(() => {
-    fetchUserInfo();
-    fetchSchoolList();
-    fetchTahunAjaran();
-  }, []);
-
-  useEffect(() => {
-    if (userSchoolId) {
-      form.setFieldsValue({ idSchool: userSchoolId });
+    if (visible) {
+      fetchStudyProgramList();
+      form.resetFields();
     }
-  }, [userSchoolId, form]);
+  }, [visible]);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       onOk(values);
     } catch (error) {
-      message.error("Gagal menambahkan data");
+      message.error("Harap lengkapi semua field yang wajib diisi");
     }
   };
 
@@ -92,26 +53,29 @@ const AddTahunAjaranForm = ({ visible, onCancel, onOk, confirmLoading }) => {
       }}
       onOk={handleSubmit}
       confirmLoading={confirmLoading}
-      onText="Simpan"
+      okText="Simpan"
+      cancelText="Batal"
       width={500}
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>
           <Col xs={24} sm={24} md={24}>
             <Form.Item
-              label="Sekolah:"
-              name="idSchool"
-              style={{ display: "none" }}
-              rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
+              label="Program Studi:"
+              name="idStudyProgram"
+              rules={[{ required: true, message: "Silahkan pilih Program Studi" }]}
             >
-              <Select defaultValue={userSchoolId} disabled>
-                {schoolList
-                  .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                  .map(({ idSchool, nameSchool }) => (
-                    <Option key={idSchool} value={idSchool}>
-                      {nameSchool}
-                    </Option>
-                  ))}
+              <Select
+                placeholder="Pilih Program Studi"
+                loading={loadingPrograms}
+                showSearch
+                optionFilterProp="children"
+              >
+                {studyProgramList.map((item) => (
+                  <Option key={item.id} value={item.id}>
+                    {item.name}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
@@ -123,7 +87,7 @@ const AddTahunAjaranForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                 { required: true, message: "Silahkan isikan Tahun Ajaran" },
               ]}
             >
-              <Input placeholder="Tahun Ajaran" />
+              <Input placeholder="Contoh: 2024/2025" />
             </Form.Item>
           </Col>
         </Row>

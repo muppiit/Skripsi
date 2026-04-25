@@ -9,7 +9,7 @@ public class StudentRequest {
     private String religion_id;
     private String idStudyProgram;
     private String idKelas;
-    private String angkatan;
+    private String idTahunAjaran;
     private String birth_date;
     private String place_born;
     private String address;
@@ -18,7 +18,7 @@ public class StudentRequest {
     }
 
     public StudentRequest(String id, String nisn, String name, String gender, String phone,
-            String religion_id, String idStudyProgram, String idKelas, String angkatan,
+            String religion_id, String idStudyProgram, String idKelas, String idTahunAjaran,
             String birth_date, String place_born, String address) {
         this.id = id;
         this.nisn = nisn;
@@ -28,7 +28,7 @@ public class StudentRequest {
         this.religion_id = religion_id;
         this.idStudyProgram = idStudyProgram;
         this.idKelas = idKelas;
-        this.angkatan = angkatan;
+        this.idTahunAjaran = idTahunAjaran;
         this.birth_date = birth_date;
         this.place_born = place_born;
         this.address = address;
@@ -98,12 +98,12 @@ public class StudentRequest {
         this.idKelas = idKelas;
     }
 
-    public String getAngkatan() {
-        return angkatan;
+    public String getIdTahunAjaran() {
+        return idTahunAjaran;
     }
 
-    public void setAngkatan(String angkatan) {
-        this.angkatan = angkatan;
+    public void setIdTahunAjaran(String idTahunAjaran) {
+        this.idTahunAjaran = idTahunAjaran;
     }
 
     public String getBirth_date() {
@@ -165,8 +165,8 @@ public class StudentRequest {
             case "idKelas":
                 this.idKelas = value;
                 break;
-            case "angkatan":
-                this.angkatan = value;
+            case "idTahunAjaran":
+                this.idTahunAjaran = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

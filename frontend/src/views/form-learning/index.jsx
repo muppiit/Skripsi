@@ -64,28 +64,20 @@ const FormLearning = () => {
     }
   };
 
-  const handleEditFormLearningOk = () => {
-    const form = editFormLearningFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleEditFormLearningOk = async (values) => {
+    try {
       setEditFormLearningModalLoading(true);
-      editFormLearning(values, values.id)
-        .then((response) => {
-          form.resetFields();
-          setEditFormLearningModalVisible(false);
-          setEditFormLearningModalLoading(false);
-          message.success("Berhasil diubah!");
-          fetchFormLearnings();
-        })
-        .catch((error) => {
-          setEditFormLearningModalLoading(false);
-          message.error("Gagal mengubah: " + error.message);
-        });
-    });
+      const { id, ...dataToSend } = values; // Jangan kirim 'id' ke payload backend
+      await editFormLearning(dataToSend, currentRowData.id);
+      setEditFormLearningModalVisible(false);
+      message.success("Berhasil diubah!");
+      fetchFormLearnings();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal mengubah: " + (error.response?.data?.message || error.message));
+    } finally {
+      setEditFormLearningModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,28 +89,19 @@ const FormLearning = () => {
     setAddFormLearningModalVisible(true);
   };
 
-  const handleAddFormLearningOk = () => {
-    const form = addFormLearningFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleAddFormLearningOk = async (values) => {
+    try {
       setAddFormLearningModalLoading(true);
-      addFormLearning(values)
-        .then((response) => {
-          form.resetFields();
-          setAddFormLearningModalVisible(false);
-          setAddFormLearningModalLoading(false);
-          message.success("Berhasil ditambahkan!");
-          fetchFormLearnings();
-        })
-        .catch((error) => {
-          setAddFormLearningModalLoading(false);
-          message.error("Gagal menambahkan: " + error.message);
-        });
-    });
+      await addFormLearning(values);
+      setAddFormLearningModalVisible(false);
+      message.success("Berhasil ditambahkan!");
+      fetchFormLearnings();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal menambahkan: " + (error.response?.data?.message || error.message));
+    } finally {
+      setAddFormLearningModalLoading(false);
+    }
   };
 
   useEffect(() => {

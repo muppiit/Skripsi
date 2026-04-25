@@ -63,7 +63,8 @@ const Religion = () => {
   const handleEditReligionOk = async (values) => {
     try {
       setEditReligionModalLoading(true);
-      await editReligion(values, values.id);
+      const { id, ...dataToSend } = values; // Jangan kirim 'id' ke backend
+      await editReligion(dataToSend, currentRowData.id);
       setEditReligionModalVisible(false);
       message.success("Berhasil diubah!");
       fetchReligions();

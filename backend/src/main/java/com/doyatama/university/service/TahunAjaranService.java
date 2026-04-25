@@ -2,6 +2,7 @@ package com.doyatama.university.service;
 
 import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.exception.ResourceNotFoundException;
+import com.doyatama.university.model.School;
 import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.TahunAjaran;
 import com.doyatama.university.payload.TahunAjaranRequest;
@@ -47,10 +48,19 @@ public class TahunAjaranService {
 
         StudyProgram studyProgramResponse = studyProgramRepository.findById(tahunRequest.getEffectiveStudyProgramId());
 
+        if (studyProgramResponse == null || studyProgramResponse.getId() == null) {
+            throw new IllegalArgumentException("Program Studi tidak ditemukan");
+        }
+
+        // Konversi StudyProgram ke School agar cocok dengan field HBase (idSchool, nameSchool)
+        School school = new School();
+        school.setIdSchool(studyProgramResponse.getId());
+        school.setNameSchool(studyProgramResponse.getName());
+
         TahunAjaran tahun = new TahunAjaran();
         tahun.setIdTahun(tahunRequest.getIdTahun());
         tahun.setTahunAjaran(tahunRequest.getTahunAjaran());
-        tahun.setStudyProgram(studyProgramResponse);
+        tahun.setStudyProgram(school);
 
         return tahunRepository.save(tahun);
     }
@@ -67,13 +77,18 @@ public class TahunAjaranService {
 
         StudyProgram studyProgramResponse = studyProgramRepository.findById(tahunRequest.getEffectiveStudyProgramId());
 
-        if (studyProgramResponse.getId() != null) {
+        if (studyProgramResponse != null && studyProgramResponse.getId() != null) {
+            // Konversi StudyProgram ke School agar cocok dengan field HBase (idSchool, nameSchool)
+            School school = new School();
+            school.setIdSchool(studyProgramResponse.getId());
+            school.setNameSchool(studyProgramResponse.getName());
+
             tahun.setTahunAjaran(tahunRequest.getTahunAjaran());
-            tahun.setStudyProgram(studyProgramResponse);
+            tahun.setStudyProgram(school);
 
             return tahunRepository.update(tahunId, tahun);
         } else {
-            return null;
+            throw new IllegalArgumentException("Program Studi tidak ditemukan");
         }
     }
 

@@ -39,6 +39,10 @@ public class TahunAjaranController {
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
         String studyProgramId = currentUser.getSchoolId();
+        // Jika user belum punya study program (null), tampilkan semua data
+        if (studyProgramId == null) {
+            studyProgramId = "*";
+        }
         return tahunService.getAllTahunAjaran(page, studyProgramId, size);
     }
 

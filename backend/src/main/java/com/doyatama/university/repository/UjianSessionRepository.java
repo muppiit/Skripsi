@@ -139,7 +139,6 @@ public class UjianSessionRepository {
         if (ujianSession.getKelas() != null && ujianSession.getKelas().getIdKelas() != null) {
             client.insertRecord(table, rowKey, "kelas", "idKelas", ujianSession.getKelas().getIdKelas());
             client.insertRecord(table, rowKey, "kelas", "namaKelas", ujianSession.getKelas().getNamaKelas());
-            client.insertRecord(table, rowKey, "kelas", "angkatan", ujianSession.getKelas().getAngkatan());
         }
 
         if (ujianSession.getSeasons() != null && ujianSession.getSeasons().getIdSeason() != null) {

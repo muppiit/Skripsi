@@ -4,12 +4,12 @@ public class LearningMedia {
     private String id;
     private String name;
     private String description;
-    private Integer type;
+    private String type;
 
     public LearningMedia() {
     }
 
-    public LearningMedia(String id, String name, String description, Integer type) {
+    public LearningMedia(String id, String name, String description, String type) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -40,11 +40,11 @@ public class LearningMedia {
         this.description = description;
     }
 
-    public Integer getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(Integer type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -64,7 +64,7 @@ public class LearningMedia {
                 this.description = value;
                 break;
             case "type":
-                this.type = Integer.parseInt(value);
+                this.type = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

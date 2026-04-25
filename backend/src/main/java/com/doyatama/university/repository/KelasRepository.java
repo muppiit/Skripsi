@@ -18,18 +18,18 @@ public class KelasRepository {
     Configuration conf = HBaseConfiguration.create();
     String tableName = "kelas";
 
-    public List<Kelas> findAll(int size) throws IOException {
-        HBaseCustomClient client = new HBaseCustomClient(conf);
-
-        TableName tableKelas = TableName.valueOf(tableName);
+    private Map<String, String> baseMapping() {
         Map<String, String> columnMapping = new HashMap<>();
-
-        // Add the mappings to the HashMap
         columnMapping.put("idKelas", "idKelas");
         columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("angkatan", "angkatan");
         columnMapping.put("study_program", "study_program");
-        return client.showListTable(tableKelas.toString(), columnMapping, Kelas.class, size);
+        columnMapping.put("tahunAjaran", "tahunAjaran");
+        return columnMapping;
+    }
+
+    public List<Kelas> findAll(int size) throws IOException {
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+        return client.showListTable(tableName, baseMapping(), Kelas.class, size);
     }
 
     public Kelas save(Kelas kelas) throws IOException {
@@ -40,10 +40,12 @@ public class KelasRepository {
 
         client.insertRecord(tableKelas, rowKey, "main", "idKelas", rowKey);
         client.insertRecord(tableKelas, rowKey, "main", "namaKelas", kelas.getNamaKelas());
-        client.insertRecord(tableKelas, rowKey, "angkatan", "value", kelas.getAngkatan());
 
         client.insertRecord(tableKelas, rowKey, "study_program", "id", kelas.getStudyProgram().getId());
         client.insertRecord(tableKelas, rowKey, "study_program", "name", kelas.getStudyProgram().getName());
+
+        client.insertRecord(tableKelas, rowKey, "tahunAjaran", "idTahun", kelas.getTahunAjaran().getIdTahun());
+        client.insertRecord(tableKelas, rowKey, "tahunAjaran", "tahunAjaran", kelas.getTahunAjaran().getTahunAjaran());
 
         client.insertRecord(tableKelas, rowKey, "detail", "created_by", "Doyatama");
         return kelas;
@@ -51,55 +53,26 @@ public class KelasRepository {
 
     public Kelas findById(String kelasId) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
-
-        TableName tableKelas = TableName.valueOf(tableName);
-        Map<String, String> columnMapping = new HashMap<>();
-
-        // Add the mappings to the HashMap
-        columnMapping.put("idKelas", "idKelas");
-        columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("angkatan", "angkatan");
-        columnMapping.put("study_program", "study_program");
-
-        return client.showDataTable(tableKelas.toString(), columnMapping, kelasId, Kelas.class);
+        return client.showDataTable(tableName, baseMapping(), kelasId, Kelas.class);
     }
 
     public List<Kelas> findAllById(List<String> kelasIds) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
-        TableName tableKelas = TableName.valueOf(tableName);
-        Map<String, String> columnMapping = new HashMap<>();
-        columnMapping.put("idKelas", "idKelas");
-        columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("angkatan", "angkatan");
-        columnMapping.put("study_program", "study_program");
-
         List<Kelas> kelass = new ArrayList<>();
         for (String kelasId : kelasIds) {
-            Kelas kelas = client.showDataTable(tableKelas.toString(), columnMapping, kelasId, Kelas.class);
+            Kelas kelas = client.showDataTable(tableName, baseMapping(), kelasId, Kelas.class);
             if (kelas != null) {
                 kelass.add(kelas);
             }
         }
-
         return kelass;
     }
 
     public List<Kelas> findKelasByStudyProgram(String studyProgramId, int size) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
-
-        TableName tableKelas = TableName.valueOf(tableName);
-        Map<String, String> columnMapping = new HashMap<>();
-
-        // Add the mappings to the HashMap
-        columnMapping.put("idKelas", "idKelas");
-        columnMapping.put("namaKelas", "namaKelas");
-        columnMapping.put("angkatan", "angkatan");
-        columnMapping.put("study_program", "study_program");
-
-        List<Kelas> kelas = client.getDataListByColumn(tableKelas.toString(), columnMapping, "study_program", "id",
+        return client.getDataListByColumn(tableName, baseMapping(), "study_program", "id",
                 studyProgramId, Kelas.class, size);
-        return kelas;
     }
 
     public Kelas update(String kelasId, Kelas kelas) throws IOException {
@@ -111,16 +84,17 @@ public class KelasRepository {
             client.insertRecord(tableKelas, kelasId, "main", "namaKelas", kelas.getNamaKelas());
         }
 
-        if (kelas.getAngkatan() != null) {
-            client.insertRecord(tableKelas, kelasId, "angkatan", "value", kelas.getAngkatan());
-        }
-
         if (kelas.getStudyProgram() != null && kelas.getStudyProgram().getId() != null) {
             client.insertRecord(tableKelas, kelasId, "study_program", "id", kelas.getStudyProgram().getId());
         }
 
         if (kelas.getStudyProgram() != null && kelas.getStudyProgram().getName() != null) {
             client.insertRecord(tableKelas, kelasId, "study_program", "name", kelas.getStudyProgram().getName());
+        }
+
+        if (kelas.getTahunAjaran() != null && kelas.getTahunAjaran().getIdTahun() != null) {
+            client.insertRecord(tableKelas, kelasId, "tahunAjaran", "idTahun", kelas.getTahunAjaran().getIdTahun());
+            client.insertRecord(tableKelas, kelasId, "tahunAjaran", "tahunAjaran", kelas.getTahunAjaran().getTahunAjaran());
         }
 
         return kelas;
@@ -136,12 +110,10 @@ public class KelasRepository {
         HBaseCustomClient client = new HBaseCustomClient(conf);
         TableName tableKelas = TableName.valueOf(tableName);
         Map<String, String> columnMapping = new HashMap<>();
-
-        // Add the mappings to the HashMap
         columnMapping.put("idKelas", "idKelas");
 
-        Kelas kelas = client.getDataByColumn(tableKelas.toString(), columnMapping, "main", "idKelas", kelasId,
-                Kelas.class);
-        return kelas.getIdKelas() != null;
+        Kelas kelas = client.getDataByColumn(tableKelas.toString(), columnMapping, "main", "idKelas",
+                kelasId, Kelas.class);
+        return kelas != null && kelas.getIdKelas() != null;
     }
 }

@@ -37,6 +37,8 @@ public class LearningMethodRepository {
         client.insertRecord(tableLearningMethod, rowKey, "main", "name", learningMethod.getName());
         client.insertRecord(tableLearningMethod, rowKey, "main", "description", learningMethod.getDescription());
         client.insertRecord(tableLearningMethod, rowKey, "detail", "created_by", "Doyatama");
+        
+        learningMethod.setId(rowKey);
         return learningMethod;
     }
 
@@ -84,6 +86,8 @@ public class LearningMethodRepository {
         client.insertRecord(tableLearningMethod, learningMethodId, "main", "name", learningMethod.getName());
         client.insertRecord(tableLearningMethod, learningMethodId, "main", "description",
                 learningMethod.getDescription());
+                
+        learningMethod.setId(learningMethodId);
         return learningMethod;
     }
 

@@ -37,6 +37,8 @@ public class AppraisalFormRepository {
         client.insertRecord(tableAppraisalForm, rowKey, "main", "name", appraisalForm.getName());
         client.insertRecord(tableAppraisalForm, rowKey, "main", "description", appraisalForm.getDescription());
         client.insertRecord(tableAppraisalForm, rowKey, "detail", "created_by", "Doyatama");
+        
+        appraisalForm.setId(rowKey);
         return appraisalForm;
     }
 
@@ -83,6 +85,8 @@ public class AppraisalFormRepository {
         TableName tableAppraisalForm = TableName.valueOf(tableName);
         client.insertRecord(tableAppraisalForm, appraisalFormId, "main", "name", appraisalForm.getName());
         client.insertRecord(tableAppraisalForm, appraisalFormId, "main", "description", appraisalForm.getDescription());
+        
+        appraisalForm.setId(appraisalFormId);
         return appraisalForm;
     }
 

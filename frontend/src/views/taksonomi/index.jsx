@@ -306,7 +306,7 @@ const Taksonomi = () => {
             key="upload"
             type="primary"
             loading={uploading}
-            onClick={() => {}}
+            onClick={() => { }}
           >
             Upload
           </Button>,

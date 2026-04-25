@@ -40,6 +40,8 @@ public class SubjectGroupRepository {
         client.insertRecord(tableSubjectGroup, rowKey, "main", "name", subjectGroup.getName());
         client.insertRecord(tableSubjectGroup, rowKey, "main", "description", subjectGroup.getDescription());
         client.insertRecord(tableSubjectGroup, rowKey, "detail", "created_by", "Doyatama");
+        
+        subjectGroup.setId(rowKey);
         return subjectGroup;
     }
 
@@ -63,6 +65,8 @@ public class SubjectGroupRepository {
         TableName tableSubjectGroup = TableName.valueOf(tableName);
         client.insertRecord(tableSubjectGroup, subjectGroupId, "main", "name", subjectGroup.getName());
         client.insertRecord(tableSubjectGroup, subjectGroupId, "main", "description", subjectGroup.getDescription());
+        
+        subjectGroup.setId(subjectGroupId);
         return subjectGroup;
     }
 

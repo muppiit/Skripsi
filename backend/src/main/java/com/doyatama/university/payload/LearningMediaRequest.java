@@ -3,12 +3,12 @@ package com.doyatama.university.payload;
 public class LearningMediaRequest {
     private String name;
     private String description;
-    private Integer type;
+    private String type;
 
     public LearningMediaRequest() {
     }
 
-    public LearningMediaRequest(String name, String description, Integer type) {
+    public LearningMediaRequest(String name, String description, String type) {
         this.name = name;
         this.description = description;
         this.type = type;
@@ -30,11 +30,11 @@ public class LearningMediaRequest {
         this.description = description;
     }
 
-    public Integer getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(Integer type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -47,7 +47,7 @@ public class LearningMediaRequest {
                 this.description = value;
                 break;
             case "type":
-                this.type = Integer.parseInt(value);
+                this.type = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

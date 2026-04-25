@@ -36,8 +36,8 @@ public class SemesterRepository {
         client.insertRecord(tableSemester, rowKey, "main", "idSemester", rowKey);
         client.insertRecord(tableSemester, rowKey, "main", "namaSemester", semester.getNamaSemester());
 
-        client.insertRecord(tableSemester, rowKey, "study_program", "idSchool", semester.getStudyProgram().getId());
-        client.insertRecord(tableSemester, rowKey, "study_program", "nameSchool", semester.getStudyProgram().getName());
+        client.insertRecord(tableSemester, rowKey, "study_program", "idSchool", semester.getStudyProgram().getIdSchool());
+        client.insertRecord(tableSemester, rowKey, "study_program", "nameSchool", semester.getStudyProgram().getNameSchool());
 
         client.insertRecord(tableSemester, rowKey, "detail", "created_by", "Doyatama");
         return semester;
@@ -116,9 +116,9 @@ public class SemesterRepository {
 
         if (semester.getStudyProgram() != null) {
             client.insertRecord(tableSemester, semesterId, "study_program", "idSchool",
-                    semester.getStudyProgram().getId());
+                    semester.getStudyProgram().getIdSchool());
             client.insertRecord(tableSemester, semesterId, "study_program", "nameSchool",
-                    semester.getStudyProgram().getName());
+                    semester.getStudyProgram().getNameSchool());
         }
 
         return semester;

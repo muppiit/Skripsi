@@ -1,8 +1,10 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
-import { Form, Input, Modal, DatePicker, Select } from "antd";
+import { Form, Input, Modal, DatePicker, Select, message } from "antd";
 import { getKelas } from "@/api/kelas";
+import { getReligions } from "@/api/religion";
+import { getStudyPrograms } from "@/api/studyProgram";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -12,37 +14,55 @@ const AddStudentForm = ({
   onCancel,
   onOk,
   confirmLoading,
-  religion,
 }) => {
   const [form] = Form.useForm();
   const [kelasList, setKelasList] = useState([]);
   const [filteredKelasList, setFilteredKelasList] = useState([]);
+  const [studyProgramList, setStudyProgramList] = useState([]);
+  const [religionList, setReligionList] = useState([]);
 
-  const fetchKelasList = async () => {
+  const fetchData = async () => {
     try {
-      const result = await getKelas();
-      const { content, statusCode } = result.data;
-      if (statusCode === 200) {
-        setKelasList(content || []);
-      }
+      const [kelasRes, religionRes, programRes] = await Promise.all([
+        getKelas(),
+        getReligions(),
+        getStudyPrograms(),
+      ]);
+      if (kelasRes.data.statusCode === 200) setKelasList(kelasRes.data.content || []);
+      if (religionRes.data.statusCode === 200) setReligionList(religionRes.data.content || []);
+      if (programRes.data.statusCode === 200) setStudyProgramList(programRes.data.content || []);
     } catch (error) {
-      console.error("Error fetching kelas data: ", error);
+      message.error("Gagal memuat data: " + error.message);
     }
   };
 
+  useEffect(() => {
+    if (visible) {
+      fetchData();
+      form.resetFields();
+    }
+  }, [visible, form]);
+
   const handleStudyProgramChange = (studyProgramId) => {
+    // Filter kelas berdasarkan study program yang dipilih
     const nextKelas = (kelasList || []).filter(
-      (kelas) => kelas?.studyProgram?.id === studyProgramId
+      (kelas) => kelas?.studyProgram?.id === studyProgramId || kelas?.study_program?.id === studyProgramId
     );
     setFilteredKelasList(nextKelas);
-    form.setFieldsValue({ idKelas: undefined, angkatan: undefined });
+    form.setFieldsValue({ idKelas: undefined, idTahunAjaran: undefined, tahunAjaranDisplay: undefined });
   };
 
   const handleKelasChange = (kelasId) => {
+    // Auto-populate Tahun Ajaran dari data Kelas yang dipilih
     const selectedKelas = (filteredKelasList || []).find(
       (kelas) => kelas.idKelas === kelasId
     );
-    form.setFieldsValue({ angkatan: selectedKelas?.angkatan || undefined });
+    if (selectedKelas?.tahunAjaran) {
+      form.setFieldsValue({
+        idTahunAjaran: selectedKelas.tahunAjaran.idTahun,
+        tahunAjaranDisplay: selectedKelas.tahunAjaran.tahunAjaran,
+      });
+    }
   };
 
   const handleSubmit = () => {
@@ -56,36 +76,28 @@ const AddStudentForm = ({
       });
   };
 
-  useEffect(() => {
-    fetchKelasList();
-  }, []);
-
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
   };
 
   return (
     <Modal
-      title="Tambah Siswa"
-      visible={visible}
-      onCancel={onCancel}
+      title="Tambah Mahasiswa"
+      open={visible}
+      onCancel={() => { form.resetFields(); onCancel(); }}
       onOk={handleSubmit}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
       <Form form={form} {...formItemLayout}>
         <Form.Item
-          label="ID Siswa:"
+          label="ID Mahasiswa:"
           name="id"
-          rules={[{ required: true, message: "Silahkan isikan id siswa" }]}
+          rules={[{ required: true, message: "Silahkan isikan ID mahasiswa" }]}
         >
-          <Input placeholder="ID Siswa" />
+          <Input placeholder="ID Mahasiswa" />
         </Form.Item>
 
         <Form.Item
@@ -99,9 +111,7 @@ const AddStudentForm = ({
         <Form.Item
           label="Nama Lengkap:"
           name="name"
-          rules={[
-            { required: true, message: "Nama lengkap mahasiswa wajib diisi" },
-          ]}
+          rules={[{ required: true, message: "Nama lengkap mahasiswa wajib diisi" }]}
         >
           <Input placeholder="Nama Lengkap Mahasiswa" />
         </Form.Item>
@@ -119,7 +129,7 @@ const AddStudentForm = ({
           name="birth_date"
           rules={[{ required: true, message: "Tanggal Lahir wajib diisi" }]}
         >
-          <DatePicker placeholder="Tanggal Lahir" />
+          <DatePicker placeholder="Tanggal Lahir" style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
@@ -127,9 +137,9 @@ const AddStudentForm = ({
           name="gender"
           rules={[{ required: true, message: "Gender wajib diisi" }]}
         >
-          <Select style={{ width: 120 }} placeholder="Gender">
-            <Select.Option value="L">Laki-laki</Select.Option>
-            <Select.Option value="P">Perempuan</Select.Option>
+          <Select placeholder="Gender">
+            <Option value="L">Laki-laki</Option>
+            <Option value="P">Perempuan</Option>
           </Select>
         </Form.Item>
 
@@ -154,11 +164,11 @@ const AddStudentForm = ({
           name="religion_id"
           rules={[{ required: true, message: "Silahkan pilih agama" }]}
         >
-          <Select style={{ width: 300 }} placeholder="Pilih Agama">
-            {religion.map((arr, key) => (
-              <Select.Option value={arr.id} key={`religion-${key}`}>
+          <Select placeholder="Pilih Agama">
+            {religionList.map((arr) => (
+              <Option value={arr.id} key={arr.id}>
                 {arr.name}
-              </Select.Option>
+              </Option>
             ))}
           </Select>
         </Form.Item>
@@ -171,8 +181,10 @@ const AddStudentForm = ({
           <Select
             placeholder="Pilih Program Studi"
             onChange={handleStudyProgramChange}
+            showSearch
+            optionFilterProp="children"
           >
-            {(studyProgram || []).map((program) => (
+            {studyProgramList.map((program) => (
               <Option key={program.id} value={program.id}>
                 {program.name}
               </Option>
@@ -185,8 +197,13 @@ const AddStudentForm = ({
           name="idKelas"
           rules={[{ required: true, message: "Silahkan pilih kelas" }]}
         >
-          <Select placeholder="Pilih Kelas" onChange={handleKelasChange}>
-            {(filteredKelasList || []).map((kelas) => (
+          <Select
+            placeholder="Pilih Kelas"
+            onChange={handleKelasChange}
+            showSearch
+            optionFilterProp="children"
+          >
+            {filteredKelasList.map((kelas) => (
               <Option key={kelas.idKelas} value={kelas.idKelas}>
                 {kelas.namaKelas}
               </Option>
@@ -194,12 +211,13 @@ const AddStudentForm = ({
           </Select>
         </Form.Item>
 
-        <Form.Item
-          label="Angkatan:"
-          name="angkatan"
-          rules={[{ required: true, message: "Silahkan pilih kelas terlebih dahulu" }]}
-        >
-          <Input placeholder="Angkatan" disabled />
+        {/* Hidden field untuk menyimpan idTahunAjaran */}
+        <Form.Item name="idTahunAjaran" hidden>
+          <Input />
+        </Form.Item>
+
+        <Form.Item label="Tahun Ajaran:" name="tahunAjaranDisplay">
+          <Input placeholder="Otomatis terisi dari Kelas" disabled />
         </Form.Item>
       </Form>
     </Modal>

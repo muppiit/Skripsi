@@ -42,6 +42,8 @@ public class StudyProgramRepository {
         client.insertRecord(tableStudyProgram, rowKey, "department", "id", studyProgram.getDepartment().getId());
         client.insertRecord(tableStudyProgram, rowKey, "department", "name", studyProgram.getDepartment().getName());
         client.insertRecord(tableStudyProgram, rowKey, "detail", "created_by", "Doyatama");
+        
+        studyProgram.setId(rowKey);
         return studyProgram;
     }
 
@@ -93,6 +95,8 @@ public class StudyProgramRepository {
                 studyProgram.getDepartment().getId());
         client.insertRecord(tableStudyProgram, studyProgramId, "department", "name",
                 studyProgram.getDepartment().getName());
+        
+        studyProgram.setId(studyProgramId);
         return studyProgram;
     }
 

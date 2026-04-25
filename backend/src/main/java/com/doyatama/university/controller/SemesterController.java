@@ -37,6 +37,9 @@ public class SemesterController {
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
         String studyProgramId = currentUser.getSchoolId();
+        if (studyProgramId == null) {
+            studyProgramId = "*";
+        }
 
         return semesterService.getAllSemester(page, size, studyProgramId);
     }

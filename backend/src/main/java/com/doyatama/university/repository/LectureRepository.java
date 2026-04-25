@@ -55,6 +55,8 @@ public class LectureRepository {
         client.insertRecord(tableLecture, rowKey, "study_program", "id", lecture.getStudyProgram().getId());
         client.insertRecord(tableLecture, rowKey, "study_program", "name", lecture.getStudyProgram().getName());
         client.insertRecord(tableLecture, rowKey, "detail", "created_by", "Doyatama");
+        
+        lecture.setId(rowKey);
         return lecture;
     }
 
@@ -185,6 +187,8 @@ public class LectureRepository {
         client.insertRecord(tableLecture, lectureId, "religion", "name", lecture.getReligion().getName());
         client.insertRecord(tableLecture, lectureId, "study_program", "id", lecture.getStudyProgram().getId());
         client.insertRecord(tableLecture, lectureId, "study_program", "name", lecture.getStudyProgram().getName());
+        
+        lecture.setId(lectureId);
         return lecture;
     }
 

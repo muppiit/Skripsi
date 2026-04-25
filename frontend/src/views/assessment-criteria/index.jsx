@@ -72,32 +72,21 @@ const AssessmentCriteria = () => {
     }
   };
 
-  const handleEditAssessmentCriteriaOk = () => {
-    const form = editAssessmentCriteriaFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleEditAssessmentCriteriaOk = async (values) => {
+    try {
       setEditAssessmentCriteriaModalLoading(true);
-      editAssessmentCriteria(values, values.id)
-        .then((response) => {
-          if (response.data.statusCode === 200) {
-            form.resetFields();
-            setEditAssessmentCriteriaModalVisible(false);
-            setEditAssessmentCriteriaModalLoading(false);
-            message.success("Berhasil diubah!");
-            fetchAssessmentCriterias();
-          } else {
-            throw new Error(response.data.message);
-          }
-        })
-        .catch((error) => {
-          setEditAssessmentCriteriaModalLoading(false);
-          message.error("Gagal mengubah: " + error.message);
-        });
-    });
+      const { id, ...dataToSend } = values; // Jangan kirim 'id' ke payload backend
+      await editAssessmentCriteria(dataToSend, currentRowData.id);
+      
+      setEditAssessmentCriteriaModalVisible(false);
+      message.success("Berhasil diubah!");
+      fetchAssessmentCriterias();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal mengubah: " + (error.response?.data?.message || error.message));
+    } finally {
+      setEditAssessmentCriteriaModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -109,32 +98,20 @@ const AssessmentCriteria = () => {
     setAddAssessmentCriteriaModalVisible(true);
   };
 
-  const handleAddAssessmentCriteriaOk = () => {
-    const form = addAssessmentCriteriaFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleAddAssessmentCriteriaOk = async (values) => {
+    try {
       setAddAssessmentCriteriaModalLoading(true);
-      addAssessmentCriteria(values)
-        .then((response) => {
-          if (response.data.statusCode === 200) {
-            form.resetFields();
-            setAddAssessmentCriteriaModalVisible(false);
-            setAddAssessmentCriteriaModalLoading(false);
-            message.success("Berhasil ditambahkan!");
-            fetchAssessmentCriterias();
-          } else {
-            throw new Error(response.data.message);
-          }
-        })
-        .catch((error) => {
-          setAddAssessmentCriteriaModalLoading(false);
-          message.error("Gagal menambahkan: " + error.message);
-        });
-    });
+      await addAssessmentCriteria(values);
+      
+      setAddAssessmentCriteriaModalVisible(false);
+      message.success("Berhasil ditambahkan!");
+      fetchAssessmentCriterias();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal menambahkan: " + (error.response?.data?.message || error.message));
+    } finally {
+      setAddAssessmentCriteriaModalLoading(false);
+    }
   };
 
   useEffect(() => {

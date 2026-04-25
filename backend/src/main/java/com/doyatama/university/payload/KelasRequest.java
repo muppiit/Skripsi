@@ -1,23 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.doyatama.university.payload;
 
 public class KelasRequest {
     private String idKelas;
     private String namaKelas;
     private String idStudyProgram;
-    private String angkatan;
+    private String idTahunAjaran;
 
     public KelasRequest() {
     }
 
-    public KelasRequest(String idKelas, String namaKelas, String idStudyProgram, String angkatan) {
+    public KelasRequest(String idKelas, String namaKelas, String idStudyProgram, String idTahunAjaran) {
         this.idKelas = idKelas;
         this.namaKelas = namaKelas;
         this.idStudyProgram = idStudyProgram;
-        this.angkatan = angkatan;
+        this.idTahunAjaran = idTahunAjaran;
     }
 
     public String getIdKelas() {
@@ -44,12 +40,12 @@ public class KelasRequest {
         this.idStudyProgram = idStudyProgram;
     }
 
-    public String getAngkatan() {
-        return angkatan;
+    public String getIdTahunAjaran() {
+        return idTahunAjaran;
     }
 
-    public void setAngkatan(String angkatan) {
-        this.angkatan = angkatan;
+    public void setIdTahunAjaran(String idTahunAjaran) {
+        this.idTahunAjaran = idTahunAjaran;
     }
 
     public void set(String fieldName, String value) {
@@ -63,8 +59,8 @@ public class KelasRequest {
             case "idStudyProgram":
                 this.idStudyProgram = value;
                 break;
-            case "angkatan":
-                this.angkatan = value;
+            case "idTahunAjaran":
+                this.idTahunAjaran = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

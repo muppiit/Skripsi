@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import React from "react";
+import React, { useEffect } from "react";
 import { Form, Input, Modal } from "antd";
 
 const { TextArea } = Input;
@@ -13,46 +13,45 @@ const EditLearningMethodForm = ({
   currentRowData,
 }) => {
   const [form] = Form.useForm();
-  const { id, name, description } = currentRowData;
+
+  useEffect(() => {
+    if (visible && currentRowData) {
+      form.setFieldsValue({
+        id: currentRowData.id,
+        name: currentRowData.name,
+        description: currentRowData.description,
+      });
+    }
+  }, [visible, currentRowData, form]);
 
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      onOk(values);
+    } catch (info) {
+      console.log("Validate Failed:", info);
+    }
   };
 
   return (
     <Modal
       title="Edit Metode Pembelajaran"
-      visible={visible}
-      onCancel={onCancel}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((values) => {
-            onOk(values);
-          })
-          .catch((info) => {
-            console.log("Validate Failed:", info);
-          });
+      open={visible}
+      onCancel={() => {
+        form.resetFields();
+        onCancel();
       }}
+      onOk={handleOk}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
-      <Form
-        {...formItemLayout}
-        form={form}
-        name="EditLearningMethodForm"
-        initialValues={{
-          id,
-          name,
-          description,
-        }}
-      >
+      <Form {...formItemLayout} form={form}>
         <Form.Item label="ID Metode Pembelajaran:" name="id">
           <Input disabled />
         </Form.Item>
@@ -71,7 +70,7 @@ const EditLearningMethodForm = ({
         </Form.Item>
 
         <Form.Item
-          label="Deskripsi Metode Pembelajaran:"
+          label="Deskripsi:"
           name="description"
           rules={[
             {

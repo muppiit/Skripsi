@@ -1,17 +1,9 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
-import {
-  Form,
-  Input,
-  Modal,
-  Select,
-  Row,
-  Col,
-  message,
-} from "antd";
+import { Form, Input, Modal, Select, Row, Col, message } from "antd";
 import { getStudyPrograms } from "@/api/studyProgram";
-import { reqUserInfo } from "@/api/user";
+import { getTahunAjaran } from "@/api/tahun-ajaran";
 
 const { Option } = Select;
 
@@ -23,51 +15,64 @@ const EditKelasForm = ({
   currentRowData,
 }) => {
   const [form] = Form.useForm();
-  const [userStudyProgramId, setUserStudyProgramId] = useState("");
   const [studyProgramList, setStudyProgramList] = useState([]);
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await reqUserInfo();
-      setUserStudyProgramId(response.data.school_id);
-    } catch (error) {
-      message.error("Gagal mengambil informasi pengguna");
-    }
-  };
+  const [tahunAjaranList, setTahunAjaranList] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const [loadingTahun, setLoadingTahun] = useState(false);
 
   const fetchStudyProgramList = async () => {
+    setLoadingPrograms(true);
     try {
       const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
         setStudyProgramList(result.data.content || []);
       } else {
-        message.error("Gagal mengambil data");
+        message.error("Gagal mengambil data program studi");
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
+    } finally {
+      setLoadingPrograms(false);
+    }
+  };
+
+  const fetchTahunAjaranList = async () => {
+    setLoadingTahun(true);
+    try {
+      const result = await getTahunAjaran();
+      if (result.data.statusCode === 200) {
+        setTahunAjaranList(result.data.content || []);
+      } else {
+        message.error("Gagal mengambil data tahun ajaran");
+      }
+    } catch (error) {
+      message.error("Terjadi kesalahan: " + error.message);
+    } finally {
+      setLoadingTahun(false);
     }
   };
 
   useEffect(() => {
-    fetchUserInfo();
-    fetchStudyProgramList();
+    if (visible) {
+      fetchStudyProgramList();
+      fetchTahunAjaranList();
+    }
+  }, [visible]);
 
-    if (currentRowData) {
+  useEffect(() => {
+    if (visible && currentRowData) {
       const currentStudyProgram = currentRowData.studyProgram || currentRowData.study_program;
+      // tahunAjaran di-serialisasi Jackson dari getTahunAjaran() → field "tahunAjaran" (nested object)
+      const currentTahunAjaran = currentRowData.tahunAjaran;
+
       form.setFieldsValue({
         idKelas: currentRowData.idKelas,
         idStudyProgram: currentStudyProgram?.id,
+        idTahunAjaran: currentTahunAjaran?.idTahun ?? null,
         namaKelas: currentRowData.namaKelas,
-        angkatan: currentRowData.angkatan,
       });
     }
-  }, [currentRowData, form]);
-
-  useEffect(() => {
-    if (userStudyProgramId) {
-      form.setFieldsValue({ idStudyProgram: userStudyProgramId });
-    }
-  }, [userStudyProgramId, form]);
+  }, [visible, currentRowData, form]);
 
   const handleSubmit = async () => {
     try {
@@ -89,44 +94,62 @@ const EditKelasForm = ({
       onOk={handleSubmit}
       confirmLoading={confirmLoading}
       okText="Simpan"
+      cancelText="Batal"
       width={500}
     >
       <Form form={form} layout="vertical">
+        <Form.Item name="idKelas" hidden>
+          <Input />
+        </Form.Item>
+
         <Row gutter={16}>
           <Col xs={24} sm={24} md={24}>
             <Form.Item
               label="Program Studi:"
               name="idStudyProgram"
-              style={{ display: "none" }}
               rules={[{ required: true, message: "Silahkan pilih Program Studi" }]}
             >
-              <Select defaultValue={userStudyProgramId} disabled>
-                {studyProgramList
-                  .filter(({ id }) => id === userStudyProgramId)
-                  .map(({ id, name }) => (
-                    <Option key={id} value={id}>
-                      {name}
-                    </Option>
-                  ))}
+              <Select
+                placeholder="Pilih Program Studi"
+                loading={loadingPrograms}
+                showSearch
+                optionFilterProp="children"
+              >
+                {studyProgramList.map(({ id, name }) => (
+                  <Option key={id} value={id}>
+                    {name}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
           <Col xs={24} sm={24} md={24}>
             <Form.Item
-              label="Kelas:"
-              name="namaKelas"
-              rules={[{ required: true, message: "Silahkan isikan Kelas" }]}
+              label="Tahun Ajaran:"
+              name="idTahunAjaran"
+              rules={[{ required: true, message: "Silahkan pilih Tahun Ajaran" }]}
             >
-              <Input placeholder="Kelas" />
+              <Select
+                placeholder="Pilih Tahun Ajaran"
+                loading={loadingTahun}
+                showSearch
+                optionFilterProp="children"
+              >
+                {tahunAjaranList.map((item) => (
+                  <Option key={item.idTahun} value={item.idTahun}>
+                    {item.tahunAjaran}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
           </Col>
           <Col xs={24} sm={24} md={24}>
             <Form.Item
-              label="Angkatan :"
-              name="angkatan"
-              rules={[{ required: true, message: "Silahkan isikan Angkatan" }]}
+              label="Nama Kelas:"
+              name="namaKelas"
+              rules={[{ required: true, message: "Silahkan isikan Nama Kelas" }]}
             >
-              <Input placeholder="Contoh: 2023" />
+              <Input placeholder="Kelas" />
             </Form.Item>
           </Col>
         </Row>

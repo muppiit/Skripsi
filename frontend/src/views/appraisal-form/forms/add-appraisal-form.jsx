@@ -1,4 +1,6 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
+import React, { useEffect } from "react";
 import { Form, Input, Modal } from "antd";
 
 const { TextArea } = Input;
@@ -6,24 +8,24 @@ const { TextArea } = Input;
 const AddAppraisalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    if (visible) {
+      form.resetFields();
+    }
+  }, [visible, form]);
+
+  const formItemLayout = {
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
+  };
+
+  const handleOk = async () => {
     try {
       const values = await form.validateFields();
       onOk(values);
-    } catch (error) {
-      console.error("Validation failed:", error);
+    } catch (info) {
+      console.log("Validate Failed:", info);
     }
-  };
-
-  const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
   };
 
   return (
@@ -34,13 +36,15 @@ const AddAppraisalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         form.resetFields();
         onCancel();
       }}
-      onOk={handleSubmit}
+      onOk={handleOk}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
-      <Form form={form} {...formItemLayout}>
+      <Form {...formItemLayout} form={form}>
         <Form.Item
+          label="Nama Formulir:"
           name="name"
-          label="Nama Formulir Penilaian"
           rules={[
             {
               required: true,
@@ -52,8 +56,8 @@ const AddAppraisalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         </Form.Item>
 
         <Form.Item
+          label="Deskripsi:"
           name="description"
-          label="Deskripsi Formulir Penilaian"
           rules={[
             {
               required: true,
@@ -61,7 +65,7 @@ const AddAppraisalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
             },
           ]}
         >
-          <TextArea rows={4} placeholder="Deskripsi Pengguna" />
+          <TextArea rows={4} placeholder="Deskripsi" />
         </Form.Item>
       </Form>
     </Modal>

@@ -108,7 +108,7 @@ const Kelas = () => {
         idKelas: null,
         namaKelas: values.namaKelas,
         idStudyProgram: values.idStudyProgram,
-        angkatan: values.angkatan,
+        idTahunAjaran: values.idTahunAjaran,
       };
       await addKelas(updatedData);
       setAddKelasModalVisible(false);
@@ -126,10 +126,10 @@ const Kelas = () => {
     setEditKelasModalLoading(true);
     try {
       const updatedData = {
-        idKelas: values.idKelas,
+        idKelas: currentRowData.idKelas,
         namaKelas: values.namaKelas,
         idStudyProgram: values.idStudyProgram,
-        angkatan: values.angkatan,
+        idTahunAjaran: values.idTahunAjaran,
       };
       console.log("Updated Data:", updatedData);
       await editKelas(updatedData, currentRowData.idKelas);
@@ -172,12 +172,10 @@ const Kelas = () => {
       sorter: (a, b) => a.namaKelas.localeCompare(b.namaKelas),
     },
     {
-      title: "Angkatan",
-      dataIndex: "angkatan",
-      key: "angkatan",
+      title: "Tahun Ajaran",
+      key: "tahunAjaran",
       align: "center",
-      ...getColumnSearchProps("angkatan"),
-      sorter: (a, b) => (a.angkatan || "").localeCompare(b.angkatan || ""),
+      render: (_, row) => row.tahunAjaran?.tahunAjaran ?? "-",
     },
     {
       title: "Program Studi",
@@ -185,7 +183,7 @@ const Kelas = () => {
       align: "center",
       render: (_, row) => {
         const studyProgram = row.studyProgram || row.study_program;
-        return studyProgram?.name || "-";
+        return studyProgram?.name ?? "-";
       },
     },
     {

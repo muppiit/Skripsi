@@ -64,28 +64,20 @@ const LearningMedia = () => {
     }
   };
 
-  const handleEditLearningMediaOk = () => {
-    const form = editLearningMediaFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleEditLearningMediaOk = async (values) => {
+    try {
       setEditLearningMediaModalLoading(true);
-      editLearningMedia(values, values.id)
-        .then((response) => {
-          form.resetFields();
-          setEditLearningMediaModalVisible(false);
-          setEditLearningMediaModalLoading(false);
-          message.success("Berhasil diubah!");
-          fetchLearningMedias();
-        })
-        .catch((error) => {
-          setEditLearningMediaModalLoading(false);
-          message.error("Gagal mengubah: " + error.message);
-        });
-    });
+      const { id, ...dataToSend } = values; // Jangan kirim 'id' ke payload backend
+      await editLearningMedia(dataToSend, currentRowData.id);
+      setEditLearningMediaModalVisible(false);
+      message.success("Berhasil diubah!");
+      fetchLearningMedias();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal mengubah: " + (error.response?.data?.message || error.message));
+    } finally {
+      setEditLearningMediaModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,28 +89,19 @@ const LearningMedia = () => {
     setAddLearningMediaModalVisible(true);
   };
 
-  const handleAddLearningMediaOk = () => {
-    const form = addLearningMediaFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleAddLearningMediaOk = async (values) => {
+    try {
       setAddLearningMediaModalLoading(true);
-      addLearningMedia(values)
-        .then((response) => {
-          form.resetFields();
-          setAddLearningMediaModalVisible(false);
-          setAddLearningMediaModalLoading(false);
-          message.success("Berhasil ditambahkan!");
-          fetchLearningMedias();
-        })
-        .catch((error) => {
-          setAddLearningMediaModalLoading(false);
-          message.error("Gagal menambahkan: " + error.message);
-        });
-    });
+      await addLearningMedia(values);
+      setAddLearningMediaModalVisible(false);
+      message.success("Berhasil ditambahkan!");
+      fetchLearningMedias();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal menambahkan: " + (error.response?.data?.message || error.message));
+    } finally {
+      setAddLearningMediaModalLoading(false);
+    }
   };
 
   useEffect(() => {

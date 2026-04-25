@@ -64,32 +64,21 @@ const AppraisalForm = () => {
     }
   };
 
-  const handleEditAppraisalFormOk = () => {
-    const form = editAppraisalFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleEditAppraisalFormOk = async (values) => {
+    try {
       setEditAppraisalFormModalLoading(true);
-      editAppraisalForm(values, values.id)
-        .then((response) => {
-          if (response.data.statusCode === 200) {
-            form.resetFields();
-            setEditAppraisalFormModalVisible(false);
-            setEditAppraisalFormModalLoading(false);
-            message.success("Berhasil diubah!");
-            fetchAppraisalForms();
-          } else {
-            throw new Error(response.data.message);
-          }
-        })
-        .catch((error) => {
-          setEditAppraisalFormModalLoading(false);
-          message.error("Gagal mengubah: " + error.message);
-        });
-    });
+      const { id, ...dataToSend } = values; // Jangan kirim 'id' ke payload backend
+      await editAppraisalForm(dataToSend, currentRowData.id);
+      
+      setEditAppraisalFormModalVisible(false);
+      message.success("Berhasil diubah!");
+      fetchAppraisalForms();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal mengubah: " + (error.response?.data?.message || error.message));
+    } finally {
+      setEditAppraisalFormModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -101,32 +90,20 @@ const AppraisalForm = () => {
     setAddAppraisalFormModalVisible(true);
   };
 
-  const handleAddAppraisalFormOk = () => {
-    const form = addAppraisalFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleAddAppraisalFormOk = async (values) => {
+    try {
       setAddAppraisalFormModalLoading(true);
-      addAppraisalForm(values)
-        .then((response) => {
-          if (response.data.statusCode === 200) {
-            form.resetFields();
-            setAddAppraisalFormModalVisible(false);
-            setAddAppraisalFormModalLoading(false);
-            message.success("Berhasil ditambahkan!");
-            fetchAppraisalForms();
-          } else {
-            throw new Error(response.data.message);
-          }
-        })
-        .catch((error) => {
-          setAddAppraisalFormModalLoading(false);
-          message.error("Gagal menambahkan: " + error.message);
-        });
-    });
+      await addAppraisalForm(values);
+      
+      setAddAppraisalFormModalVisible(false);
+      message.success("Berhasil ditambahkan!");
+      fetchAppraisalForms();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal menambahkan: " + (error.response?.data?.message || error.message));
+    } finally {
+      setAddAppraisalFormModalLoading(false);
+    }
   };
 
   useEffect(() => {

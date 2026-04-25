@@ -35,6 +35,30 @@ public class BankSoalSeeder {
 
         seedOne(client, "BS008", "SU008", "UTS Sistem Informasi", "Kepanjangan KPI adalah...",
                 "5", "ISIAN", "TX101", "THN002", "SMT004", "KLS007", "SEA005", "SUB004", "RPD008-4", "SP002");
+
+        seedOne(client, "BS009", "SU009", "UTS Jaringan Dasar", "Perangkat yang menghubungkan jaringan adalah...",
+                "10", "PG", "TX001", "THN001", "SMT001", "KLS001", "SEA001", "SUB001", "RPD009-5", "SP001");
+
+        seedOne(client, "BS010", "SU010", "UTS Desain Antarmuka", "Pilih prinsip UI yang baik",
+                "15", "MULTI", "TX002", "THN001", "SMT001", "KLS002", "SEA002", "SUB002", "RPD010-6", "SP001");
+
+        seedOne(client, "BS011", "SU011", "UTS Kecerdasan Bisnis", "Cocokkan konsep dengan contoh",
+                "20", "COCOK", "TX103", "THN002", "SMT004", "KLS007", "SEA005", "SUB003", "RPD011-5", "SP002");
+
+        seedOne(client, "BS012", "SU012", "UTS Manajemen Proyek TI", "Kepanjangan SDLC adalah...",
+                "5", "ISIAN", "TX101", "THN002", "SMT003", "KLS005", "SEA004", "SUB004", "RPD012-6", "SP002");
+
+        seedOne(client, "BS013", "SU013", "UTS Keamanan Jaringan", "Firewall berfungsi untuk...",
+                "10", "PG", "TX001", "THN001", "SMT001", "KLS001", "SEA001", "SUB001", "RPD013-7", "SP001");
+
+        seedOne(client, "BS014", "SU014", "UTS Interaksi Manusia Komputer", "Pilih aspek UX yang penting",
+                "15", "MULTI", "TX002", "THN001", "SMT001", "KLS002", "SEA002", "SUB002", "RPD014-8", "SP001");
+
+        seedOne(client, "BS015", "SU015", "UTS Sistem Pendukung Keputusan", "Cocokkan metode dengan kegunaannya",
+                "20", "COCOK", "TX103", "THN002", "SMT004", "KLS007", "SEA005", "SUB003", "RPD015-7", "SP002");
+
+        seedOne(client, "BS016", "SU016", "UTS Manajemen Basis Data Bisnis", "Kepanjangan DBMS adalah...",
+                "5", "ISIAN", "TX101", "THN002", "SMT003", "KLS005", "SEA004", "SUB004", "RPD016-8", "SP002");
     }
 
     private void seedOne(HBaseCustomClient client, String idBankSoal, String idSoalUjian, String namaUjian,
@@ -193,6 +217,30 @@ public class BankSoalSeeder {
         if ("RPD008-4".equals(rpsDetailId)) {
             return "4";
         }
+        if ("RPD009-5".equals(rpsDetailId)) {
+            return "5";
+        }
+        if ("RPD010-6".equals(rpsDetailId)) {
+            return "6";
+        }
+        if ("RPD011-5".equals(rpsDetailId)) {
+            return "5";
+        }
+        if ("RPD012-6".equals(rpsDetailId)) {
+            return "6";
+        }
+        if ("RPD013-7".equals(rpsDetailId)) {
+            return "7";
+        }
+        if ("RPD014-8".equals(rpsDetailId)) {
+            return "8";
+        }
+        if ("RPD015-7".equals(rpsDetailId)) {
+            return "7";
+        }
+        if ("RPD016-8".equals(rpsDetailId)) {
+            return "8";
+        }
         return "1";
     }
 
@@ -220,6 +268,30 @@ public class BankSoalSeeder {
         }
         if ("RPD008-4".equals(rpsDetailId)) {
             return "CP MK 8";
+        }
+        if ("RPD009-5".equals(rpsDetailId)) {
+            return "CP MK 9";
+        }
+        if ("RPD010-6".equals(rpsDetailId)) {
+            return "CP MK 10";
+        }
+        if ("RPD011-5".equals(rpsDetailId)) {
+            return "CP MK 11";
+        }
+        if ("RPD012-6".equals(rpsDetailId)) {
+            return "CP MK 12";
+        }
+        if ("RPD013-7".equals(rpsDetailId)) {
+            return "CP MK 13";
+        }
+        if ("RPD014-8".equals(rpsDetailId)) {
+            return "CP MK 14";
+        }
+        if ("RPD015-7".equals(rpsDetailId)) {
+            return "CP MK 15";
+        }
+        if ("RPD016-8".equals(rpsDetailId)) {
+            return "CP MK 16";
         }
         return "CP MK";
     }

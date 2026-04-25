@@ -40,6 +40,8 @@ public class FormLearningRepository {
         client.insertRecord(tableFormLearning, rowKey, "main", "name", department.getName());
         client.insertRecord(tableFormLearning, rowKey, "main", "description", department.getDescription());
         client.insertRecord(tableFormLearning, rowKey, "detail", "created_by", "Doyatama");
+        
+        department.setId(rowKey);
         return department;
     }
 
@@ -63,6 +65,8 @@ public class FormLearningRepository {
         TableName tableFormLearning = TableName.valueOf(tableName);
         client.insertRecord(tableFormLearning, departmentId, "main", "name", department.getName());
         client.insertRecord(tableFormLearning, departmentId, "main", "description", department.getDescription());
+        
+        department.setId(departmentId);
         return department;
     }
 

@@ -117,7 +117,7 @@ const TahunAjaran = () => {
       const updatedData = {
         idTahun: null,
         tahunAjaran: values.tahunAjaran,
-        idSekolah: values.idSchool,
+        idStudyProgram: values.idStudyProgram, // kirim ID program studi
       };
       await addTahunAjaran(updatedData);
       setAddTahunAjaranModalVisible(false);
@@ -135,19 +135,16 @@ const TahunAjaran = () => {
     setEditTahunAjaranModalLoading(true);
     try {
       const updatedData = {
-        idTahun: values.idTahun,
+        idTahun: currentRowData.idTahun, // ambil dari row yang sedang diedit
         tahunAjaran: values.tahunAjaran,
-        idSekolah: values.idSchool,
+        idStudyProgram: values.idStudyProgram, // kirim ID program studi
       };
-      console.log("Updated Data:", updatedData);
       await editTahunAjaran(updatedData);
       setEditTahunAjaranModalVisible(false);
-      setEditTahunAjaranModalLoading(false);
       message.success("Berhasil mengedit");
       fetchTahunAjaran();
     } catch (error) {
       setEditTahunAjaranModalVisible(false);
-      setEditTahunAjaranModalLoading(false);
       message.error("Gagal mengedit: " + error.message);
     } finally {
       setEditTahunAjaranModalLoading(false);
@@ -170,6 +167,7 @@ const TahunAjaran = () => {
       dataIndex: "index",
       key: "index",
       align: "center",
+      width: 60,
       render: (_, __, index) => index + 1,
     },
     {
@@ -181,15 +179,23 @@ const TahunAjaran = () => {
       sorter: (a, b) => a.tahunAjaran.localeCompare(b.tahunAjaran),
     },
     {
+      title: "Program Studi",
+      key: "studyProgram",
+      align: "center",
+      render: (_, row) => row.studyProgram?.nameSchool ?? "-",
+    },
+    {
       title: "Operasi",
       key: "action",
       align: "center",
+      width: 120,
       render: (__, row) => (
         <span>
           <Button
             type="primary"
             shape="circle"
             icon={<EditOutlined />}
+            style={{ marginRight: 8 }}
             onClick={() => handleEditTahunAjaran(row)}
           />
           <Button

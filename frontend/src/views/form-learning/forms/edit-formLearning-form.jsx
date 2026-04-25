@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import React from "react";
+import React, { useEffect } from "react";
 import { Form, Input, Modal } from "antd";
 
 const { TextArea } = Input;
@@ -13,51 +13,51 @@ const EditFormLearningForm = ({
   currentRowData,
 }) => {
   const [form] = Form.useForm();
-  const { id, name, description } = currentRowData;
+
+  useEffect(() => {
+    if (visible && currentRowData) {
+      form.setFieldsValue({
+        id: currentRowData.id,
+        name: currentRowData.name,
+        description: currentRowData.description,
+      });
+    }
+  }, [visible, currentRowData, form]);
 
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
   };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       onOk(values);
-    } catch (error) {
-      console.log("Validation failed:", error);
+    } catch (info) {
+      console.log("Validate Failed:", info);
     }
   };
 
   return (
     <Modal
       title="Edit Bentuk Pembelajaran"
-      visible={visible}
-      onCancel={onCancel}
+      open={visible}
+      onCancel={() => {
+        form.resetFields();
+        onCancel();
+      }}
       onOk={handleOk}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
-      <Form
-        form={form}
-        {...formItemLayout}
-        initialValues={{
-          id,
-          name,
-          description,
-        }}
-      >
+      <Form {...formItemLayout} form={form}>
         <Form.Item label="ID Bentuk Pembelajaran:" name="id">
           <Input disabled />
         </Form.Item>
 
         <Form.Item
-          label="Nama Bentuk Pembelajaran:"
+          label="Nama:"
           name="name"
           rules={[
             {
@@ -70,7 +70,7 @@ const EditFormLearningForm = ({
         </Form.Item>
 
         <Form.Item
-          label="Deskripsi Bentuk Pembelajaran:"
+          label="Deskripsi:"
           name="description"
           rules={[
             {
@@ -79,7 +79,7 @@ const EditFormLearningForm = ({
             },
           ]}
         >
-          <TextArea rows={4} placeholder="Deskripsi Bentuk Pembelajaran" />
+          <TextArea rows={4} placeholder="Deskripsi" />
         </Form.Item>
       </Form>
     </Modal>

@@ -1,23 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.doyatama.university.model;
 
 public class Kelas {
     private String idKelas;
     private String namaKelas;
-    private String angkatan;
     private StudyProgram study_program;
+    private TahunAjaran tahunAjaran;
 
     public Kelas() {
     }
 
-    public Kelas(String idKelas, String namaKelas, String angkatan, StudyProgram study_program) {
+    public Kelas(String idKelas, String namaKelas, StudyProgram study_program, TahunAjaran tahunAjaran) {
         this.idKelas = idKelas;
         this.namaKelas = namaKelas;
-        this.angkatan = angkatan;
         this.study_program = study_program;
+        this.tahunAjaran = tahunAjaran;
     }
 
     public String getIdKelas() {
@@ -36,14 +32,6 @@ public class Kelas {
         this.namaKelas = namaKelas;
     }
 
-    public String getAngkatan() {
-        return angkatan;
-    }
-
-    public void setAngkatan(String angkatan) {
-        this.angkatan = angkatan;
-    }
-
     public StudyProgram getStudyProgram() {
         return study_program;
     }
@@ -52,8 +40,16 @@ public class Kelas {
         this.study_program = study_program;
     }
 
+    public TahunAjaran getTahunAjaran() {
+        return tahunAjaran;
+    }
+
+    public void setTahunAjaran(TahunAjaran tahunAjaran) {
+        this.tahunAjaran = tahunAjaran;
+    }
+
     public boolean isValid() {
-        return this.idKelas != null && this.namaKelas != null && this.angkatan != null && this.study_program != null;
+        return this.idKelas != null && this.namaKelas != null;
     }
 
     public void set(String fieldName, String value) {
@@ -63,9 +59,6 @@ public class Kelas {
                 break;
             case "namaKelas":
                 this.namaKelas = value;
-                break;
-            case "angkatan":
-                this.angkatan = value;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field name: " + fieldName);

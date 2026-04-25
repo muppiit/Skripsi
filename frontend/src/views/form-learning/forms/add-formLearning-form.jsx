@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import React from "react";
+import React, { useEffect } from "react";
 import { Form, Input, Modal } from "antd";
 
 const { TextArea } = Input;
@@ -8,37 +8,42 @@ const { TextArea } = Input;
 const AddFormLearningForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
 
+  useEffect(() => {
+    if (visible) {
+      form.resetFields();
+    }
+  }, [visible, form]);
+
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
   };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       onOk(values);
-    } catch (error) {
-      console.log("Validation failed:", error);
+    } catch (info) {
+      console.log("Validate Failed:", info);
     }
   };
 
   return (
     <Modal
       title="Tambah Bentuk Pembelajaran"
-      visible={visible}
-      onCancel={onCancel}
+      open={visible}
+      onCancel={() => {
+        form.resetFields();
+        onCancel();
+      }}
       onOk={handleOk}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
-      <Form form={form} {...formItemLayout}>
+      <Form {...formItemLayout} form={form}>
         <Form.Item
-          label="Nama Bentuk Pembelajaran:"
+          label="Nama:"
           name="name"
           rules={[
             {
@@ -51,7 +56,7 @@ const AddFormLearningForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         </Form.Item>
 
         <Form.Item
-          label="Deskripsi Bentuk Pembelajaran:"
+          label="Deskripsi:"
           name="description"
           rules={[
             {
@@ -60,7 +65,7 @@ const AddFormLearningForm = ({ visible, onCancel, onOk, confirmLoading }) => {
             },
           ]}
         >
-          <TextArea rows={4} placeholder="Deskripsi Pengguna" />
+          <TextArea rows={4} placeholder="Deskripsi" />
         </Form.Item>
       </Form>
     </Modal>

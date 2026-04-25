@@ -12,57 +12,52 @@ const AddLectureForm = ({
   onOk,
   confirmLoading,
   religion,
-  user,
   studyProgram,
 }) => {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    form.setFieldsValue({
-      idStudyProgram: studyProgram?.[0]?.id,
-    });
-  }, [form, studyProgram]);
+    if (visible) {
+      form.resetFields();
+    }
+  }, [visible, form]);
 
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      onOk(values);
+    } catch (info) {
+      console.log("Validate Failed:", info);
+    }
   };
 
   return (
     <Modal
       title="Tambah Guru"
-      visible={visible}
-      onCancel={onCancel}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((values) => {
-            onOk(values);
-          })
-          .catch((info) => {
-            console.log("Validate Failed:", info);
-          });
+      open={visible}
+      onCancel={() => {
+        form.resetFields();
+        onCancel();
       }}
+      onOk={handleOk}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
       <Form
         {...formItemLayout}
         form={form}
-        name="AddLectureForm"
-        initialValues={{
-          status: "dosen",
-        }}
+        initialValues={{ status: "dosen" }}
       >
         <Form.Item
           label="NIP:"
           name="nip"
-          rules={[{ required: true, message: "NIDN wajib diisi" }]}
+          rules={[{ required: true, message: "NIP wajib diisi" }]}
         >
           <Input placeholder="NIP" />
         </Form.Item>
@@ -70,7 +65,7 @@ const AddLectureForm = ({
         <Form.Item
           label="Nama:"
           name="name"
-          rules={[{ required: true, message: "Nama depan wajib diisi" }]}
+          rules={[{ required: true, message: "Nama wajib diisi" }]}
         >
           <Input placeholder="Nama" />
         </Form.Item>
@@ -88,7 +83,7 @@ const AddLectureForm = ({
           name="date_born"
           rules={[{ required: true, message: "Tanggal Lahir wajib diisi" }]}
         >
-          <DatePicker placeholder="Tanggal Lahir" />
+          <DatePicker placeholder="Tanggal Lahir" style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
@@ -111,7 +106,7 @@ const AddLectureForm = ({
         </Form.Item>
 
         <Form.Item name="status" hidden>
-          <Input type="number" placeholder="Status" />
+          <Input placeholder="Status" />
         </Form.Item>
 
         <Form.Item
@@ -128,7 +123,7 @@ const AddLectureForm = ({
           rules={[{ required: true, message: "Silahkan pilih agama" }]}
         >
           <Select style={{ width: 300 }} placeholder="Pilih Agama">
-            {religion.map((arr, key) => (
+            {(religion || []).map((arr, key) => (
               <Select.Option value={arr.id} key={`religion-${key}`}>
                 {arr.name}
               </Select.Option>
@@ -142,7 +137,7 @@ const AddLectureForm = ({
           rules={[{ required: true, message: "Silahkan pilih program studi" }]}
         >
           <Select placeholder="Pilih Program Studi">
-            {studyProgram.map((program) => (
+            {(studyProgram || []).map((program) => (
               <Option key={program.id} value={program.id}>
                 {program.name}
               </Option>

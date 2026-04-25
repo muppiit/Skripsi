@@ -1,95 +1,45 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
-import {
-  Form,
-  Input,
-  Modal,
-  Select,
-  Table,
-  Tabs,
-  Row,
-  Col,
-  message,
-} from "antd";
-import { getSemester } from "@/api/semester";
+import { Form, Input, Modal, Select, Row, Col, message } from "antd";
 import { getStudyPrograms } from "@/api/studyProgram";
-import { reqUserInfo } from "@/api/user";
 
-const { TextArea } = Input;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const AddSemesterForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
-  const [semester, setSemester] = useState([]);
+  const [studyProgramList, setStudyProgramList] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
 
-  const [tableLoading, setTableLoading] = useState(false);
-  const [userSchoolId, setUserSchoolId] = useState([]); // State untuk menyimpan ID sekolah user
-  const [schoolList, setSchoolList] = useState([]);
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await reqUserInfo(); // Ambil data user dari API
-      setUserSchoolId(response.data.school_id); // Simpan ID sekolah user ke state
-      console.log("User School ID: ", response.data.school_id);
-    } catch (error) {
-      message.error("Gagal mengambil informasi pengguna");
-    }
-  };
-
-  const fetchSchoolList = async () => {
+  const fetchStudyProgramList = async () => {
+    setLoadingPrograms(true);
     try {
       const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(
-          result.data.content.map((item) => ({
-            idSchool: item.id,
-            nameSchool: item.name,
-          }))
-        );
+        setStudyProgramList(result.data.content);
       } else {
-        message.error("Gagal mengambil data");
-      }
-    } catch (error) {
-      message.error("Terjadi kesalahan: " + error.message);
-    }
-  };
-
-  const fetchSemester = async () => {
-    setTableLoading(true);
-    try {
-      const result = await getSemester();
-      if (result.data.statusCode === 200) {
-        setSemester(result.data.content);
-      } else {
-        message.error("Gagal mengambil data");
+        message.error("Gagal mengambil data program studi");
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
     } finally {
-      setTableLoading(false);
+      setLoadingPrograms(false);
     }
   };
 
   useEffect(() => {
-    fetchUserInfo();
-    fetchSchoolList();
-    fetchSemester();
-  }, []);
-
-  useEffect(() => {
-    if (userSchoolId) {
-      form.setFieldsValue({ idSchool: userSchoolId });
+    if (visible) {
+      fetchStudyProgramList();
+      form.resetFields();
     }
-  }, [userSchoolId, form]);
+  }, [visible]);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       onOk(values);
     } catch (error) {
-      console.error("Validation failed:", error);
+      message.error("Harap lengkapi semua field yang wajib diisi");
     }
   };
 
@@ -98,42 +48,47 @@ const AddSemesterForm = ({ visible, onCancel, onOk, confirmLoading }) => {
       title="Tambah Semester"
       open={visible}
       onCancel={() => {
-        form.resetFields();
         onCancel();
+        form.resetFields();
       }}
       onOk={handleSubmit}
       confirmLoading={confirmLoading}
       okText="Simpan"
+      cancelText="Batal"
       width={500}
     >
       <Form form={form} layout="vertical">
-        <Col xs={24} sm={24} md={24}>
-          <Form.Item
-            label="Sekolah:"
-            name="idSchool"
-            style={{ display: "none" }}
-            rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
-          >
-            <Select defaultValue={userSchoolId} disabled>
-              {schoolList
-                .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                .map(({ idSchool, nameSchool }) => (
-                  <Option key={idSchool} value={idSchool}>
-                    {nameSchool}
+        <Row gutter={16}>
+          <Col xs={24} sm={24} md={24}>
+            <Form.Item
+              label="Program Studi:"
+              name="idStudyProgram"
+              rules={[{ required: true, message: "Silahkan pilih Program Studi" }]}
+            >
+              <Select
+                placeholder="Pilih Program Studi"
+                loading={loadingPrograms}
+                showSearch
+                optionFilterProp="children"
+              >
+                {studyProgramList.map((item) => (
+                  <Option key={item.id} value={item.id}>
+                    {item.name}
                   </Option>
                 ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col xs={24} sm={24} md={24}>
-          <Form.Item
-            label="Nama Semester:"
-            name="namaSemester"
-            rules={[{ required: true, message: "Silahkan isikan Semester" }]}
-          >
-            <Input placeholder="Nama Semester" />
-          </Form.Item>
-        </Col>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={24} md={24}>
+            <Form.Item
+              label="Nama Semester:"
+              name="namaSemester"
+              rules={[{ required: true, message: "Silahkan isikan Nama Semester" }]}
+            >
+              <Input placeholder="Contoh: Semester 1" />
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );

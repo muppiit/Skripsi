@@ -38,6 +38,8 @@ public class AssessmentCriteriaRepository {
         client.insertRecord(tableAssessmentCriteria, rowKey, "main", "name", assessmentCriteria.getName());
         client.insertRecord(tableAssessmentCriteria, rowKey, "main", "description", assessmentCriteria.getDescription());
         client.insertRecord(tableAssessmentCriteria, rowKey, "detail", "created_by", "Doyatama");
+        
+        assessmentCriteria.setId(rowKey);
         return assessmentCriteria;
     }
 
@@ -82,6 +84,8 @@ public class AssessmentCriteriaRepository {
         TableName tableAssessmentCriteria = TableName.valueOf(tableName);
         client.insertRecord(tableAssessmentCriteria, assessmentCriteriaId, "main", "name", assessmentCriteria.getName());
         client.insertRecord(tableAssessmentCriteria, assessmentCriteriaId, "main", "description", assessmentCriteria.getDescription());
+        
+        assessmentCriteria.setId(assessmentCriteriaId);
         return assessmentCriteria;
     }
 

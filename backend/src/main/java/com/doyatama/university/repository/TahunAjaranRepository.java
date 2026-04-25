@@ -39,8 +39,8 @@ public class TahunAjaranRepository {
         client.insertRecord(tableTahun, rowKey, "main", "idTahun", rowKey);
         client.insertRecord(tableTahun, rowKey, "main", "tahunAjaran", tahun.getTahunAjaran());
 
-        client.insertRecord(tableTahun, rowKey, "study_program", "idSchool", tahun.getStudyProgram().getId());
-        client.insertRecord(tableTahun, rowKey, "study_program", "nameSchool", tahun.getStudyProgram().getName());
+        client.insertRecord(tableTahun, rowKey, "study_program", "idSchool", tahun.getStudyProgram().getIdSchool());
+        client.insertRecord(tableTahun, rowKey, "study_program", "nameSchool", tahun.getStudyProgram().getNameSchool());
 
         client.insertRecord(tableTahun, rowKey, "detail", "created_by", "Doyatama");
         return tahun;
@@ -120,8 +120,8 @@ public class TahunAjaranRepository {
         }
 
         if (tahun.getStudyProgram() != null) {
-            client.insertRecord(tableTahun, tahunId, "study_program", "idSchool", tahun.getStudyProgram().getId());
-            client.insertRecord(tableTahun, tahunId, "study_program", "nameSchool", tahun.getStudyProgram().getName());
+            client.insertRecord(tableTahun, tahunId, "study_program", "idSchool", tahun.getStudyProgram().getIdSchool());
+            client.insertRecord(tableTahun, tahunId, "study_program", "nameSchool", tahun.getStudyProgram().getNameSchool());
         }
 
         client.insertRecord(tableTahun, tahunId, "detail", "created_by", "Doyatama");

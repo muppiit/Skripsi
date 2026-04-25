@@ -64,28 +64,20 @@ const LearningMethod = () => {
     }
   };
 
-  const handleEditLearningMethodOk = () => {
-    const form = editLearningMethodFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleEditLearningMethodOk = async (values) => {
+    try {
       setEditLearningMethodModalLoading(true);
-      editLearningMethod(values, values.id)
-        .then((response) => {
-          form.resetFields();
-          setEditLearningMethodModalVisible(false);
-          setEditLearningMethodModalLoading(false);
-          message.success("Berhasil diubah!");
-          fetchLearningMethods();
-        })
-        .catch((error) => {
-          setEditLearningMethodModalLoading(false);
-          message.error("Gagal mengubah: " + error.message);
-        });
-    });
+      const { id, ...dataToSend } = values; // Jangan kirim 'id' ke payload backend
+      await editLearningMethod(dataToSend, currentRowData.id);
+      setEditLearningMethodModalVisible(false);
+      message.success("Berhasil diubah!");
+      fetchLearningMethods();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal mengubah: " + (error.response?.data?.message || error.message));
+    } finally {
+      setEditLearningMethodModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,28 +89,19 @@ const LearningMethod = () => {
     setAddLearningMethodModalVisible(true);
   };
 
-  const handleAddLearningMethodOk = () => {
-    const form = addLearningMethodFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleAddLearningMethodOk = async (values) => {
+    try {
       setAddLearningMethodModalLoading(true);
-      addLearningMethod(values)
-        .then((response) => {
-          form.resetFields();
-          setAddLearningMethodModalVisible(false);
-          setAddLearningMethodModalLoading(false);
-          message.success("Berhasil ditambahkan!");
-          fetchLearningMethods();
-        })
-        .catch((error) => {
-          setAddLearningMethodModalLoading(false);
-          message.error("Gagal menambahkan: " + error.message);
-        });
-    });
+      await addLearningMethod(values);
+      setAddLearningMethodModalVisible(false);
+      message.success("Berhasil ditambahkan!");
+      fetchLearningMethods();
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal menambahkan: " + (error.response?.data?.message || error.message));
+    } finally {
+      setAddLearningMethodModalLoading(false);
+    }
   };
 
   useEffect(() => {

@@ -81,7 +81,7 @@ public class HBaseClientStructure {
 
                 // Create Tabel Kelas
                 TableName tableKelas = TableName.valueOf("kelas");
-                String[] kelas = { "main", "study_program", "angkatan", "detail" };
+                String[] kelas = { "main", "study_program", "tahunAjaran", "detail" };
                 client.deleteTable(tableKelas);
                 client.createTable(tableKelas, kelas);
 
@@ -230,8 +230,6 @@ public class HBaseClientStructure {
                 // client.deleteTable(tableUjian);
                 // client.createTable(tableUjian, ujian);
 
-                // Batas Kode Baru
-                // Kode Lama
 
                 // Create Tabel Season
                 TableName tableSeason = TableName.valueOf("seasons");
@@ -266,7 +264,7 @@ public class HBaseClientStructure {
 
                 // Create Tabel Mahasiswa
                 TableName tableStudent = TableName.valueOf("students");
-                String[] students = { "main", "study_program", "kelas", "angkatan", "religion", "detail" };
+                String[] students = { "main", "study_program", "kelas", "tahunAjaran", "religion", "detail" };
                 client.deleteTable(tableStudent);
                 client.createTable(tableStudent, students);
 

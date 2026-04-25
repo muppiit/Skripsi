@@ -3,12 +3,12 @@ package com.doyatama.university.model;
 public class Semester {
     private String idSemester;
     private String namaSemester;
-    private StudyProgram study_program;
+    private School study_program;
 
     public Semester() {
     }
 
-    public Semester(String idSemester, String namaSemester, StudyProgram study_program) {
+    public Semester(String idSemester, String namaSemester, School study_program) {
         this.idSemester = idSemester;
         this.namaSemester = namaSemester;
         this.study_program = study_program;
@@ -30,16 +30,16 @@ public class Semester {
         this.namaSemester = namaSemester;
     }
 
-    public StudyProgram getStudyProgram() {
+    public School getStudyProgram() {
         return study_program;
     }
 
-    public void setStudyProgram(StudyProgram study_program) {
+    public void setStudyProgram(School study_program) {
         this.study_program = study_program;
     }
 
     public boolean isValid() {
-        return this.idSemester != null && this.namaSemester != null && this.study_program != null;
+        return this.idSemester != null && this.namaSemester != null;
     }
 
     public void set(String fieldName, String value) {

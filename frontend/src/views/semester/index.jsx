@@ -110,7 +110,7 @@ const Semester = () => {
       const updatedData = {
         idSemester: null,
         namaSemester: values.namaSemester,
-        idSekolah: values.idSchool,
+        idStudyProgram: values.idStudyProgram,
       };
       await addSemester(updatedData);
       setAddSemesterModalVisible(false);
@@ -128,9 +128,9 @@ const Semester = () => {
     setEditSemesterModalLoading(true);
     try {
       const updatedData = {
-        idSemester: values.idSemester,
+        idSemester: currentRowData.idSemester,
         namaSemester: values.namaSemester,
-        idSekolah: values.idSchool,
+        idStudyProgram: values.idStudyProgram,
       };
       console.log("Updated Data:", updatedData);
       await editSemester(updatedData, currentRowData.idSemester);
@@ -172,18 +172,25 @@ const Semester = () => {
       sorter: (a, b) => a.namaSemester.localeCompare(b.namaSemester),
     },
     {
+      title: "Program Studi",
+      key: "studyProgram",
+      align: "center",
+      render: (_, row) => row.studyProgram?.nameSchool ?? "-",
+    },
+    {
       title: "Operasi",
       key: "action",
       align: "center",
+      width: 120,
       render: (_, row) => (
         <span>
           <Button
             type="primary"
             shape="circle"
             icon={<EditOutlined />}
+            style={{ marginRight: 8 }}
             onClick={() => handleEditSemester(row)}
           />
-          <Divider type="vertical" />
           <Button
             type="primary"
             danger

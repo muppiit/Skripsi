@@ -37,8 +37,10 @@ public class LearningMediaRepository {
         client.insertRecord(tableLearningMedia, rowKey, "main", "id", rowKey);
         client.insertRecord(tableLearningMedia, rowKey, "main", "name", learningMedia.getName());
         client.insertRecord(tableLearningMedia, rowKey, "main", "description", learningMedia.getDescription());
-        client.insertRecord(tableLearningMedia, rowKey, "main", "type", learningMedia.getType().toString());
+        client.insertRecord(tableLearningMedia, rowKey, "main", "type", learningMedia.getType());
         client.insertRecord(tableLearningMedia, rowKey, "detail", "created_by", "Doyatama");
+        
+        learningMedia.setId(rowKey);
         return learningMedia;
     }
 
@@ -102,7 +104,9 @@ public class LearningMediaRepository {
         TableName tableLearningMedia = TableName.valueOf(tableName);
         client.insertRecord(tableLearningMedia, learningMediaId, "main", "name", learningMedia.getName());
         client.insertRecord(tableLearningMedia, learningMediaId, "main", "description", learningMedia.getDescription());
-        client.insertRecord(tableLearningMedia, learningMediaId, "main", "type", learningMedia.getType().toString());
+        client.insertRecord(tableLearningMedia, learningMediaId, "main", "type", learningMedia.getType());
+        
+        learningMedia.setId(learningMediaId);
         return learningMedia;
     }
 

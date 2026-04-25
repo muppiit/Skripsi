@@ -47,6 +47,8 @@ public class ReligionRepository {
     }
 
     client.insertRecord(tableReligion, rowKey, "detail", "created_by", "Doyatama");
+    
+    religion.setId(rowKey);
     return religion;
 }
 
@@ -70,6 +72,8 @@ public class ReligionRepository {
         TableName tableReligion = TableName.valueOf(tableName);
         client.insertRecord(tableReligion, religionId, "main", "name", religion.getName());
         client.insertRecord(tableReligion, religionId, "main", "description", religion.getDescription());
+        
+        religion.setId(religionId);
         return religion;
     }
 

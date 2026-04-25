@@ -9,8 +9,8 @@ public class Student {
     private String birth_date;
     private String place_born;
     private String address;
-    private String angkatan;
 
+    private TahunAjaran tahunAjaran;
     private Religion religion;
     private StudyProgram study_program;
     private Kelas kelas;
@@ -20,7 +20,7 @@ public class Student {
 
     public Student(String id, String nisn, String name, String gender, String phone,
             String birth_date, String place_born, String address, Religion religion,
-            StudyProgram study_program, Kelas kelas, String angkatan) {
+            StudyProgram study_program, Kelas kelas, TahunAjaran tahunAjaran) {
         this.id = id;
         this.nisn = nisn;
         this.name = name;
@@ -32,7 +32,7 @@ public class Student {
         this.religion = religion;
         this.study_program = study_program;
         this.kelas = kelas;
-        this.angkatan = angkatan;
+        this.tahunAjaran = tahunAjaran;
     }
 
     public String getId() {
@@ -123,12 +123,12 @@ public class Student {
         this.kelas = kelas;
     }
 
-    public String getAngkatan() {
-        return angkatan;
+    public TahunAjaran getTahunAjaran() {
+        return tahunAjaran;
     }
 
-    public void setAngkatan(String angkatan) {
-        this.angkatan = angkatan;
+    public void setTahunAjaran(TahunAjaran tahunAjaran) {
+        this.tahunAjaran = tahunAjaran;
     }
 
     public boolean isValid() {

@@ -39,6 +39,9 @@ public class KelasController {
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
         String studyProgramId = currentUser.getSchoolId();
+        if (studyProgramId == null) {
+            studyProgramId = "*";
+        }
 
         return kelasService.getAllKelas(page, size, studyProgramId);
     }

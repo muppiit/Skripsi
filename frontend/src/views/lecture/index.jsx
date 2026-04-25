@@ -107,28 +107,25 @@ const Lecture = () => {
     }
   };
 
-  const handleEditLectureOk = () => {
-    const form = editLectureFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
-      }
-
+  const handleEditLectureOk = async (values) => {
+    try {
       setEditLectureModalLoading(true);
-      editLecture(values)
-        .then((response) => {
-          form.resetFields();
-          setEditLectureModalVisible(false);
-          setEditLectureModalLoading(false);
-          message.success("Berhasil diubah!");
-          Promise.all([fetchLectures(), fetchUsers()]);
-        })
-        .catch((error) => {
-          setEditLectureModalLoading(false);
-          message.error("Gagal mengubah: " + error.message);
-        });
-    });
+      // Format ulang data tanggal yang diterima dari antd DatePicker
+      if (values.date_born) {
+        values.date_born = values.date_born.format("YYYY-MM-DD");
+      }
+      const { id, ...dataToSend } = values; // Hilangkan id dari payload
+
+      await editLecture(dataToSend, currentRowData.id);
+      setEditLectureModalVisible(false);
+      message.success("Berhasil diubah!");
+      Promise.all([fetchLectures(), fetchUsers()]);
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal mengubah: " + (error.response?.data?.message || error.message));
+    } finally {
+      setEditLectureModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -140,32 +137,23 @@ const Lecture = () => {
     setAddLectureModalVisible(true);
   };
 
-  const handleAddLectureOk = () => {
-    const form = addLectureFormRef.current?.props.form;
-    form.validateFields((err, values) => {
-      if (err) {
-        message.error("Harap isi semua field yang diperlukan");
-        return;
+  const handleAddLectureOk = async (values) => {
+    try {
+      setAddLectureModalLoading(true);
+      if (values.date_born) {
+        values.date_born = values.date_born.format("YYYY-MM-DD");
       }
 
-      setAddLectureModalLoading(true);
-      addLecture(values)
-        .then((response) => {
-          form.resetFields();
-          setAddLectureModalVisible(false);
-          setAddLectureModalLoading(false);
-          message.success("Berhasil ditambahkan!");
-          Promise.all([fetchLectures(), fetchUsers()]);
-        })
-        .catch((error) => {
-          console.error(error.response?.data);
-          setAddLectureModalLoading(false);
-          message.error(
-            "Gagal menambahkan: " +
-            (error.response?.data?.message || error.message)
-          );
-        });
-    });
+      await addLecture(values);
+      setAddLectureModalVisible(false);
+      message.success("Berhasil ditambahkan!");
+      Promise.all([fetchLectures(), fetchUsers()]);
+    } catch (error) {
+      console.error(error);
+      message.error("Gagal menambahkan: " + (error.response?.data?.message || error.message));
+    } finally {
+      setAddLectureModalLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -259,6 +247,8 @@ const Lecture = () => {
         confirmLoading={editLectureModalLoading}
         onCancel={handleCancel}
         onOk={handleEditLectureOk}
+        religion={religions || []}
+        studyProgram={studyPrograms || []}
       />
 
       <AddLectureForm

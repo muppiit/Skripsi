@@ -15,9 +15,9 @@ export function getTahunAjaran() {
   });
 }
 
-export function editTahunAjaran(data, id) {
+export function editTahunAjaran(data) {
   return request({
-    url: `/tahun/${id}`,
+    url: `/tahun/${data.idTahun}`,
     method: "put",
     data,
   });

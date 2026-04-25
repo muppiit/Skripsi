@@ -1,80 +1,83 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import React from "react";
-import { Form, Input, Select, Modal } from "antd";
-import { reqValidatUserID } from "@/api/user";
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from "react";
+import { Form, Input, Select, Modal, message } from "antd";
+import { getDepartments } from "@/api/department";
+
 const { TextArea } = Input;
+const { Option } = Select;
 
-const AddStudyProgramForm = ({
-  visible,
-  onCancel,
-  onOk,
-  confirmLoading,
-  departments,
-}) => {
+const AddStudyProgramForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
+  const [departmentList, setDepartmentList] = useState([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
 
-  const validatUserID = async (_, value) => {
-    if (value) {
-      if (!/^[a-zA-Z0-9]{1,6}$/.test(value)) {
-        return Promise.reject("ID Pengguna必须为1-6位数字或字母组合");
+  const fetchDepartments = async () => {
+    setLoadingDepts(true);
+    try {
+      const result = await getDepartments();
+      if (result.data.statusCode === 200) {
+        setDepartmentList(result.data.content || []);
+      } else {
+        message.error("Gagal mengambil data jurusan");
       }
-      const res = await reqValidatUserID(value);
-      const { status } = res.data;
-      if (status) {
-        return Promise.reject("该ID Pengguna已存在");
-      }
-      return Promise.resolve();
+    } catch (error) {
+      message.error("Terjadi kesalahan: " + error.message);
+    } finally {
+      setLoadingDepts(false);
     }
-    return Promise.reject("请输入ID Pengguna");
   };
 
-  const handleSubmit = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        onOk(values);
-      })
-      .catch((info) => {
-        console.log("Validate Failed:", info);
-      });
+  useEffect(() => {
+    if (visible) {
+      fetchDepartments();
+      form.resetFields();
+    }
+  }, [visible, form]);
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      onOk(values);
+    } catch (info) {
+      console.log("Validate Failed:", info);
+    }
   };
 
   const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
+    labelCol: { xs: { span: 24 }, sm: { span: 8 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
   };
 
   return (
     <Modal
       title="Tambah Program Studi"
-      visible={visible}
-      onCancel={onCancel}
+      open={visible}
+      onCancel={() => {
+        form.resetFields();
+        onCancel();
+      }}
       onOk={handleSubmit}
       confirmLoading={confirmLoading}
+      okText="Simpan"
+      cancelText="Batal"
     >
       <Form form={form} {...formItemLayout}>
         <Form.Item
           label="Jurusan:"
           name="department_id"
-          rules={[
-            {
-              required: true,
-              message: "Silahkan isi jurusan program studi",
-            },
-          ]}
+          rules={[{ required: true, message: "Silahkan pilih jurusan" }]}
         >
-          <Select style={{ width: 300 }} placeholder="Pilih Jurusan">
-            {departments.map((arr, key) => (
-              <Select.Option value={arr.id} key={key}>
-                {arr.name}
-              </Select.Option>
+          <Select
+            placeholder="Pilih Jurusan"
+            loading={loadingDepts}
+            showSearch
+            optionFilterProp="children"
+          >
+            {departmentList.map((dept) => (
+              <Option key={dept.id} value={dept.id}>
+                {dept.name}
+              </Option>
             ))}
           </Select>
         </Form.Item>
@@ -82,18 +85,13 @@ const AddStudyProgramForm = ({
         <Form.Item
           label="Nama Prodi:"
           name="name"
-          rules={[
-            { required: true, message: "Silahkan isi nama program studi" },
-          ]}
+          rules={[{ required: true, message: "Silahkan isi nama program studi" }]}
         >
           <Input placeholder="Nama program studi" />
         </Form.Item>
 
         <Form.Item label="Deskripsi Prodi:" name="description">
-          <TextArea
-            rows={4}
-            placeholder="Silahkan isi deskripsi program studi"
-          />
+          <TextArea rows={4} placeholder="Silahkan isi deskripsi program studi" />
         </Form.Item>
       </Form>
     </Modal>

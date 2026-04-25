@@ -159,21 +159,21 @@ const Student = () => {
           <Column title="Nama" dataIndex="name" key="name" align="center" />
           <Column
             title="Program Studi"
-            dataIndex="studyProgram.name"
-            key="studyProgram.name"
+            key="studyProgram"
             align="center"
+            render={(_, row) => row.studyProgram?.name || row.study_program?.name || "-"}
           />
           <Column
             title="Kelas"
-            dataIndex="kelas.namaKelas"
-            key="kelas.namaKelas"
+            key="kelas"
             align="center"
+            render={(_, row) => row.kelas?.namaKelas || "-"}
           />
           <Column
-            title="Angkatan"
-            dataIndex="angkatan"
-            key="angkatan"
+            title="Tahun Ajaran"
+            key="tahunAjaran"
             align="center"
+            render={(_, row) => row.tahunAjaran?.tahunAjaran || "-"}
           />
           <Column
             title="Operasi"

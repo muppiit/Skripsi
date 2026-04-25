@@ -43,7 +43,7 @@ const EditReligionForm = ({
   return (
     <Modal
       title="Edit Agama"
-      visible={visible}
+      open={visible}
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
