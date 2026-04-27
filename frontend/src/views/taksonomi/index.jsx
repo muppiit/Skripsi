@@ -183,6 +183,16 @@ const Taksonomi = () => {
         a.deskripsiTaksonomi.localeCompare(b.deskripsiTaksonomi),
     },
     {
+      title: "Program Studi",
+      key: "programStudi",
+      align: "center",
+      render: (_, row) => row?.study_program?.nameSchool || row?.school?.nameSchool || "-",
+      sorter: (a, b) =>
+        (a?.study_program?.nameSchool || a?.school?.nameSchool || "").localeCompare(
+          b?.study_program?.nameSchool || b?.school?.nameSchool || ""
+        ),
+    },
+    {
       title: "Operasi",
       key: "action",
       align: "center",

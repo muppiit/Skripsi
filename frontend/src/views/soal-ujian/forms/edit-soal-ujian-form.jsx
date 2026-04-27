@@ -19,11 +19,9 @@ import {
 } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { getSoalUjian, editSoalUjian } from "@/api/soalUjian";
-import { getSchool } from "@/api/school";
+import { getStudyPrograms } from "@/api/studyProgram";
 import { reqUserInfo } from "@/api/user";
 import { getTaksonomi } from "@/api/taksonomi";
-import { getATP } from "@/api/atp";
-import { getKonsentrasiSekolah } from "@/api/konsentrasiKeahlianSekolah";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -43,9 +41,6 @@ const EditSoalUjianForm = ({
   const [userId, setUserId] = useState(null);
   const [schoolList, setSchoolList] = useState([]);
   const [taksonomiList, setTaksonomiList] = useState([]);
-  const [atpList, setAtpList] = useState([]);
-  const [konsentrasiKeahlianSekolahList, setKonsentrasiKeahlianSekolahList] =
-    useState([]);
   const [options, setOptions] = useState(["A", "B"]); // Default to 2 options: A and B
 
   const addOption = () => {
@@ -85,12 +80,17 @@ const EditSoalUjianForm = ({
 
   const fetchSchoolList = async () => {
     try {
-      const result = await getSchool();
+      const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(result.data.content);
+        setSchoolList(
+          result.data.content.map((item) => ({
+            idSchool: item.id,
+            nameSchool: item.name,
+          }))
+        );
       }
     } catch (error) {
-      message.error("Gagal mengambil data sekolah");
+      message.error("Gagal mengambil data program studi");
     }
   };
 
@@ -102,28 +102,6 @@ const EditSoalUjianForm = ({
       }
     } catch (error) {
       message.error("Gagal mengambil data taksonomi");
-    }
-  };
-
-  const fetchAtpList = async () => {
-    try {
-      const result = await getATP();
-      if (result.data.statusCode === 200) {
-        setAtpList(result.data.content);
-      }
-    } catch (error) {
-      message.error("Gagal mengambil data ATP");
-    }
-  };
-
-  const fetchKonsentrasiKeahlianSekolahList = async () => {
-    try {
-      const result = await getKonsentrasiSekolah();
-      if (result.data.statusCode === 200) {
-        setKonsentrasiKeahlianSekolahList(result.data.content);
-      }
-    } catch (error) {
-      message.error("Gagal mengambil data konsentrasi keahlian sekolah");
     }
   };
 
@@ -146,8 +124,6 @@ const EditSoalUjianForm = ({
     fetchSchoolList();
     fetchSoalUjian();
     fetchTaksonomiList();
-    fetchAtpList();
-    fetchKonsentrasiKeahlianSekolahList();
 
     if (currentRowData) {
       const { jenisSoal, jawabanBenar, opsi, pasangan } = currentRowData;
@@ -168,8 +144,6 @@ const EditSoalUjianForm = ({
         bobot: parseInt(currentRowData.bobot) || 10,
         jenisSoal: currentRowData.jenisSoal,
         idTaksonomi: currentRowData.taksonomi?.idTaksonomi,
-        idKonsentrasiSekolah:
-          currentRowData.konsentrasiKeahlianSekolah?.idKonsentrasiSekolah,
         idSchool: currentRowData.school?.idSchool,
         // Options for PG and MULTI
         opsiA: opsi?.A,
@@ -187,14 +161,14 @@ const EditSoalUjianForm = ({
         pasanganJawaban:
           jenisSoal === "COCOK"
             ? (jawabanBenar || []).map((answer) => {
-                // Parse "Cocok 1=Cocok 11" format back to indices
-                const [left, right] = answer.split("=");
-                const leftValues = Object.values(pasanganKiri);
-                const rightValues = Object.values(pasanganKanan);
-                const leftIndex = leftValues.indexOf(left);
-                const rightIndex = rightValues.indexOf(right);
-                return `${leftIndex}-${rightIndex}`;
-              })
+              // Parse "Cocok 1=Cocok 11" format back to indices
+              const [left, right] = answer.split("=");
+              const leftValues = Object.values(pasanganKiri);
+              const rightValues = Object.values(pasanganKanan);
+              const leftIndex = leftValues.indexOf(left);
+              const rightIndex = rightValues.indexOf(right);
+              return `${leftIndex}-${rightIndex}`;
+            })
             : undefined,
         // Isian specific
         jawabanIsian:
@@ -248,7 +222,6 @@ const EditSoalUjianForm = ({
         jenisSoal: values.jenisSoal,
         idUser: userId,
         idTaksonomi: values.idTaksonomi,
-        idKonsentrasiSekolah: values.idKonsentrasiSekolah,
         idSchool: values.idSchool,
       };
 
@@ -781,51 +754,18 @@ const EditSoalUjianForm = ({
           </Col>
           <Col span={24}>
             <Form.Item
-              label="Konsentrasi Keahlian Sekolah"
-              name="idKonsentrasiSekolah"
+              label="Program Studi:"
+              name="idSchool"
               rules={[
-                {
-                  required: true,
-                  message: "Silahkan pilih Konsentrasi Keahlian Sekolah",
-                },
+                { required: true, message: "Silahkan pilih Program Studi" },
               ]}
             >
-              <Select
-                placeholder="Pilih Konsentrasi Keahlian Sekolah"
-                showSearch
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  option.children.toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {konsentrasiKeahlianSekolahList.map(
-                  ({ idKonsentrasiSekolah, namaKonsentrasiSekolah }) => (
-                    <Option
-                      key={idKonsentrasiSekolah}
-                      value={idKonsentrasiSekolah}
-                    >
-                      {namaKonsentrasiSekolah}
-                    </Option>
-                  )
-                )}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item
-              label="Sekolah:"
-              name="idSchool"
-              style={{ display: "none" }}
-              rules={[{ required: true, message: "Silahkan pilih Sekolah" }]}
-            >
-              <Select defaultValue={userSchoolId} disabled>
-                {schoolList
-                  .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                  .map(({ idSchool, nameSchool }) => (
-                    <Option key={idSchool} value={idSchool}>
-                      {nameSchool}
-                    </Option>
-                  ))}
+              <Select placeholder="Pilih Program Studi" showSearch optionFilterProp="children">
+                {schoolList.map(({ idSchool, nameSchool }) => (
+                  <Option key={idSchool} value={idSchool}>
+                    {nameSchool}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>

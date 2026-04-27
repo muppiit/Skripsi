@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   Button,
@@ -93,8 +93,6 @@ const Ujian = () => {
   // Fungsi Helper Table Search
   const { getColumnSearchProps } = useTableSearch();
 
-  const editUjianFormRef = useRef();
-  const addUjianFormRef = useRef();
   const fetchParticipantCounts = useCallback(async (ujianList) => {
     setLoadingParticipants(true);
     try {
@@ -944,7 +942,6 @@ const Ujian = () => {
         onCancel={handleCancel}
         onOk={handleAddUjianOk}
         confirmLoading={addUjianModalLoading}
-        ref={addUjianFormRef}
       />
 
       {/* Modal Edit Ujian */}
@@ -954,7 +951,6 @@ const Ujian = () => {
         onOk={handleEditUjianOk}
         confirmLoading={editUjianModalLoading}
         currentRowData={currentRowData}
-        ref={editUjianFormRef}
       /> */}
 
       {/* Modal Detail */}

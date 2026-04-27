@@ -336,7 +336,7 @@ public class SoalUjianRepository {
                 "main", "idSoalUjian",
                 soalUjianId, SoalUjian.class);
 
-        return soalUjian.getIdSoalUjian() != null;
+        return soalUjian != null && soalUjian.getIdSoalUjian() != null;
     }
 
     /**

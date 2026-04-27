@@ -20,6 +20,7 @@ public class SoalUjian {
     private User user; // id user yang buat soal
     private Taksonomi taksonomi; // taksonomi kesulitan
     private School school; // sekolah
+    private School study_program; // compatibility for study_program family
     private KonsentrasiKeahlianSekolah konsentrasiKeahlianSekolah; // konsentrasi keahlian sekolah
 
     public SoalUjian() {
@@ -40,6 +41,7 @@ public class SoalUjian {
         this.toleransiTypo = toleransiTypo;
         this.user = user;
         this.school = school;
+        this.study_program = school;
         this.createdAt = createdAt;
         this.taksonomi = taksonomi;
         this.konsentrasiKeahlianSekolah = konsentrasiKeahlianSekolah;
@@ -150,11 +152,23 @@ public class SoalUjian {
     }
 
     public School getSchool() {
-        return school;
+        return school != null ? school : study_program;
     }
 
     public void setSchool(School school) {
         this.school = school;
+        this.study_program = school;
+    }
+
+    public School getStudy_program() {
+        return study_program != null ? study_program : school;
+    }
+
+    public void setStudy_program(School study_program) {
+        this.study_program = study_program;
+        if (this.school == null) {
+            this.school = study_program;
+        }
     }
 
     public KonsentrasiKeahlianSekolah getKonsentrasiKeahlianSekolah() {

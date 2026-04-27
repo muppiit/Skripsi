@@ -6,13 +6,14 @@ import com.doyatama.university.model.SoalUjian;
 import com.doyatama.university.model.Taksonomi;
 import com.doyatama.university.model.User;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.payload.SoalUjianRequest;
 import com.doyatama.university.payload.DefaultResponse;
 import com.doyatama.university.payload.PagedResponse;
 import com.doyatama.university.repository.SoalUjianRepository;
 import com.doyatama.university.repository.TaksonomiRepository;
 import com.doyatama.university.repository.UserRepository;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.util.AppConstants;
 import java.io.IOException;
 import java.time.Instant;
@@ -26,7 +27,7 @@ public class SoalUjianService {
     private SoalUjianRepository soalUjianRepository = new SoalUjianRepository();
     private UserRepository userRepository = new UserRepository();
     private TaksonomiRepository taksonomiRepository = new TaksonomiRepository();
-    private SchoolRepository schoolRepository = new SchoolRepository();
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
 
     public PagedResponse<SoalUjian> getAllSoalUjian(int page, int size, String userID, String studyProgramID)
             throws IOException {
@@ -34,7 +35,7 @@ public class SoalUjianService {
 
         List<SoalUjian> soalUjianResponse;
 
-        if (studyProgramID.equalsIgnoreCase("*")) {
+        if (studyProgramID == null || studyProgramID.trim().isEmpty() || studyProgramID.equalsIgnoreCase("*")) {
             soalUjianResponse = soalUjianRepository.findAll(size);
         } else {
             soalUjianResponse = soalUjianRepository.findSoalUjianByStudyProgram(studyProgramID, size);
@@ -65,14 +66,29 @@ public class SoalUjianService {
 
         // Get related entities
         User userResponse = userRepository.findById(soalUjianRequest.getIdUser());
+        if (userResponse == null || userResponse.getId() == null) {
+            throw new IllegalArgumentException("User tidak ditemukan");
+        }
+
         Taksonomi taksonomiResponse = taksonomiRepository.findById(soalUjianRequest.getIdTaksonomi());
+        if (taksonomiResponse == null || taksonomiResponse.getIdTaksonomi() == null) {
+            throw new IllegalArgumentException("Taksonomi tidak ditemukan");
+        }
+
         String studyProgramId = soalUjianRequest.getIdStudyProgram() != null ? soalUjianRequest.getIdStudyProgram()
                 : soalUjianRequest.getIdSchool();
         if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
             throw new IllegalArgumentException("Study program wajib diisi");
         }
 
-        School schoolResponse = schoolRepository.findById(studyProgramId);
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(studyProgramId);
+        if (studyProgramResponse == null || studyProgramResponse.getId() == null) {
+            throw new IllegalArgumentException("Study program tidak ditemukan");
+        }
+
+        School schoolResponse = new School();
+        schoolResponse.setIdSchool(studyProgramResponse.getId());
+        schoolResponse.setNameSchool(studyProgramResponse.getName());
 
         // Validate question type
         if (soalUjianRequest.getJenisSoal() == null) {
@@ -299,7 +315,7 @@ public class SoalUjianService {
         Taksonomi taksonomiResponse = null;
         if (soalUjianRequest.getIdTaksonomi() != null && !soalUjianRequest.getIdTaksonomi().trim().isEmpty()) {
             taksonomiResponse = taksonomiRepository.findById(soalUjianRequest.getIdTaksonomi());
-            if (taksonomiResponse == null || !taksonomiResponse.isValid()) {
+            if (taksonomiResponse == null || taksonomiResponse.getIdTaksonomi() == null) {
                 throw new IllegalArgumentException(
                         "Taksonomi dengan ID " + soalUjianRequest.getIdTaksonomi() + " tidak ditemukan");
             }
@@ -312,10 +328,14 @@ public class SoalUjianService {
             throw new IllegalArgumentException("Study program wajib diisi");
         }
         if (studyProgramId != null && !studyProgramId.trim().isEmpty()) {
-            schoolResponse = schoolRepository.findById(studyProgramId);
-            if (schoolResponse == null || !schoolResponse.isValid()) {
+            StudyProgram studyProgramResponse = studyProgramRepository.findById(studyProgramId);
+            if (studyProgramResponse == null || studyProgramResponse.getId() == null) {
                 throw new IllegalArgumentException("Study program dengan ID " + studyProgramId + " tidak ditemukan");
             }
+
+            schoolResponse = new School();
+            schoolResponse.setIdSchool(studyProgramResponse.getId());
+            schoolResponse.setNameSchool(studyProgramResponse.getName());
         }
 
         // Update question entity
@@ -395,13 +415,16 @@ public class SoalUjianService {
     }
 
     public void deleteSoalUjianById(String soalUjianId) throws IOException {
-        SoalUjian soalUjianResponse = soalUjianRepository.findById(soalUjianId);
-        if (soalUjianResponse.isValid()) {
-            // Delete SoalUjian without cascade (no BankSoal deletion)
-            soalUjianRepository.deleteById(soalUjianId);
-        } else {
+        if (soalUjianId == null || soalUjianId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Id soal ujian wajib diisi");
+        }
+
+        if (!soalUjianRepository.existsById(soalUjianId)) {
             throw new ResourceNotFoundException("Soal Ujian", "id", soalUjianId);
         }
+
+        // Delete SoalUjian without cascade (no BankSoal deletion)
+        soalUjianRepository.deleteById(soalUjianId);
     }
 
 }

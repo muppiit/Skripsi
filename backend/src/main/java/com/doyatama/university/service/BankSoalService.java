@@ -67,7 +67,9 @@ public class BankSoalService {
             throws IOException {
         validatePageNumberAndSize(page, size);
 
-        String studyProgramFilter = schoolID.equalsIgnoreCase("*") ? "*" : schoolID;
+        String studyProgramFilter = (schoolID == null || schoolID.trim().isEmpty() || schoolID.equalsIgnoreCase("*"))
+                ? "*"
+                : schoolID;
         List<BankSoal> bankSoalResponse = bankSoalRepository.findBankSoalByFilters(
                 studyProgramFilter,
                 semesterId,
@@ -350,12 +352,15 @@ public class BankSoalService {
     }
 
     public void deleteBankSoalById(String bankSoalId) throws IOException {
-        BankSoal bankSoalResponse = bankSoalRepository.findById(bankSoalId);
-        if (bankSoalResponse.isValid()) {
-            bankSoalRepository.deleteById(bankSoalId);
-        } else {
+        if (bankSoalId == null || bankSoalId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Id bank soal wajib diisi");
+        }
+
+        if (!bankSoalRepository.existsById(bankSoalId)) {
             throw new ResourceNotFoundException("Bank Soal", "id", bankSoalId);
         }
+
+        bankSoalRepository.deleteById(bankSoalId);
     }
 
 }

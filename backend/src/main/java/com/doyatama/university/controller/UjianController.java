@@ -43,7 +43,7 @@ public class UjianController {
             @RequestParam(value = "kelasId", defaultValue = "") String kelasId,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String schoolID = currentUser != null ? currentUser.getSchoolId() : null;
         return ujianService.getAllUjian(page, size, userID, schoolID, semesterId, kelasId);
     }
 
@@ -57,7 +57,7 @@ public class UjianController {
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String schoolID = currentUser != null ? currentUser.getSchoolId() : null;
         return ujianService.getUjianByStatus(status, page, size, schoolID);
     }
 
@@ -70,7 +70,7 @@ public class UjianController {
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String schoolID = currentUser != null ? currentUser.getSchoolId() : null;
         return ujianService.getUjianAktif(page, size, schoolID);
     }
 
@@ -400,7 +400,7 @@ public class UjianController {
     @GetMapping("/statistics")
     public ResponseEntity<?> getUjianStatistics(@CurrentUser UserPrincipal currentUser) throws IOException {
         try {
-            String schoolId = currentUser.getSchoolId();
+            String schoolId = currentUser != null ? currentUser.getSchoolId() : null;
             Map<String, Object> statistics = ujianService.getUjianStatistics(schoolId);
 
             java.util.Map<String, Object> responseMap = new java.util.HashMap<>();

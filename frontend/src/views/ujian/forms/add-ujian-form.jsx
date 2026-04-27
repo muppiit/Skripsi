@@ -30,7 +30,6 @@ import {
   SafetyOutlined,
   ToolOutlined,
 } from "@ant-design/icons";
-import { getUjian } from "@/api/ujian";
 import { getStudyPrograms } from "@/api/studyProgram";
 import { reqUserInfo } from "@/api/user";
 import { getBankSoal } from "@/api/bankSoal";
@@ -45,9 +44,6 @@ const { RangePicker } = DatePicker;
 
 const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [form] = Form.useForm();
-  const [ujian, setUjian] = useState([]);
-
-  const [tableLoading, setTableLoading] = useState(false);
   const [userInfo, setUserInfo] = useState("");
   const [userSchoolId, setUserSchoolId] = useState("");
   const [schoolList, setSchoolList] = useState([]);
@@ -165,29 +161,12 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     }
   };
 
-  const fetchUjian = async () => {
-    setTableLoading(true);
-    try {
-      const result = await getUjian();
-      if (result.data.statusCode === 200) {
-        setUjian(result.data.content);
-      } else {
-        message.error("Gagal mengambil data ujian");
-      }
-    } catch (error) {
-      message.error("Terjadi kesalahan: " + error.message);
-    } finally {
-      setTableLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchUserInfo();
     fetchSchoolList();
     fetchKelasList();
     fetchSemesterList();
     fetchBankSoal();
-    fetchUjian();
   }, []);
 
   useEffect(() => {
@@ -687,6 +666,7 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     <Modal
       title="Tambah Ujian CAT"
       open={visible}
+      forceRender
       onCancel={handleCancel}
       onOk={handleSubmit}
       confirmLoading={confirmLoading}

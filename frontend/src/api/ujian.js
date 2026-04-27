@@ -9,7 +9,7 @@ export function getUjian() {
   });
 }
 
-export function getUjianByStatus() {
+export function getUjianByStatus(status) {
   return request({
     url: `/ujian/status/${status}`,
     method: "get",

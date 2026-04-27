@@ -22,6 +22,14 @@ export function editSoalUjian(data, id) {
     data,
   });
 }
+
+export function getSoalUjianById(id) {
+  return request({
+    url: `/soalUjian/${id}`,
+    method: "get",
+  });
+}
+
 export function deleteSoalUjian(data) {
   return request({
     url: `/soalUjian/${data.idSoalUjian}`,

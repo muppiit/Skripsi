@@ -1,5 +1,6 @@
 package com.doyatama.university.controller;
 
+import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.SoalUjian;
 import com.doyatama.university.payload.ApiResponse;
 import com.doyatama.university.payload.SoalUjianRequest;
@@ -100,6 +101,9 @@ public class SoalUjianController {
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new ApiResponse(true, "Soal Ujian Deleted Successfully"));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse(false, e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, e.getMessage()));

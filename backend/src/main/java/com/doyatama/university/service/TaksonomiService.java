@@ -4,29 +4,28 @@ import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.Taksonomi;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.payload.TaksonomiRequest;
 import com.doyatama.university.payload.DefaultResponse;
 import com.doyatama.university.payload.PagedResponse;
 import com.doyatama.university.repository.TaksonomiRepository;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.util.AppConstants;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.hadoop.hbase.exceptions.IllegalArgumentIOException;
-
 public class TaksonomiService {
 
     private TaksonomiRepository taksonomiRepository = new TaksonomiRepository();
-    private SchoolRepository schoolRepository = new SchoolRepository();
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
 
     public PagedResponse<Taksonomi> getAllTaksonomi(int page, int size, String schoolID) throws IOException {
         validatePageNumberAndSize(page, size);
 
         List<Taksonomi> taksonomiResponse;
 
-        if (schoolID.equalsIgnoreCase("*")) {
+        if (schoolID == null || schoolID.trim().isEmpty() || schoolID.equalsIgnoreCase("*")) {
             taksonomiResponse = taksonomiRepository.findAll(size);
         } else {
             taksonomiResponse = taksonomiRepository.findTaksonomiBySekolah(schoolID, size);
@@ -52,10 +51,21 @@ public class TaksonomiService {
         }
 
         if (taksonomiRepository.existById(taksonomiRequest.getIdTaksonomi())) {
-            throw new IllegalArgumentIOException("Taksonomi with id already exists");
+            throw new IllegalArgumentException("Taksonomi with id already exists");
         }
 
-        School schoolResponse = schoolRepository.findById(taksonomiRequest.getIdSekolah());
+        if (taksonomiRequest.getIdSekolah() == null || taksonomiRequest.getIdSekolah().trim().isEmpty()) {
+            throw new IllegalArgumentException("Program studi wajib dipilih");
+        }
+
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(taksonomiRequest.getIdSekolah());
+        if (studyProgramResponse == null || studyProgramResponse.getId() == null) {
+            throw new IllegalArgumentException("Program studi tidak ditemukan");
+        }
+
+        School schoolResponse = new School();
+        schoolResponse.setIdSchool(studyProgramResponse.getId());
+        schoolResponse.setNameSchool(studyProgramResponse.getName());
         Taksonomi taksonomi = new Taksonomi();
 
         taksonomi.setIdTaksonomi(taksonomiRequest.getIdTaksonomi());
@@ -76,25 +86,31 @@ public class TaksonomiService {
     public Taksonomi updateTaksonomi(String taksonomiId, TaksonomiRequest taksonomiRequest) throws IOException {
 
         Taksonomi taksonomi = new Taksonomi();
-        School schoolResponse = schoolRepository.findById(taksonomiRequest.getIdSekolah());
-
-        if (schoolResponse.getIdSchool() != null) {
-            taksonomi.setNamaTaksonomi(taksonomiRequest.getNamaTaksonomi());
-            taksonomi.setDeskripsiTaksonomi(taksonomiRequest.getDeskripsiTaksonomi());
-            taksonomi.setSchool(schoolResponse);
-
-            return taksonomiRepository.update(taksonomiId, taksonomi);
-        } else {
-            return null;
+        StudyProgram studyProgramResponse = studyProgramRepository.findById(taksonomiRequest.getIdSekolah());
+        if (studyProgramResponse == null || studyProgramResponse.getId() == null) {
+            throw new IllegalArgumentException("Program studi tidak ditemukan");
         }
+
+        School schoolResponse = new School();
+        schoolResponse.setIdSchool(studyProgramResponse.getId());
+        schoolResponse.setNameSchool(studyProgramResponse.getName());
+
+        taksonomi.setNamaTaksonomi(taksonomiRequest.getNamaTaksonomi());
+        taksonomi.setDeskripsiTaksonomi(taksonomiRequest.getDeskripsiTaksonomi());
+        taksonomi.setSchool(schoolResponse);
+
+        return taksonomiRepository.update(taksonomiId, taksonomi);
     }
 
     public void deleteTaksonomiById(String taksonomiId) throws IOException {
-        Taksonomi taksonomiResponse = taksonomiRepository.findById(taksonomiId);
-        if (taksonomiResponse.isValid()) {
-            taksonomiRepository.deleteById(taksonomiId);
-        } else {
+        if (taksonomiId == null || taksonomiId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Id taksonomi wajib diisi");
+        }
+
+        if (!taksonomiRepository.existById(taksonomiId)) {
             throw new ResourceNotFoundException("Taksonomi", "id", taksonomiId);
         }
+
+        taksonomiRepository.deleteById(taksonomiId);
     }
 }

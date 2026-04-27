@@ -24,6 +24,7 @@ import {
 } from "@ant-design/icons";
 import {
   getSoalUjian,
+  getSoalUjianById,
   deleteSoalUjian,
   addSoalUjian,
   editSoalUjian,
@@ -168,9 +169,19 @@ const SoalUjian = () => {
     setPreviewModalVisible(true);
   };
 
-  const handleEditSoalUjian = (row) => {
-    setCurrentRowData({ ...row });
-    setEditSoalUjianModalVisible(true);
+  const handleEditSoalUjian = async (row) => {
+    try {
+      const result = await getSoalUjianById(row.idSoalUjian);
+      const detailData = result?.data?.content;
+
+      setCurrentRowData(detailData || { ...row });
+      setEditSoalUjianModalVisible(true);
+    } catch (error) {
+      // Fallback to list row payload if by-id fetch fails
+      setCurrentRowData({ ...row });
+      setEditSoalUjianModalVisible(true);
+      message.warning("Detail soal tidak lengkap, menggunakan data tabel.");
+    }
   };
 
   const handleAddSoalUjianOk = async (values) => {
@@ -217,8 +228,8 @@ const SoalUjian = () => {
         // Only include toleransiTypo for ISIAN questions, just like add form
         ...(values.jenisSoal === "ISIAN" &&
           values.toleransiTypo !== undefined && {
-            toleransiTypo: values.toleransiTypo?.toString(),
-          }),
+          toleransiTypo: values.toleransiTypo?.toString(),
+        }),
       };
 
       console.log("Updated values for edit:", updatedValues);
@@ -574,12 +585,12 @@ const SoalUjian = () => {
                         type === "PG"
                           ? "blue"
                           : type === "MULTI"
-                          ? "green"
-                          : type === "COCOK"
-                          ? "orange"
-                          : type === "ISIAN"
-                          ? "purple"
-                          : "default"
+                            ? "green"
+                            : type === "COCOK"
+                              ? "orange"
+                              : type === "ISIAN"
+                                ? "purple"
+                                : "default"
                       }
                       style={{ marginLeft: 4 }}
                     >

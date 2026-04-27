@@ -25,7 +25,7 @@ public class TaksonomiRepository {
         columnMapping.put("idTaksonomi", "idTaksonomi");
         columnMapping.put("namaTaksonomi", "namaTaksonomi");
         columnMapping.put("deskripsiTaksonomi", "deskripsiTaksonomi");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
         return client.showListTable(tableTaksonomi.toString(), columnMapping, Taksonomi.class, size);
     }
 
@@ -38,9 +38,10 @@ public class TaksonomiRepository {
         client.insertRecord(tableTaksonomi, rowKey, "main", "namaTaksonomi", taksonomi.getNamaTaksonomi());
         client.insertRecord(tableTaksonomi, rowKey, "main", "deskripsiTaksonomi", taksonomi.getDeskripsiTaksonomi());
 
-        // School
-        client.insertRecord(tableTaksonomi, rowKey, "school", "idSchool", taksonomi.getSchool().getIdSchool());
-        client.insertRecord(tableTaksonomi, rowKey, "school", "nameSchool", taksonomi.getSchool().getNameSchool());
+        // Study program context (stored with legacy School-shaped payload)
+        client.insertRecord(tableTaksonomi, rowKey, "study_program", "idSchool", taksonomi.getSchool().getIdSchool());
+        client.insertRecord(tableTaksonomi, rowKey, "study_program", "nameSchool",
+                taksonomi.getSchool().getNameSchool());
 
         client.insertRecord(tableTaksonomi, rowKey, "detail", "created_by", "Doyatama");
         return taksonomi;
@@ -56,7 +57,7 @@ public class TaksonomiRepository {
         columnMapping.put("idTaksonomi", "idTaksonomi");
         columnMapping.put("namaTaksonomi", "namaTaksonomi");
         columnMapping.put("deskripsiTaksonomi", "deskripsiTaksonomi");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
         return client.showDataTable(tableTaksonomi.toString(), columnMapping, taksonomiId, Taksonomi.class);
     }
@@ -71,10 +72,10 @@ public class TaksonomiRepository {
         columnMapping.put("idTaksonomi", "idTaksonomi");
         columnMapping.put("namaTaksonomi", "namaTaksonomi");
         columnMapping.put("deskripsiTaksonomi", "deskripsiTaksonomi");
-        columnMapping.put("school", "school");
+        columnMapping.put("study_program", "school");
 
-        List<Taksonomi> taksonomiList = client.getDataListByColumn(tableTaksonomi.toString(), columnMapping, "school",
-                "idSchool", schoolId, Taksonomi.class, size);
+        List<Taksonomi> taksonomiList = client.getDataListByColumn(tableTaksonomi.toString(), columnMapping,
+                "study_program", "idSchool", schoolId, Taksonomi.class, size);
 
         return taksonomiList;
     }
@@ -92,11 +93,11 @@ public class TaksonomiRepository {
                     taksonomi.getDeskripsiTaksonomi());
         }
 
-        // School
+        // Study program context (stored with legacy School-shaped payload)
         if (taksonomi.getSchool() != null) {
-            client.insertRecord(tableTaksonomi, taksonomiId, "school", "idSchool",
+            client.insertRecord(tableTaksonomi, taksonomiId, "study_program", "idSchool",
                     taksonomi.getSchool().getIdSchool());
-            client.insertRecord(tableTaksonomi, taksonomiId, "school", "nameSchool",
+            client.insertRecord(tableTaksonomi, taksonomiId, "study_program", "nameSchool",
                     taksonomi.getSchool().getNameSchool());
 
         }

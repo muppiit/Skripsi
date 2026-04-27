@@ -20,9 +20,8 @@ import {
 } from "antd";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { getSoalUjian } from "@/api/soalUjian";
-import { getSchool } from "@/api/school";
+import { getStudyPrograms } from "@/api/studyProgram";
 import { reqUserInfo } from "@/api/user";
-import { getKonsentrasiSekolah } from "@/api/konsentrasiKeahlianSekolah";
 import { getTaksonomi } from "@/api/taksonomi";
 
 const { TextArea } = Input;
@@ -50,8 +49,6 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [userId, setUserId] = useState(null);
   const [schoolList, setSchoolList] = useState([]);
   const [taksonomiList, setTaksonomiList] = useState([]);
-  const [konsentrasiKeahlianSekolahList, setKonsentrasiKeahlianSekolahList] =
-    useState([]);
   const [options, setOptions] = useState(["A", "B"]); // Default to 2 options: A and B
 
   // New state for managing color matching
@@ -97,12 +94,17 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
 
   const fetchSchoolList = async () => {
     try {
-      const result = await getSchool();
+      const result = await getStudyPrograms();
       if (result.data.statusCode === 200) {
-        setSchoolList(result.data.content);
+        setSchoolList(
+          result.data.content.map((item) => ({
+            idSchool: item.id,
+            nameSchool: item.name,
+          }))
+        );
       }
     } catch (error) {
-      message.error("Gagal mengambil data sekolah");
+      message.error("Gagal mengambil data program studi");
     }
   };
 
@@ -114,19 +116,6 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
       }
     } catch (error) {
       message.error("Gagal mengambil data taksonomi");
-    }
-  };
-
-  const fetchKonsentrasiKeahlianSekolahList = async () => {
-    try {
-      const result = await getKonsentrasiSekolah();
-      if (result.data.statusCode === 200) {
-        setKonsentrasiKeahlianSekolahList(result.data.content);
-      } else {
-        message.error("Gagal mengambil data");
-      }
-    } catch (error) {
-      message.error("Terjadi kesalahan: " + error.message);
     }
   };
 
@@ -148,7 +137,6 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     fetchUserInfo();
     fetchSchoolList();
     fetchTaksonomiList();
-    fetchKonsentrasiKeahlianSekolahList();
     fetchSoalUjian();
   }, []);
 
@@ -312,7 +300,6 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         jenisSoal: values.jenisSoal,
         idUser: userId,
         idTaksonomi: values.idTaksonomi,
-        idKonsentrasiSekolah: values.idKonsentrasiSekolah,
         idSchool: values.idSchool,
       };
 
@@ -558,8 +545,8 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                         flex: 1,
                         backgroundColor: kiriColors[index]
                           ? MATCH_COLORS.find(
-                              (c) => c.key === kiriColors[index]
-                            )?.bg
+                            (c) => c.key === kiriColors[index]
+                          )?.bg
                           : "white",
                       }}
                     />
@@ -627,8 +614,8 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                         flex: 1,
                         backgroundColor: kananColors[index]
                           ? MATCH_COLORS.find(
-                              (c) => c.key === kananColors[index]
-                            )?.bg
+                            (c) => c.key === kananColors[index]
+                          )?.bg
                           : "white",
                       }}
                     />
@@ -706,40 +693,6 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         <Tabs defaultActiveKey="1">
           <TabPane tab="Informasi Soal" key="1">
             <Row gutter={16}>
-              <Col xs={24} sm={24} md={24}>
-                <Form.Item
-                  label="Konsentrasi Keahlian Sekolah:"
-                  name="idKonsentrasiSekolah"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Silahkan pilih Konsentrasi Keahlian Sekolah",
-                    },
-                  ]}
-                >
-                  <Select
-                    placeholder="Pilih Konsentrasi Keahlian Sekolah"
-                    showSearch
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      option.children
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                  >
-                    {konsentrasiKeahlianSekolahList.map(
-                      ({ idKonsentrasiSekolah, namaKonsentrasiSekolah }) => (
-                        <Option
-                          key={idKonsentrasiSekolah}
-                          value={idKonsentrasiSekolah}
-                        >
-                          {namaKonsentrasiSekolah}
-                        </Option>
-                      )
-                    )}
-                  </Select>
-                </Form.Item>
-              </Col>
               <Col span={24}>
                 <Form.Item
                   label="Jenis Soal"
@@ -807,19 +760,18 @@ const AddSoalUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
               </Col>
               <Col span={24}>
                 <Form.Item
-                  label="Sekolah:"
+                  label="Program Studi:"
                   name="idSchool"
-                  style={{ display: "none" }}
-                  rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
+                  rules={[
+                    { required: true, message: "Silahkan pilih Program Studi" },
+                  ]}
                 >
-                  <Select defaultValue={userSchoolId} disabled>
-                    {schoolList
-                      .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                      .map(({ idSchool, nameSchool }) => (
-                        <Option key={idSchool} value={idSchool}>
-                          {nameSchool}
-                        </Option>
-                      ))}
+                  <Select placeholder="Pilih Program Studi" showSearch optionFilterProp="children">
+                    {schoolList.map(({ idSchool, nameSchool }) => (
+                      <Option key={idSchool} value={idSchool}>
+                        {nameSchool}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>

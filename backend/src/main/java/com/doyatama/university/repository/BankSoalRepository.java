@@ -343,7 +343,7 @@ public class BankSoalRepository {
                 "main", "idBankSoal",
                 bankSoalId, BankSoal.class);
 
-        return bankSoal.getIdBankSoal() != null;
+        return bankSoal != null && bankSoal.getIdBankSoal() != null;
     }
 
     public BankSoal update(String bankSoalId, BankSoal bankSoal) throws IOException {

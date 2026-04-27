@@ -86,7 +86,7 @@ const EditTaksonomiForm = ({
     if (currentRowData) {
       form.setFieldsValue({
         idTaksonomi: currentRowData.idTaksonomi,
-        idSchool: currentRowData.school?.idSchool,
+        idSchool: currentRowData.study_program?.idSchool || currentRowData.school?.idSchool,
         namaTaksonomi: currentRowData.namaTaksonomi,
         deskripsiTaksonomi: currentRowData.deskripsiTaksonomi,
       });
@@ -125,19 +125,16 @@ const EditTaksonomiForm = ({
         <Row gutter={16}>
           <Col xs={24} sm={24} md={24}>
             <Form.Item
-              label="Sekolah:"
+              label="Program Studi:"
               name="idSchool"
-              style={{ display: "none" }}
-              rules={[{ required: true, message: "Silahkan pilih Kelas" }]}
+              rules={[{ required: true, message: "Silahkan pilih Program Studi" }]}
             >
-              <Select defaultValue={userSchoolId} disabled>
-                {schoolList
-                  .filter(({ idSchool }) => idSchool === userSchoolId) // Hanya menampilkan sekolah user
-                  .map(({ idSchool, nameSchool }) => (
-                    <Option key={idSchool} value={idSchool}>
-                      {nameSchool}
-                    </Option>
-                  ))}
+              <Select placeholder="Pilih Program Studi" showSearch optionFilterProp="children">
+                {schoolList.map(({ idSchool, nameSchool }) => (
+                  <Option key={idSchool} value={idSchool}>
+                    {nameSchool}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>

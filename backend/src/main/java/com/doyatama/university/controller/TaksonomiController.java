@@ -1,5 +1,6 @@
 package com.doyatama.university.controller;
 
+import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.Taksonomi;
 import com.doyatama.university.payload.ApiResponse;
 import com.doyatama.university.payload.TaksonomiRequest;
@@ -95,6 +96,9 @@ public class TaksonomiController {
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new ApiResponse(true, "Taksonomi Deleted Successfully"));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse(false, e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, e.getMessage()));

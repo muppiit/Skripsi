@@ -68,11 +68,12 @@ public class UjianService {
         validatePageNumberAndSize(page, size);
 
         List<Ujian> ujianResponse;
+        String normalizedSchoolId = normalizeScopeId(schoolID);
 
-        if (schoolID.equalsIgnoreCase("*")) {
+        if ("*".equals(normalizedSchoolId)) {
             ujianResponse = ujianRepository.findAll(size);
         } else {
-            ujianResponse = ujianRepository.findUjianBySekolah(schoolID, size);
+            ujianResponse = ujianRepository.findUjianBySekolah(normalizedSchoolId, size);
         }
 
         if (semesterId != null && !semesterId.trim().isEmpty()) {
@@ -107,11 +108,12 @@ public class UjianService {
         validateStatus(status);
 
         List<Ujian> ujianResponse;
+        String normalizedSchoolId = normalizeScopeId(schoolID);
 
-        if (schoolID.equalsIgnoreCase("*")) {
+        if ("*".equals(normalizedSchoolId)) {
             ujianResponse = ujianRepository.findByStatus(status, size);
         } else {
-            ujianResponse = ujianRepository.findByStatusAndSekolah(status, schoolID, size);
+            ujianResponse = ujianRepository.findByStatusAndSekolah(status, normalizedSchoolId, size);
         }
 
         return new PagedResponse<>(ujianResponse, ujianResponse.size(), "Successfully get data", 200);
@@ -121,11 +123,12 @@ public class UjianService {
         validatePageNumberAndSize(page, size);
 
         List<Ujian> ujianResponse;
+        String normalizedSchoolId = normalizeScopeId(schoolID);
 
-        if (schoolID.equalsIgnoreCase("*")) {
+        if ("*".equals(normalizedSchoolId)) {
             ujianResponse = ujianRepository.findActiveUjian(size);
         } else {
-            ujianResponse = ujianRepository.findActiveUjianBySekolah(schoolID, size);
+            ujianResponse = ujianRepository.findActiveUjianBySekolah(normalizedSchoolId, size);
         }
 
         return new PagedResponse<>(ujianResponse, ujianResponse.size(), "Successfully get data", 200);
@@ -594,9 +597,10 @@ public class UjianService {
     // Statistics and reporting methods
     public Map<String, Object> getUjianStatistics(String schoolId) throws IOException {
         Map<String, Object> stats = new HashMap<>();
+        String normalizedSchoolId = normalizeScopeId(schoolId);
 
-        List<Ujian> allUjian = schoolId.equals("*") ? ujianRepository.findAll(1000)
-                : ujianRepository.findUjianBySekolah(schoolId, 1000);
+        List<Ujian> allUjian = "*".equals(normalizedSchoolId) ? ujianRepository.findAll(1000)
+                : ujianRepository.findUjianBySekolah(normalizedSchoolId, 1000);
 
         long draftCount = allUjian.stream().filter(Ujian::isDraft).count();
         long aktifCount = allUjian.stream().filter(Ujian::isAktif).count();
@@ -610,6 +614,17 @@ public class UjianService {
         stats.put("liveCount", liveCount);
 
         return stats;
+    }
+
+    private String normalizeScopeId(String scopeId) {
+        if (scopeId == null) {
+            return "*";
+        }
+        String trimmed = scopeId.trim();
+        if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed) || "*".equals(trimmed)) {
+            return "*";
+        }
+        return trimmed;
     }
 
     // ==================== ANALYSIS GENERATION HELPERS ====================
