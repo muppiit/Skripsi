@@ -14,6 +14,7 @@ public class CheatDetectionRequest {
     private String idPeserta;
     private String idUjian;
     private String idSchool;
+    private String idStudyProgram;
     private String timestamp;
 
     // Default constructor
@@ -61,6 +62,17 @@ public class CheatDetectionRequest {
 
     public void setIdSchool(String idSchool) {
         this.idSchool = idSchool;
+    }
+
+    public String getIdStudyProgram() {
+        return idStudyProgram != null ? idStudyProgram : idSchool;
+    }
+
+    public void setIdStudyProgram(String idStudyProgram) {
+        this.idStudyProgram = idStudyProgram;
+        if (this.idSchool == null || this.idSchool.trim().isEmpty()) {
+            this.idSchool = idStudyProgram;
+        }
     }
 
     public String getTimestamp() {

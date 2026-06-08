@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Lecture {
     private String id;
+    private String user_id;
     private String nip;
     private String name;
     private String place_born;
@@ -42,6 +43,14 @@ public class Lecture {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
     }
 
     public String getNip() {
@@ -140,6 +149,9 @@ public class Lecture {
         switch (fieldName) {
             case "id":
                 this.id = value;
+                break;
+            case "user_id":
+                this.user_id = value;
                 break;
             case "nip":
                 this.nip = value;

@@ -398,6 +398,12 @@ const AddUjianForm = ({ visible, onCancel, onOk, confirmLoading }) => {
 
       // Ambil data relasi dari bank soal
       const relationData = getRelationDataFromBankSoal();
+      if (!relationData.idKelas) {
+        message.error(
+          "Bank Soal yang dipilih belum memiliki Kelas. Pilih Bank Soal yang sudah memiliki relasi Kelas agar peserta ujian dapat divalidasi."
+        );
+        return;
+      }
 
       // Calculate total jumlah soal dari semua bank soal yang dipilih
       const totalSoalAvailable = selectedBankSoal.reduce(

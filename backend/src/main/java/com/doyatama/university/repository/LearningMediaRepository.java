@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.TableName;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class LearningMediaRepository {
     Configuration conf = HBaseConfiguration.create();
@@ -39,7 +40,7 @@ public class LearningMediaRepository {
         client.insertRecord(tableLearningMedia, rowKey, "main", "description", learningMedia.getDescription());
         client.insertRecord(tableLearningMedia, rowKey, "main", "type", learningMedia.getType());
         client.insertRecord(tableLearningMedia, rowKey, "detail", "created_by", "Doyatama");
-        
+
         learningMedia.setId(rowKey);
         return learningMedia;
     }
@@ -71,8 +72,17 @@ public class LearningMediaRepository {
         columnMapping.put("description", "description");
         columnMapping.put("type", "type");
 
-        return client.getDataListByColumn(table.toString(), columnMapping, "main", "type", type, LearningMedia.class,
+        List<LearningMedia> learningMedias = client.showListTable(table.toString(), columnMapping, LearningMedia.class,
                 size);
+
+        String normalizedType = normalizeType(type);
+        if (normalizedType == null) {
+            return learningMedias;
+        }
+
+        return learningMedias.stream()
+                .filter(learningMedia -> matchesType(learningMedia.getType(), normalizedType))
+                .collect(Collectors.toList());
     }
 
     public List<LearningMedia> findAllById(List<String> learningMediaIds) throws IOException {
@@ -105,7 +115,7 @@ public class LearningMediaRepository {
         client.insertRecord(tableLearningMedia, learningMediaId, "main", "name", learningMedia.getName());
         client.insertRecord(tableLearningMedia, learningMediaId, "main", "description", learningMedia.getDescription());
         client.insertRecord(tableLearningMedia, learningMediaId, "main", "type", learningMedia.getType());
-        
+
         learningMedia.setId(learningMediaId);
         return learningMedia;
     }
@@ -114,5 +124,45 @@ public class LearningMediaRepository {
         HBaseCustomClient client = new HBaseCustomClient(conf);
         client.deleteRecord(tableName, learningMediaId);
         return true;
+    }
+
+    private String normalizeType(String type) {
+        if (type == null || type.trim().isEmpty() || "*".equals(type)) {
+            return null;
+        }
+
+        switch (type.toLowerCase(Locale.ROOT)) {
+            case "1":
+            case "software":
+                return "software";
+            case "2":
+            case "hardware":
+                return "hardware";
+            default:
+                return type.toLowerCase(Locale.ROOT);
+        }
+    }
+
+    private boolean matchesType(String currentType, String requestedType) {
+        if (currentType == null) {
+            return false;
+        }
+
+        String normalizedCurrentType = currentType.toLowerCase(Locale.ROOT);
+
+        if ("software".equals(requestedType)) {
+            return "software".equals(normalizedCurrentType) || "1".equals(normalizedCurrentType);
+        }
+
+        if ("hardware".equals(requestedType)) {
+            return "hardware".equals(normalizedCurrentType)
+                    || "2".equals(normalizedCurrentType)
+                    || "hybrid".equals(normalizedCurrentType)
+                    || "other".equals(normalizedCurrentType)
+                    || "lainnya".equals(normalizedCurrentType)
+                    || "lainya".equals(normalizedCurrentType);
+        }
+
+        return normalizedCurrentType.equals(requestedType);
     }
 }

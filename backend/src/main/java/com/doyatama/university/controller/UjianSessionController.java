@@ -1,5 +1,6 @@
 package com.doyatama.university.controller;
 
+import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.model.UjianSession;
 import com.doyatama.university.model.HasilUjian;
 import com.doyatama.university.payload.ApiResponse;
@@ -116,7 +117,7 @@ public class UjianSessionController {
 
             return ResponseEntity.ok().body(response);
 
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | BadRequestException e) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e) {
@@ -167,7 +168,7 @@ public class UjianSessionController {
             return ResponseEntity.ok()
                     .body(response);
 
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | BadRequestException e) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e) {
@@ -548,9 +549,9 @@ public class UjianSessionController {
                     currentUser.getSchoolId());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
+            response.put("statusCode", 200);
             response.put("message", "Validasi berhasil");
-            response.put("data", validationResult);
+            response.put("content", validationResult);
             return ResponseEntity.ok()
                     .body(response);
 

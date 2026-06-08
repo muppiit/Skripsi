@@ -142,7 +142,7 @@ public class RPSDetailService {
             rpsDetail.setWeight(rpsDetailRequest.getWeight());
             rpsDetail.setCreatedAt(instant);
 
-            return rpsDetailRepository.save(rpsDetail);
+            return rpsDetailRepository.update(rpsDetailId, rpsDetail);
         } else {
             return null;
         }

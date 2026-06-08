@@ -110,12 +110,12 @@ const AdduserForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         <Row gutter={16}>
           <Col xs={24} sm={24} md={12}>
             <Form.Item
-              label="Sekolah:"
+              label="Prodi:"
               name="schoolId"
-              rules={[{ required: true, message: "Silahkan pilih Sekolah" }]}
+              rules={[{ required: true, message: "Silahkan pilih Prodi" }]}
             >
               <Select
-                placeholder="Pilih Sekolah"
+                placeholder="Pilih Prodi"
                 showSearch
                 optionFilterProp="children"
                 filterOption={(input, option) =>
@@ -176,9 +176,9 @@ const AdduserForm = ({ visible, onCancel, onOk, confirmLoading }) => {
               rules={[{ required: true, message: "Silahkan pilih roles" }]}
             >
               <Select placeholder="Pilih Roles">
-                <Option value="2">Admin Sekolah</Option>
+                <Option value="2">Admin</Option>
                 <Option value="3">Guru</Option>
-                <Option value="5">Siswa</Option>
+                <Option value="5">Mahasiswa</Option>
               </Select>
             </Form.Item>
           </Col>

@@ -116,6 +116,45 @@ const ReportNilaiSiswa = () => {
   const [bankSoalMap, setBankSoalMap] = useState({});
   // ---------------------------------------------
 
+  const getNumericValue = (...values) => {
+    for (const value of values) {
+      if (value !== undefined && value !== null && value !== "") {
+        const parsedValue = parseFloat(value);
+        if (!Number.isNaN(parsedValue)) {
+          return parsedValue;
+        }
+      }
+    }
+    return null;
+  };
+
+  const getNilaiUjian = (record) =>
+    getNumericValue(record?.persentase, record?.nilai, record?.skor, 0);
+
+  const getNilaiMinimal = (record) =>
+    getNumericValue(
+      record?.ujian?.minPassingScore,
+      record?.minPassingScore,
+      record?.ujian?.nilaiMinimal,
+      record?.nilaiMinimal,
+      60
+    );
+
+  const isRecordLulus = (record) => {
+    const nilai = getNilaiUjian(record);
+    const nilaiMinimal = getNilaiMinimal(record);
+
+    if (nilai !== null && nilaiMinimal !== null) {
+      return nilai >= nilaiMinimal;
+    }
+
+    if (record?.lulus !== undefined && record?.lulus !== null) {
+      return record.lulus === true;
+    }
+
+    return false;
+  };
+
   // Fetch bank soal details untuk mapping pertanyaan dengan jawaban
   const fetchBankSoalDetails = useCallback(async () => {
     try {
@@ -239,19 +278,13 @@ const ReportNilaiSiswa = () => {
     }
 
     const total = data.length;
-    const lulus = data.filter((item) => {
-      const nilai = parseFloat(item.nilai || item.skor || 0);
-      const minScore = parseFloat(
-        item.ujian?.minPassingScore || item.ujian?.nilaiMinimal || 75
-      );
-      return nilai >= minScore;
-    }).length;
+    const lulus = data.filter((item) => isRecordLulus(item)).length;
     const tidakLulus = total - lulus;
     const rataRata =
       total > 0
         ? (
           data.reduce(
-            (sum, item) => sum + (parseFloat(item.nilai || item.skor) || 0),
+            (sum, item) => sum + (getNilaiUjian(item) || 0),
             0
           ) / total
         ).toFixed(2)
@@ -274,36 +307,14 @@ const ReportNilaiSiswa = () => {
         text: "BELUM DIKETAHUI",
       };
 
-    // Check if exam is completed and has a valid score
-    const nilai = parseFloat(
-      record.nilai || record.skor || record.persentase || 0
-    );
-    const hasValidScore = nilai > 0 || record.lulus !== undefined;
+    const hasValidScore =
+      record.persentase !== undefined ||
+      record.nilai !== undefined ||
+      record.skor !== undefined ||
+      record.lulus !== undefined;
 
-    // If we have explicit lulus status, use it
-    if (record.lulus !== undefined && hasValidScore) {
-      if (record.lulus === true) {
-        return {
-          color: "success",
-          icon: <CheckCircleOutlined />,
-          text: "LULUS",
-        };
-      } else {
-        return {
-          color: "error",
-          icon: <CloseCircleOutlined />,
-          text: "TIDAK LULUS",
-        };
-      }
-    }
-
-    // Fallback to score-based logic if lulus field is not available
     if (hasValidScore) {
-      const minScore = parseFloat(
-        record.ujian?.minPassingScore || record.ujian?.nilaiMinimal || 75
-      );
-
-      if (nilai >= minScore) {
+      if (isRecordLulus(record)) {
         return {
           color: "success",
           icon: <CheckCircleOutlined />,
@@ -316,13 +327,13 @@ const ReportNilaiSiswa = () => {
           text: "TIDAK LULUS",
         };
       }
-    } else {
-      return {
-        color: "processing",
-        icon: <ClockCircleOutlined />,
-        text: "DALAM PROSES",
-      };
     }
+
+    return {
+      color: "processing",
+      icon: <ClockCircleOutlined />,
+      text: "DALAM PROSES",
+    };
   };
 
   // Fetch report data for the main table
@@ -432,25 +443,86 @@ const ReportNilaiSiswa = () => {
     }
   }, [selectedUjian, selectedKelas, selectedSeason, dateRange]);
 
+  const extractViolationList = (response) =>
+    response?.data?.data?.violations ||
+    response?.data?.violations ||
+    response?.data?.content ||
+    [];
+
+  const getRecordUjianId = (record) =>
+    record?.idUjian || record?.ujianId || record?.ujian?.idUjian || record?.ujian_id;
+
+  const getRecordPesertaId = (record) =>
+    record?.idPeserta || record?.siswaId || record?.peserta?.id || record?.peserta?.idUser;
+
+  const getRecordViolationsFromMetadata = (record) => {
+    if (!record) return [];
+    const metadataViolations = record.metadata?.violations;
+    if (Array.isArray(metadataViolations)) return metadataViolations;
+    if (metadataViolations) return [metadataViolations];
+    return [];
+  };
+
   // Show violations modal (for specific student's exam dengan deduplication)
-  const showViolationsModal = (record) => {
+  const showViolationsModal = async (record) => {
+    if (!record) {
+      message.warning("Data hasil ujian tidak ditemukan.");
+      return;
+    }
+
     setDetailModal({
       visible: false, // Hide detail modal if it's open
       data: record, // Keep data for context in violations modal
     });
     setViolationModalVisible(true);
+    setLoadingViolations(true);
 
-    // Ambil violations dari metadata langsung
-    const violationsFromMetadata = record.metadata?.violations || [];
+    const metadataViolations = getRecordViolationsFromMetadata(record);
+    let fetchedViolations = [];
 
-    // Deduplicate violations
-    const uniqueViolations = deduplicateViolations(violationsFromMetadata);
+    try {
+      const commonParams = {
+        limit: 1000,
+        timeRange: "ALL",
+        includeEvidence: true,
+        includeActions: true,
+      };
+      const sessionId = record.sessionId;
+      const idPeserta = getRecordPesertaId(record);
+      const idUjian = getRecordUjianId(record);
 
-    setLoadingViolations(false);
-    setViolations(uniqueViolations);
+      if (sessionId) {
+        const response = await getViolations({ ...commonParams, sessionId });
+        fetchedViolations = extractViolationList(response);
+      } else if (idPeserta) {
+        const response = await getViolations({ ...commonParams, idPeserta });
+        fetchedViolations = extractViolationList(response);
 
-    if (uniqueViolations.length === 0) {
-      message.info("Tidak ada pelanggaran ditemukan untuk siswa ini.");
+        if (idUjian) {
+          fetchedViolations = fetchedViolations.filter(
+            (violation) =>
+              !violation.idUjian ||
+              violation.idUjian === idUjian ||
+              violation.ujianId === idUjian ||
+              violation.ujian?.idUjian === idUjian
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching violations:", error);
+      message.warning("Gagal mengambil data pelanggaran dari server, mencoba data metadata.");
+    } finally {
+      const uniqueViolations = deduplicateViolations([
+        ...metadataViolations,
+        ...fetchedViolations,
+      ]);
+
+      setViolations(uniqueViolations);
+      setLoadingViolations(false);
+
+      if (uniqueViolations.length === 0) {
+        message.info("Tidak ada pelanggaran ditemukan untuk siswa ini.");
+      }
     }
   };
 
@@ -647,16 +719,24 @@ const ReportNilaiSiswa = () => {
       // Jika belum ada di set, tambahkan ke unique violations
       if (!seen.has(uniqueKey)) {
         seen.add(uniqueKey);
-        uniqueViolations.push({
-          ...violation,
-          // Hilangkan violationCount untuk menghindari kebingungan
-          violationCount: undefined,
-        });
+        uniqueViolations.push(violation);
       }
     });
 
     return uniqueViolations;
   };
+
+  const getViolationOccurrenceCount = (violation) =>
+    Math.max(
+      1,
+      parseInt(violation?.violationCount || violation?.count || 1) || 1
+    );
+
+  const getViolationsOccurrenceTotal = (violations = []) =>
+    violations.reduce(
+      (total, violation) => total + getViolationOccurrenceCount(violation),
+      0
+    );
 
   // Helper: Get all violations from metadata across all records
   const getAllViolationsFromMetadata = () => {
@@ -690,12 +770,16 @@ const ReportNilaiSiswa = () => {
     if (!record) return 0;
 
     // Ambil violations dari metadata langsung
-    const violations = record.metadata?.violations || [];
+    const violations = getRecordViolationsFromMetadata(record);
 
     // Deduplicate violations
     const uniqueViolations = deduplicateViolations(violations);
 
-    return uniqueViolations.length;
+    return (
+      getViolationsOccurrenceTotal(uniqueViolations) ||
+      parseInt(record.violationCount || record.jumlahPelanggaran || 0) ||
+      0
+    );
   };
 
   // Show export modal
@@ -838,7 +922,8 @@ const ReportNilaiSiswa = () => {
           item.ujian?.mapel?.name || item.mapelNama || item.mapel,
         Semester:
           item.ujian?.semester?.namaSemester || item.semesterNama || "-",
-        Sekolah: item.namaSekolah || item.school || "Tidak Diketahui",
+        "Program Studi":
+          item.studyProgram || item.namaSekolah || item.school || "Tidak Diketahui",
         "Percobaan Ke": item.attemptNumber || 1,
         "Status Pengerjaan": item.statusPengerjaan || "-",
         "Auto Submit": item.isAutoSubmit ? "Ya" : "Tidak",
@@ -1444,7 +1529,7 @@ const ReportNilaiSiswa = () => {
       key: "nilai",
       align: "center",
       sorter: (a, b) =>
-        parseFloat(a.nilai || a.skor || 0) - parseFloat(b.nilai || b.skor || 0),
+        (getNilaiUjian(a) || 0) - (getNilaiUjian(b) || 0),
       render: (_, record) => {
         const ujian = record.ujian || record;
         const showNilai = ujian.tampilkanNilai !== false; // default true if no setting
@@ -1457,12 +1542,8 @@ const ReportNilaiSiswa = () => {
           );
         }
 
-        const nilai = parseFloat(
-          record.nilai || record.skor || record.persentase || 0
-        );
-        const nilaiMin = parseFloat(
-          ujian.minPassingScore || ujian.nilaiMinimal || 0
-        );
+        const nilai = getNilaiUjian(record) || 0;
+        const nilaiMin = getNilaiMinimal(record) || 60;
 
         return (
           <div>
@@ -1780,6 +1861,7 @@ const ReportNilaiSiswa = () => {
             key="violations"
             icon={<WarningOutlined />}
             onClick={() => showViolationsModal(detailModal.data)}
+            loading={loadingViolations}
             disabled={getViolationsCount(detailModal.data || {}) === 0}
           >
             Lihat Pelanggaran ({getViolationsCount(detailModal.data || {})})
@@ -1843,8 +1925,9 @@ const ReportNilaiSiswa = () => {
                     <Descriptions.Item label="Session ID">
                       <Text code>{detailModal.data.sessionId || "-"}</Text>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Sekolah">
-                      {detailModal.data.namaSekolah ||
+                    <Descriptions.Item label="Program Studi">
+                      {detailModal.data.studyProgram ||
+                        detailModal.data.namaSekolah ||
                         detailModal.data.school ||
                         "Tidak Diketahui"}
                     </Descriptions.Item>
@@ -1963,16 +2046,16 @@ const ReportNilaiSiswa = () => {
 
                   <Descriptions.Item label="Status Kelulusan">
                     <Tag
-                      color={detailModal.data.lulus ? "green" : "red"}
+                      color={isRecordLulus(detailModal.data) ? "green" : "red"}
                       icon={
-                        detailModal.data.lulus ? (
+                        isRecordLulus(detailModal.data) ? (
                           <CheckCircleOutlined />
                         ) : (
                           <CloseCircleOutlined />
                         )
                       }
                     >
-                      {detailModal.data.lulus ? "LULUS" : "TIDAK LULUS"}
+                      {isRecordLulus(detailModal.data) ? "LULUS" : "TIDAK LULUS"}
                     </Tag>
                   </Descriptions.Item>
                 </>
@@ -2835,7 +2918,7 @@ const ReportNilaiSiswa = () => {
         {detailModal.data && ( // Ensure detailModal.data is available for context
           <div>
             <Alert
-              message={`Ditemukan ${violations.length} pelanggaran selama ujian`}
+              message={`Ditemukan ${getViolationsOccurrenceTotal(violations)} pelanggaran selama ujian`}
               type="warning"
               showIcon
               style={{ marginBottom: 16 }}
@@ -2856,6 +2939,11 @@ const ReportNilaiSiswa = () => {
                     <Space>
                       <WarningOutlined style={{ color: "#ff4d4f" }} />
                       <Text strong>Pelanggaran #{index + 1}</Text>
+                      {getViolationOccurrenceCount(violation) > 1 && (
+                        <Tag color="orange">
+                          {getViolationOccurrenceCount(violation)} kali
+                        </Tag>
+                      )}
                     </Space>
                   }
                 >
@@ -2890,7 +2978,11 @@ const ReportNilaiSiswa = () => {
                         )
                         : "Tidak tersedia"}
                     </Descriptions.Item>
-                    {/* Jumlah Pelanggaran dihapus karena sudah di-deduplicate */}
+                    {getViolationOccurrenceCount(violation) > 1 && (
+                      <Descriptions.Item label="Jumlah Kejadian">
+                        {getViolationOccurrenceCount(violation)}
+                      </Descriptions.Item>
+                    )}
                     {(violation.details ||
                       Object.keys(violation.evidence || {}).length > 0) && (
                         <Descriptions.Item label="Detail">

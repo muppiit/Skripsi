@@ -76,37 +76,8 @@ public class BankSoalRepository {
 
     public List<BankSoal> findBankSoalByFilters(String studyProgramId, String semesterId, String kelasId, int size)
             throws IOException {
-        HBaseCustomClient client = new HBaseCustomClient(conf);
-        TableName tableBankSoal = TableName.valueOf(tableName);
-
-        int fetchSize = Math.max(size, 1000);
-        List<BankSoal> candidates;
-
-        if (!isBlank(semesterId)) {
-            candidates = client.getDataListByColumnIndeks(
-                    tableBankSoal.toString(),
-                    baseColumnMapping(),
-                    "semester",
-                    "idSemester",
-                    semesterId,
-                    BankSoal.class,
-                    fetchSize,
-                    indexedFields());
-        } else if (!isBlank(kelasId)) {
-            candidates = client.getDataListByColumnIndeks(
-                    tableBankSoal.toString(),
-                    baseColumnMapping(),
-                    "kelas",
-                    "idKelas",
-                    kelasId,
-                    BankSoal.class,
-                    fetchSize,
-                    indexedFields());
-        } else if (!"*".equalsIgnoreCase(studyProgramId)) {
-            candidates = findBankSoalBySekolah(studyProgramId, fetchSize);
-        } else {
-            candidates = findAll(fetchSize);
-        }
+        int fetchSize = size > 0 ? Math.max(size, 1000) : 1000;
+        List<BankSoal> candidates = findAll(fetchSize);
 
         if (candidates == null || candidates.isEmpty()) {
             return Collections.emptyList();
@@ -124,7 +95,7 @@ public class BankSoalRepository {
             if (matchesStudyProgram && matchesFilter(itemSemesterId, semesterId)
                     && matchesFilter(itemKelasId, kelasId)) {
                 filtered.add(item);
-                if (filtered.size() >= size) {
+                if (size > 0 && filtered.size() >= size) {
                     break;
                 }
             }

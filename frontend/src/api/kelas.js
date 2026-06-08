@@ -8,10 +8,11 @@ export function addKelas(data) {
   });
 }
 
-export function getKelas() {
+export function getKelas(studyProgramID) {
   return request({
     url: "/kelas",
     method: "get",
+    params: studyProgramID ? { studyProgramID } : undefined,
   });
 }
 

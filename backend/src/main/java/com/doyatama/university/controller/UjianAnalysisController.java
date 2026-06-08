@@ -49,7 +49,7 @@ public class UjianAnalysisController {
             @RequestParam(value = "userID", defaultValue = "*") String userID,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String schoolID = resolveCurrentStudyProgramId(currentUser);
         return ujianAnalysisService.getAllAnalysis(page, size, userID, schoolID);
     }
 
@@ -64,7 +64,7 @@ public class UjianAnalysisController {
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String schoolID = resolveCurrentStudyProgramId(currentUser);
         return ujianAnalysisService.getAnalysisByUjian(ujianId, page, size, schoolID);
     }
 
@@ -79,7 +79,7 @@ public class UjianAnalysisController {
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String schoolID = currentUser.getSchoolId();
+        String schoolID = resolveCurrentStudyProgramId(currentUser);
         return ujianAnalysisService.getAnalysisByType(analysisType, page, size, schoolID);
     }
 
@@ -126,7 +126,7 @@ public class UjianAnalysisController {
 
             // Set school ID from current user if not provided
             if (request.getIdSchool() == null || request.getIdSchool().trim().isEmpty()) {
-                request.setIdSchool(currentUser.getSchoolId());
+                request.setIdSchool(resolveCurrentStudyProgramId(currentUser));
             }
 
             UjianAnalysis analysis = ujianAnalysisService.generateAnalysis(request);
@@ -212,7 +212,7 @@ public class UjianAnalysisController {
             @RequestParam(value = "status", required = false) String status,
             @CurrentUser UserPrincipal currentUser) throws IOException {
         try {
-            String schoolID = currentUser.getSchoolId();
+            String schoolID = resolveCurrentStudyProgramId(currentUser);
 
             // This will fetch hasil ujian data which represents participants
             Map<String, Object> response = ujianAnalysisService.getParticipantBasedAnalysis(
@@ -337,7 +337,7 @@ public class UjianAnalysisController {
     @PreAuthorize("hasRole('ROLE_OPERATOR') or hasRole('ROLE_TEACHER')")
     public ResponseEntity<?> getAnalysisStatistics(@CurrentUser UserPrincipal currentUser) throws IOException {
         try {
-            String schoolId = currentUser.getSchoolId();
+            String schoolId = resolveCurrentStudyProgramId(currentUser);
             Map<String, Object> statistics = ujianAnalysisService.getAnalysisStatistics(schoolId);
 
             Map<String, Object> response = new HashMap<>();
@@ -370,7 +370,7 @@ public class UjianAnalysisController {
             // Create quick analysis request
             UjianAnalysisRequest.GenerateAnalysisRequest request = new UjianAnalysisRequest.GenerateAnalysisRequest();
             request.setIdUjian(ujianId);
-            request.setIdSchool(currentUser.getSchoolId());
+            request.setIdSchool(resolveCurrentStudyProgramId(currentUser));
             request.setAnalysisType("DESCRIPTIVE");
             request.setIncludeDescriptiveStats(true);
             request.setIncludeRecommendations(true);
@@ -427,7 +427,7 @@ public class UjianAnalysisController {
             // Create quick item analysis request
             UjianAnalysisRequest.GenerateAnalysisRequest request = new UjianAnalysisRequest.GenerateAnalysisRequest();
             request.setIdUjian(ujianId);
-            request.setIdSchool(currentUser.getSchoolId());
+            request.setIdSchool(resolveCurrentStudyProgramId(currentUser));
             request.setAnalysisType("ITEM_ANALYSIS");
             request.setIncludeItemAnalysis(true);
             request.setIncludeDifficultyAnalysis(true);
@@ -483,7 +483,7 @@ public class UjianAnalysisController {
                 // Note: You might want to add a separate validation method in the service
                 UjianAnalysisRequest.GenerateAnalysisRequest testRequest = new UjianAnalysisRequest.GenerateAnalysisRequest();
                 testRequest.setIdUjian(ujianId);
-                testRequest.setIdSchool(currentUser.getSchoolId());
+                testRequest.setIdSchool(resolveCurrentStudyProgramId(currentUser));
 
                 // This will throw exception if invalid, but we don't actually generate
                 validationResult.put("canAnalyze", true);
@@ -574,7 +574,7 @@ public class UjianAnalysisController {
             // Create request based on template
             UjianAnalysisRequest.GenerateAnalysisRequest request = new UjianAnalysisRequest.GenerateAnalysisRequest();
             request.setIdUjian(ujianId);
-            request.setIdSchool(currentUser.getSchoolId());
+            request.setIdSchool(resolveCurrentStudyProgramId(currentUser));
             request.setAnalysisType(templateType.toUpperCase());
 
             // Configure based on template type
@@ -655,7 +655,7 @@ public class UjianAnalysisController {
                 try {
                     UjianAnalysisRequest.GenerateAnalysisRequest request = new UjianAnalysisRequest.GenerateAnalysisRequest();
                     request.setIdUjian(ujianId);
-                    request.setIdSchool(currentUser.getSchoolId());
+                    request.setIdSchool(resolveCurrentStudyProgramId(currentUser));
                     request.setAnalysisType(analysisType);
                     request.setIncludeDescriptiveStats(true);
                     request.setIncludeRecommendations(true);
@@ -709,7 +709,7 @@ public class UjianAnalysisController {
                                                                                          // generation
             UjianAnalysisRequest.GenerateAnalysisRequest request = new UjianAnalysisRequest.GenerateAnalysisRequest();
             request.setIdUjian(ujianId);
-            request.setIdSchool(currentUser.getSchoolId());
+            request.setIdSchool(resolveCurrentStudyProgramId(currentUser));
             request.setIncludeDescriptiveStats(true);
             request.setIncludeItemAnalysis(true);
             request.setIncludeCheatingAnalysis(true);
@@ -866,5 +866,10 @@ public class UjianAnalysisController {
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
+    }
+
+    private String resolveCurrentStudyProgramId(UserPrincipal currentUser) {
+        String studyProgramId = currentUser != null ? currentUser.getSchoolId() : null;
+        return studyProgramId == null || studyProgramId.trim().isEmpty() ? "*" : studyProgramId;
     }
 }

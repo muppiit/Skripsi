@@ -10,6 +10,7 @@ import com.doyatama.university.model.School;
 import com.doyatama.university.model.Season;
 import com.doyatama.university.model.Student;
 import com.doyatama.university.model.BankSoalUjian;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.payload.UjianSessionRequest;
 import com.doyatama.university.repository.UjianSessionRepository;
 import com.doyatama.university.repository.HasilUjianRepository;
@@ -17,6 +18,8 @@ import com.doyatama.university.repository.UjianRepository;
 import com.doyatama.university.repository.UserRepository;
 import com.doyatama.university.repository.SchoolRepository;
 import com.doyatama.university.repository.SeasonRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
+import com.doyatama.university.repository.StudentRepository;
 import com.doyatama.university.util.AppConstants;
 
 import org.springframework.beans.factory.annotation.Autowired; // PERBAIKAN: Import @Autowired
@@ -41,6 +44,7 @@ import org.slf4j.LoggerFactory;
 public class UjianSessionService {
 
     private static final Logger logger = LoggerFactory.getLogger(UjianSessionService.class);
+    private static final int LOOKUP_SIZE = 1000;
 
     // PERBAIKAN: Gunakan @Autowired untuk dependency injection
     @Autowired
@@ -57,6 +61,11 @@ public class UjianSessionService {
 
     @Autowired
     private SchoolRepository schoolRepository;
+
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
+
+    private StudentRepository studentRepository = new StudentRepository();
+
 
     @Autowired
     private SeasonRepository seasonRepository;
@@ -94,9 +103,9 @@ public class UjianSessionService {
         // Validate ujian status and timing
         validateUjianForStart(ujian);
 
-        School school = schoolRepository.findById(schoolId);
+        School school = resolveStudyProgramAsSchool(schoolId);
         if (school == null) {
-            throw new ResourceNotFoundException("School", "id", schoolId);
+            throw new ResourceNotFoundException("Program Studi", "id", schoolId);
         }
 
         // Check if participant already has active session
@@ -198,6 +207,24 @@ public class UjianSessionService {
             session.setSchool(school);
             session.setIdSchool(school.getIdSchool());
         }
+    }
+
+    private School resolveStudyProgramAsSchool(String studyProgramId) throws IOException {
+        if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
+            return null;
+        }
+
+        School school = schoolRepository.findById(studyProgramId);
+        if (school != null && school.getIdSchool() != null) {
+            return school;
+        }
+
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram == null || studyProgram.getId() == null) {
+            return null;
+        }
+
+        return new School(studyProgram.getId(), studyProgram.getName(), "");
     }
 
     /**
@@ -1093,7 +1120,8 @@ public class UjianSessionService {
 
         if (ujian.getSeasons() == null || ujian.getSeasons().getIdSeason() == null
                 || ujian.getSeasons().getIdSeason().trim().isEmpty()) {
-            throw new BadRequestException("Ujian belum dikonfigurasi seasons");
+            validatePesertaClassEnrollment(ujian, peserta);
+            return;
         }
 
         Season season = seasonRepository.findById(ujian.getSeasons().getIdSeason());
@@ -1120,11 +1148,50 @@ public class UjianSessionService {
 
         boolean terdaftar = enrolledStudents.stream()
                 .filter(student -> student != null)
-                .anyMatch(student -> peserta.getId().equals(student.getId())
+                .anyMatch(student -> peserta.getId().equals(student.getUser_id())
+                        || peserta.getId().equals(student.getId())
                         || (peserta.getUsername() != null && peserta.getUsername().equals(student.getNisn())));
 
         if (!terdaftar) {
             throw new BadRequestException("Peserta tidak terdaftar pada seasons ujian ini");
         }
+    }
+
+    private void validatePesertaClassEnrollment(Ujian ujian, User peserta) throws IOException {
+        if (ujian.getKelas() == null || ujian.getKelas().getIdKelas() == null) {
+            throw new BadRequestException("Ujian belum dikonfigurasi kelas atau seasons");
+        }
+
+        Student student = findStudentByUser(peserta);
+        if (student == null || student.getId() == null) {
+            throw new BadRequestException("Data mahasiswa untuk user ini belum dibuat atau belum terhubung");
+        }
+
+        if (student.getKelas() == null || student.getKelas().getIdKelas() == null) {
+            throw new BadRequestException("Data kelas mahasiswa belum lengkap");
+        }
+
+        if (!ujian.getKelas().getIdKelas().equals(student.getKelas().getIdKelas())) {
+            throw new BadRequestException("Peserta tidak terdaftar pada kelas ujian ini");
+        }
+    }
+
+    private Student findStudentByUser(User peserta) throws IOException {
+        List<Student> students = studentRepository.findAll(LOOKUP_SIZE);
+        for (Student student : students) {
+            if (student == null) {
+                continue;
+            }
+
+            boolean matchesUserId = peserta.getId() != null && peserta.getId().equals(student.getUser_id());
+            boolean matchesStudentId = peserta.getId() != null && peserta.getId().equals(student.getId());
+            boolean matchesUsername = peserta.getUsername() != null && peserta.getUsername().equals(student.getNisn());
+
+            if (matchesUserId || matchesStudentId || matchesUsername) {
+                return student;
+            }
+        }
+
+        return null;
     }
 }

@@ -75,14 +75,7 @@ const User = () => {
       const result = await getUsers();
       const { content, statusCode } = result.data;
       if (statusCode === 200) {
-        let filteredUsers = content;
-        // ✅ Ubah ID role menjadi nama
-        const transformedUsers = filteredUsers.map((user) => ({
-          ...user,
-          roles: mapRoleToName(user.roles), // ubah ID jadi nama
-        }));
-
-        setUsers(transformedUsers);
+        setUsers(content || []);
       } else {
         message.error("Gagal mengambil data");
       }
@@ -167,6 +160,7 @@ const User = () => {
             teacher: "3",
             siswa: "5",
             student: "5",
+            mahasiswa: "5",
             1: "1",
             2: "2",
             3: "3",
@@ -328,7 +322,7 @@ const User = () => {
       case "4":
         return "Tidak Diketahui";
       case "5":
-        return "Siswa";
+        return "Mahasiswa";
       default:
         return "Tidak Diketahui";
     }
@@ -345,7 +339,7 @@ const User = () => {
     ...(user?.roles === "ROLE_ADMINISTRATOR"
       ? [
           {
-            title: "Sekolah",
+            title: "Prodi",
             dataIndex: ["school", "nameSchool"],
             key: "nameSchool",
             align: "center",
@@ -384,8 +378,9 @@ const User = () => {
       dataIndex: "roles",
       key: "roles",
       align: "center",
+      render: (roles) => mapRoleToName(roles),
       ...getColumnSearchProps("roles"),
-      sorter: (a, b) => a.roles.localeCompare(b.roles),
+      sorter: (a, b) => mapRoleToName(a.roles).localeCompare(mapRoleToName(b.roles)),
     },
     {
       title: "Operasi",
@@ -587,7 +582,7 @@ const User = () => {
           <br />• <strong>Administrator/Admin:</strong> ID = 1
           <br />• <strong>Operator:</strong> ID = 2
           <br />• <strong>Guru/Teacher:</strong> ID = 3
-          <br />• <strong>Siswa/Student:</strong> ID = 5
+          <br />• <strong>Mahasiswa/Student:</strong> ID = 5
           <br />• <strong>Lainnya:</strong> ID = 4 (Tidak Diketahui)
           <br />
           <br />
@@ -633,3 +628,5 @@ const User = () => {
 };
 
 export default User;
+
+

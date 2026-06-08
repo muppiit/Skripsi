@@ -77,6 +77,28 @@ const AnalisisUjian = () => {
   const [studentsData, setStudentsData] = useState({});
   const [studentNamesCache, setStudentNamesCache] = useState({});
 
+  const getViolationOccurrenceCount = (violation) =>
+    Math.max(
+      1,
+      parseInt(violation?.violationCount || violation?.count || 1) || 1
+    );
+
+  const getViolationsOccurrenceTotal = (violations = []) =>
+    Array.isArray(violations)
+      ? violations.reduce(
+        (total, violation) => total + getViolationOccurrenceCount(violation),
+        0
+      )
+      : 0;
+
+  const normalizeIntegrityScore = (score) => {
+    const numericScore = parseFloat(score || 0);
+    return numericScore > 1 ? numericScore / 100 : numericScore;
+  };
+
+  const getIntegrityPercent = (score) =>
+    Math.round(normalizeIntegrityScore(score) * 100);
+
   // Helper function for grade colors
   const getGradeColor = (grade) => {
     const gradeColors = {
@@ -440,6 +462,10 @@ const AnalisisUjian = () => {
               item.cheatDetections ||
               item.suspiciousSubmissions
             ) {
+              const cheatDetectionOccurrences = getViolationsOccurrenceTotal(
+                item.cheatDetections || []
+              );
+
               // Direct UjianAnalysis structure - extract violation data
               cheatingData = {
                 violationIds: item.violationIds || [],
@@ -452,13 +478,14 @@ const AnalisisUjian = () => {
               // Count violations from multiple sources
               violationCount = Math.max(
                 (item.violationIds || []).length,
-                (item.cheatDetections || []).length,
+                cheatDetectionOccurrences,
                 item.suspiciousSubmissions || 0
               );
 
               console.log(`🔍 Analysis Data Violations for ${ujianName}:`, {
                 violationIds: item.violationIds?.length || 0,
-                cheatDetections: item.cheatDetections?.length || 0,
+                cheatDetectionRecords: item.cheatDetections?.length || 0,
+                cheatDetectionOccurrences,
                 suspiciousSubmissions: item.suspiciousSubmissions || 0,
                 finalCount: violationCount,
               });
@@ -498,16 +525,17 @@ const AnalisisUjian = () => {
             // Calculate risk level based on REAL violations and ujian-level metrics
             const score =
               item.averageScore || hasil.persentase || item.finalScore || 0;
-            const integrityScore = item.integrityScore || 0;
+            const integrityScore = normalizeIntegrityScore(item.integrityScore);
+            const integrityPercent = getIntegrityPercent(integrityScore);
 
             let riskLevel = "LOW";
 
             // Risk calculation for ujian-level analysis
-            if (violationCount > 3 || integrityScore < 30 || score < 40) {
+            if (violationCount > 3 || integrityPercent < 30 || score < 40) {
               riskLevel = "HIGH";
             } else if (
               violationCount > 1 ||
-              integrityScore < 70 ||
+              integrityPercent < 70 ||
               score < 60
             ) {
               riskLevel = "MEDIUM";
@@ -516,6 +544,7 @@ const AnalisisUjian = () => {
             console.log(`🎯 Risk calculation for ${ujianName}:`, {
               violationCount,
               integrityScore,
+              integrityPercent,
               avgScore: score,
               riskLevel,
             });
@@ -527,6 +556,14 @@ const AnalisisUjian = () => {
               pesertaId: "ALL", // This is ujian-level analysis
               pesertaNama: participantName, // "Semua Peserta"
               pesertaUsername: `${item.totalParticipants || 0} peserta`,
+              totalParticipants: item.totalParticipants || 0,
+              completedParticipants: item.completedParticipants || 0,
+              incompleteParticipants: item.incompleteParticipants || 0,
+              passedCount: item.passedCount || 0,
+              failedCount: item.failedCount || 0,
+              passRate: item.passRate || 0,
+              suspiciousSubmissions: item.suspiciousSubmissions || violationCount,
+              flaggedParticipants: item.flaggedParticipants || 0,
 
               // Exam information - Support both data structures
               ujianId: item.idUjian || hasil.idUjian || item.ujianId, // Use UjianAnalysis structure first
@@ -565,7 +602,7 @@ const AnalisisUjian = () => {
               riskLevel: riskLevel,
               needsReview:
                 riskLevel === "HIGH" ||
-                integrityScore < 50 ||
+                integrityPercent < 50 ||
                 violationCount > 2,
               integrityScore: integrityScore,
 
@@ -573,9 +610,9 @@ const AnalisisUjian = () => {
               workingPattern: violationCount > 3 ? "Irregular" : "Normal",
               learningStyle: "Mixed",
               confidenceLevel:
-                integrityScore > 70
+                integrityPercent > 70
                   ? "HIGH"
-                  : integrityScore > 40
+                  : integrityPercent > 40
                     ? "MEDIUM"
                     : "LOW",
 
@@ -865,6 +902,14 @@ const AnalisisUjian = () => {
       if (analysisData) {
         analysisData.ujianNama =
           record.ujianNama || analysisData.ujian?.namaUjian;
+        analysisData.suspiciousSubmissions = Math.max(
+          analysisData.suspiciousSubmissions || 0,
+          getViolationsOccurrenceTotal(analysisData.cheatDetections || []),
+          (analysisData.violationIds || []).length
+        );
+        analysisData.integrityScore = normalizeIntegrityScore(
+          analysisData.integrityScore
+        );
       }
       setSelectedDetailData(analysisData);
     } catch (error) {
@@ -983,7 +1028,9 @@ const AnalisisUjian = () => {
             {count} pelanggaran
           </Tag>
           <div>
-            <Text type="secondary">Integritas: {record.integrityScore}%</Text>
+            <Text type="secondary">
+              Integritas: {getIntegrityPercent(record.integrityScore)}%
+            </Text>
           </div>
         </Space>
       ),
@@ -1040,14 +1087,23 @@ const AnalisisUjian = () => {
   ];
 
   // Calculate summary statistics from student results
+  const totalParticipantsSummary = siswaData.reduce(
+    (sum, item) => sum + (item.totalParticipants || 0),
+    0
+  );
+  const summaryDenominator = totalParticipantsSummary || siswaData.length;
+
   const summaryStats = {
-    totalSiswa: siswaData.length,
+    totalSiswa: totalParticipantsSummary || siswaData.length,
     avgScore:
       siswaData.length > 0
         ? parseFloat(
           (
-            siswaData.reduce((sum, item) => sum + (item.nilai || 0), 0) /
-            siswaData.length
+            siswaData.reduce(
+              (sum, item) =>
+                sum + (item.nilai || 0) * (item.totalParticipants || 1),
+              0
+            ) / summaryDenominator
           ).toFixed(1)
         )
         : 0,
@@ -1063,13 +1119,19 @@ const AnalisisUjian = () => {
         ? parseFloat(
           (
             siswaData.reduce(
-              (sum, item) => sum + (item.integrityScore || 0),
+              (sum, item) =>
+                sum +
+                getIntegrityPercent(item.integrityScore) *
+                (item.totalParticipants || 1),
               0
-            ) / siswaData.length
+            ) / summaryDenominator
           ).toFixed(1)
         )
         : 0,
-    lulusCount: siswaData.filter((item) => item.lulus).length,
+    lulusCount: siswaData.reduce(
+      (sum, item) => sum + (item.passedCount || (item.lulus ? 1 : 0)),
+      0
+    ),
   };
 
   // Effect to fetch student names when modal opens with studyRecommendations
@@ -2988,7 +3050,11 @@ const AnalisisUjian = () => {
                   }}
                 >
                   <Text type="success" strong>
-                    {siswaData.filter((s) => s.integrityScore === 100).length}
+                    {
+                      siswaData.filter(
+                        (s) => getIntegrityPercent(s.integrityScore) === 100
+                      ).length
+                    }
                   </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: "12px" }}>

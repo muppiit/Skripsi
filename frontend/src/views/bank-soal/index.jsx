@@ -298,10 +298,25 @@ const BankSoal = () => {
       await addBankSoal(values);
       setAddBankSoalModalVisible(false);
       message.success("Berhasil menambahkan");
-      fetchBankSoals();
+      setSelectedSemesterId(values.idSemester);
+      setSelectedKelasId(values.idKelas);
+      const result = await getBankSoal({
+        semesterId: values.idSemester,
+        kelasId: values.idKelas,
+      });
+      const { content, statusCode } = result.data;
+      if (statusCode === 200) {
+        setBankSoals(content || []);
+        setGroupedBankSoals(groupBankSoalsByNamaUjian(content || []));
+      } else {
+        fetchBankSoals();
+      }
     } catch (error) {
-      setAddBankSoalModalVisible(false);
-      message.error("Gagal menambahkan: " + error.message);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message;
+      message.error("Gagal menambahkan: " + errorMessage);
     } finally {
       setAddBankSoalModalLoading(false);
     }

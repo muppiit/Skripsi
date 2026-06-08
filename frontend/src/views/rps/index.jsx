@@ -17,6 +17,7 @@ import { getRPS, deleteRPS, editRPS, addRPS, importRPS } from "@/api/rps";
 import { importRPSDetail } from "@/api/rpsDetail";
 import { getSubjects } from "@/api/subject";
 import { getStudyPrograms } from "@/api/studyProgram";
+import { getSemester } from "@/api/semester";
 import { getLectures } from "@/api/lecture";
 import { Link } from "react-router-dom";
 import {
@@ -36,6 +37,7 @@ const RPS = () => {
   const [learningMediaHardwares, setLearningMediaHardwares] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [studyPrograms, setStudyPrograms] = useState([]);
+  const [semesterList, setSemesterList] = useState([]);
   const [lectures, setLectures] = useState([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importFile, setImportFile] = useState(null);
@@ -78,6 +80,11 @@ const RPS = () => {
         setStudyPrograms(studyProgramResult.data.content);
       }
 
+      const semesterResult = await getSemester();
+      if (semesterResult.data.statusCode === 200) {
+        setSemesterList(semesterResult.data.content);
+      }
+
       const lecturesResult = await getLectures();
       if (lecturesResult.data.statusCode === 200) {
         setLectures(lecturesResult.data.content);
@@ -111,27 +118,21 @@ const RPS = () => {
     }
   };
 
-  const handleEditRPSOk = () => {
-    const form = editFormRef.current?.props.form;
-    form?.validateFields(async (err, values) => {
-      if (err) return;
-
-      setModalState((prev) => ({ ...prev, editLoading: true }));
-      try {
-        await editRPS(values);
-        form.resetFields();
-        setModalState((prev) => ({
-          ...prev,
-          editVisible: false,
-          editLoading: false,
-        }));
-        message.success("Berhasil!");
-        fetchData();
-      } catch (error) {
-        message.error("Gagal mengubah");
-        setModalState((prev) => ({ ...prev, editLoading: false }));
-      }
-    });
+  const handleEditRPSOk = async (values) => {
+    setModalState((prev) => ({ ...prev, editLoading: true }));
+    try {
+      await editRPS(values, values.id || currentRowData.id);
+      setModalState((prev) => ({
+        ...prev,
+        editVisible: false,
+        editLoading: false,
+      }));
+      message.success("Berhasil!");
+      fetchData();
+    } catch (error) {
+      message.error("Gagal mengubah");
+      setModalState((prev) => ({ ...prev, editLoading: false }));
+    }
   };
 
   const handleCancel = () => {
@@ -381,6 +382,7 @@ const RPS = () => {
         learningMediaSoftwares={learningMediaSoftwares}
         learningMediaHardwares={learningMediaHardwares}
         studyPrograms={studyPrograms}
+        semesterList={semesterList}
         subjects={subjects}
         lectures={lectures}
       />
@@ -394,6 +396,7 @@ const RPS = () => {
         learningMediaSoftwares={learningMediaSoftwares}
         learningMediaHardwares={learningMediaHardwares}
         studyPrograms={studyPrograms}
+        semesterList={semesterList}
         subjects={subjects}
         lectures={lectures}
       />

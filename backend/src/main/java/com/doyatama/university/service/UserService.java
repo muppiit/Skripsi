@@ -3,10 +3,14 @@ package com.doyatama.university.service;
 import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.exception.ResourceNotFoundException;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.User;
 import com.doyatama.university.payload.PagedResponse;
 import com.doyatama.university.payload.UserRequest;
 import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.LectureRepository;
+import com.doyatama.university.repository.StudentRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.repository.UserRepository;
 import com.doyatama.university.util.AppConstants;
 import java.io.IOException;
@@ -24,6 +28,9 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
+    private final LectureRepository lectureRepository = new LectureRepository();
+    private final StudentRepository studentRepository = new StudentRepository();
+    private final StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
     private final BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
@@ -104,7 +111,10 @@ public class UserService {
             throw new IllegalArgumentException("User already exist");
         }
 
-        School schoolResponse = schoolRepository.findById(userRequest.getSchoolId());
+        School schoolResponse = resolveStudyProgramAsSchool(userRequest.getSchoolId());
+        if (schoolResponse == null || schoolResponse.getIdSchool() == null) {
+            throw new IllegalArgumentException("Program Studi tidak ditemukan");
+        }
 
         user.setId(userRequest.getIdUser());
         user.setName(userRequest.getName());
@@ -123,7 +133,10 @@ public class UserService {
 
         User user = new User();
 
-        School schoolResponse = schoolRepository.findById(userRequest.getSchoolId());
+        School schoolResponse = resolveStudyProgramAsSchool(userRequest.getSchoolId());
+        if (schoolResponse == null || schoolResponse.getIdSchool() == null) {
+            throw new IllegalArgumentException("Program Studi tidak ditemukan");
+        }
 
         if (userRequest.getIdUser() != null) {
             user.setName(userRequest.getName());
@@ -136,15 +149,53 @@ public class UserService {
             user.setRoles(userRequest.getRoles());
             user.setSchool(schoolResponse);
 
-            return userRepository.update(userId, user);
+            User updatedUser = userRepository.update(userId, user);
+            syncStudentStudyProgram(userId, userRequest.getSchoolId());
+            syncLectureStudyProgram(userId, userRequest.getSchoolId());
+            return updatedUser;
         } else {
             return null;
         }
     }
 
+    private void syncStudentStudyProgram(String userId, String studyProgramId) throws IOException {
+        if (userId == null || studyProgramId == null || studyProgramId.isEmpty()) {
+            return;
+        }
+
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram != null && studyProgram.getId() != null) {
+            studentRepository.updateStudyProgramByUserId(userId, studyProgram);
+        }
+    }
+
+    private void syncLectureStudyProgram(String userId, String studyProgramId) throws IOException {
+        if (userId == null || studyProgramId == null || studyProgramId.isEmpty()) {
+            return;
+        }
+
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram != null && studyProgram.getId() != null) {
+            lectureRepository.updateStudyProgramByUserId(userId, studyProgram);
+        }
+    }
+
+    private School resolveStudyProgramAsSchool(String studyProgramId) throws IOException {
+        if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
+            return null;
+        }
+
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram == null || studyProgram.getId() == null) {
+            return null;
+        }
+
+        return new School(studyProgram.getId(), studyProgram.getName(), "");
+    }
+
     public void deleteUserById(String userId) throws IOException {
         User userResponse = userRepository.findById(userId);
-        if (userResponse.isValid()) {
+        if (userResponse != null && userResponse.getId() != null) {
             userRepository.deleteById(userId);
         } else {
             throw new ResourceNotFoundException("User", "id", userId);

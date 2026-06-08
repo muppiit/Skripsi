@@ -36,9 +36,12 @@ public class KelasController {
     public PagedResponse<Kelas> getKelas(
             @RequestParam(value = "page", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(value = "size", defaultValue = AppConstants.DEFAULT_PAGE_SIZE) int size,
+            @RequestParam(value = "studyProgramID", defaultValue = "") String studyProgramID,
             @CurrentUser UserPrincipal currentUser) throws IOException {
 
-        String studyProgramId = currentUser.getSchoolId();
+        String studyProgramId = studyProgramID != null && !studyProgramID.trim().isEmpty()
+                ? studyProgramID
+                : currentUser.getSchoolId();
         if (studyProgramId == null) {
             studyProgramId = "*";
         }

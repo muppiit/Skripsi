@@ -99,8 +99,7 @@ public class RPSRepository {
             client.insertRecord(tableRPS, rowKey, "study_program", "name", rps.getStudy_program().getName());
         }
         if (rps.getSubject() != null) {
-            // client.insertRecord(tableRPS, rowKey, "subject", "id",
-            // rps.getSubject().getId());
+            client.insertRecord(tableRPS, rowKey, "subject", "id", rps.getSubject().getId());
             client.insertRecord(tableRPS, rowKey, "subject", "name", rps.getSubject().getName());
         }
 

@@ -10,22 +10,47 @@ export function addLearningMedia(data) {
 
 export function getLearningMedias() {
   return request({
-    url: "/learning-media",
+    url: "/learning-media?size=1000",
     method: "get",
   });
 }
 
-export function getLearningMediasSoftware() {
-  return request({
-    url: "/learning-media?type=1",
-    method: "get",
+export function getLearningMediasSoftware(size = 1000) {
+  return getLearningMedias(size).then((response) => {
+    const content = response?.data?.content || [];
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        content: content.filter((item) => {
+          const type = String(item?.type || "").toLowerCase();
+          return type === "software" || type === "1";
+        }),
+      },
+    };
   });
 }
 
-export function getLearningMediasHardware() {
-  return request({
-    url: "/learning-media?type=2",
-    method: "get",
+export function getLearningMediasHardware(size = 1000) {
+  return getLearningMedias(size).then((response) => {
+    const content = response?.data?.content || [];
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        content: content.filter((item) => {
+          const type = String(item?.type || "").toLowerCase();
+          return (
+            type === "hardware" ||
+            type === "2" ||
+            type === "hybrid" ||
+            type === "other" ||
+            type === "lainnya" ||
+            type === "lainya"
+          );
+        }),
+      },
+    };
   });
 }
 

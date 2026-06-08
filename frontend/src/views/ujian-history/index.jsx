@@ -65,6 +65,45 @@ const UjianHistory = () => {
       }
     : null;
 
+  const getNumericValue = (...values) => {
+    for (const value of values) {
+      if (value !== undefined && value !== null && value !== "") {
+        const parsedValue = parseFloat(value);
+        if (!Number.isNaN(parsedValue)) {
+          return parsedValue;
+        }
+      }
+    }
+    return null;
+  };
+
+  const getNilaiUjian = (record) =>
+    getNumericValue(record?.persentase, record?.nilai, record?.skor, 0);
+
+  const getNilaiMinimal = (record) =>
+    getNumericValue(
+      record?.ujian?.minPassingScore,
+      record?.minPassingScore,
+      record?.ujian?.nilaiMinimal,
+      record?.nilaiMinimal,
+      60
+    );
+
+  const isRecordLulus = (record) => {
+    const nilai = getNilaiUjian(record);
+    const nilaiMinimal = getNilaiMinimal(record);
+
+    if (nilai !== null && nilaiMinimal !== null) {
+      return nilai >= nilaiMinimal;
+    }
+
+    if (record?.lulus !== undefined && record?.lulus !== null) {
+      return record.lulus === true;
+    }
+
+    return false;
+  };
+
   // Fetch history data
   const fetchHistoryData = useCallback(async () => {
     if (!user?.id) {
@@ -115,19 +154,13 @@ const UjianHistory = () => {
     }
 
     const total = data.length;
-    const lulus = data.filter((item) => {
-      const nilai = parseFloat(item.skor || item.nilai || 0);
-      const minScore = parseFloat(
-        item.ujian?.minPassingScore || item.ujian?.nilaiMinimal || 0
-      );
-      return nilai >= minScore;
-    }).length;
+    const lulus = data.filter((item) => isRecordLulus(item)).length;
     const tidakLulus = total - lulus;
     const rataRata =
       total > 0
         ? (
             data.reduce(
-              (sum, item) => sum + (parseFloat(item.skor || item.nilai) || 0),
+              (sum, item) => sum + (getNilaiUjian(item) || 0),
               0
             ) / total
           ).toFixed(2)
@@ -168,36 +201,14 @@ const UjianHistory = () => {
         text: "BELUM DIKETAHUI",
       };
 
-    // Check if exam is completed and has a valid score
-    const nilai = parseFloat(
-      record.skor || record.nilai || record.persentase || 0
-    );
-    const hasValidScore = nilai > 0 || record.lulus !== undefined;
+    const hasValidScore =
+      record.persentase !== undefined ||
+      record.nilai !== undefined ||
+      record.skor !== undefined ||
+      record.lulus !== undefined;
 
-    // If we have explicit lulus status, use it
-    if (record.lulus !== undefined && hasValidScore) {
-      if (record.lulus === true) {
-        return {
-          color: "success",
-          icon: <CheckCircleOutlined />,
-          text: "LULUS",
-        };
-      } else {
-        return {
-          color: "success",
-          icon: <CheckCircleOutlined />,
-          text: "LULUS",
-        };
-      }
-    }
-
-    // Fallback to score-based logic if lulus field is not available
     if (hasValidScore) {
-      const minScore = parseFloat(
-        record.ujian?.minPassingScore || record.ujian?.nilaiMinimal || 0
-      );
-
-      if (nilai >= minScore) {
+      if (isRecordLulus(record)) {
         return {
           color: "success",
           icon: <CheckCircleOutlined />,
@@ -210,13 +221,13 @@ const UjianHistory = () => {
           text: "TIDAK LULUS",
         };
       }
-    } else {
-      return {
-        color: "processing",
-        icon: <ClockCircleOutlined />,
-        text: "DALAM PROSES",
-      };
     }
+
+    return {
+      color: "processing",
+      icon: <ClockCircleOutlined />,
+      text: "DALAM PROSES",
+    };
   };
 
   // Show detail modal
@@ -311,12 +322,8 @@ const UjianHistory = () => {
           );
         }
 
-        const nilai = parseFloat(
-          record.skor || record.nilai || record.persentase || 0
-        );
-        const nilaiMin = parseFloat(
-          ujian.minPassingScore || ujian.nilaiMinimal || 0
-        );
+        const nilai = getNilaiUjian(record) || 0;
+        const nilaiMin = getNilaiMinimal(record) || 60;
 
         return (
           <div>

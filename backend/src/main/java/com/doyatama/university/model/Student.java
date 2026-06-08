@@ -2,6 +2,7 @@ package com.doyatama.university.model;
 
 public class Student {
     private String id;
+    private String user_id;
     private String nisn;
     private String name;
     private String gender;
@@ -18,10 +19,11 @@ public class Student {
     public Student() {
     }
 
-    public Student(String id, String nisn, String name, String gender, String phone,
+    public Student(String id, String user_id, String nisn, String name, String gender, String phone,
             String birth_date, String place_born, String address, Religion religion,
             StudyProgram study_program, Kelas kelas, TahunAjaran tahunAjaran) {
         this.id = id;
+        this.user_id = user_id;
         this.nisn = nisn;
         this.name = name;
         this.gender = gender;
@@ -41,6 +43,14 @@ public class Student {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
     }
 
     public String getNisn() {
@@ -147,6 +157,9 @@ public class Student {
         switch (fieldName) {
             case "id":
                 this.id = value;
+                break;
+            case "user_id":
+                this.user_id = value;
                 break;
             case "nisn":
                 this.nisn = value;

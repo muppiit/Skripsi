@@ -57,9 +57,7 @@ public class CheatDetectionController {
                 if (currentUser.getSchoolId() != null) {
                     request.setIdSchool(currentUser.getSchoolId());
                 } else {
-                    logger.warn("No school ID available for user: {}", currentUser.getId());
-                    return ResponseEntity.badRequest()
-                            .body(new ApiResponse(false, "User tidak memiliki school ID"));
+                    logger.warn("No school ID available for user: {}, resolving from session", currentUser.getId());
                 }
             }
 

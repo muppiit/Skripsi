@@ -104,9 +104,7 @@ public class BankSoalService {
         Semester semesterResponse = semesterRepository.findById(bankSoalRequest.getIdSemester());
         SoalUjian soalUjianResponse = soalUjianRepository.findById(bankSoalRequest.getIdSoalUjian());
         Taksonomi taksonomiResponse = taksonomiRepository.findById(bankSoalRequest.getIdTaksonomi());
-        StudyProgram studyProgramResponse = studyProgramRepository.findById(
-                bankSoalRequest.getIdStudyProgram() != null ? bankSoalRequest.getIdStudyProgram()
-                        : bankSoalRequest.getIdSchool());
+        StudyProgram studyProgramResponse = resolveStudyProgram(bankSoalRequest, soalUjianResponse);
         Subject subjectResponse = subjectRepository.findById(bankSoalRequest.getIdSubject());
         RPSDetail rpsDetailResponse = rpsDetailRepository.findById(bankSoalRequest.getIdRpsDetail());
         Kelas kelasResponse = bankSoalRequest.getIdKelas() != null
@@ -115,6 +113,9 @@ public class BankSoalService {
         Season seasonResponse = bankSoalRequest.getIdSeason() != null
                 ? seasonRepository.findById(bankSoalRequest.getIdSeason())
                 : null;
+
+        validateRequiredReferences(bankSoalRequest, soalUjianResponse, tahunAjaranResponse, semesterResponse,
+                taksonomiResponse, subjectResponse, rpsDetailResponse, kelasResponse, seasonResponse);
 
         // Validate question type
         if (bankSoalRequest.getJenisSoal() == null) {
@@ -172,6 +173,54 @@ public class BankSoalService {
         }
 
         return bankSoalRepository.save(bankSoal);
+    }
+
+    private StudyProgram resolveStudyProgram(BankSoalRequest bankSoalRequest, SoalUjian soalUjianResponse)
+            throws IOException {
+        String studyProgramId = bankSoalRequest.getIdStudyProgram();
+        if ((studyProgramId == null || studyProgramId.trim().isEmpty())) {
+            studyProgramId = bankSoalRequest.getIdSchool();
+        }
+
+        if ((studyProgramId == null || studyProgramId.trim().isEmpty()) && soalUjianResponse != null
+                && soalUjianResponse.getSchool() != null) {
+            studyProgramId = soalUjianResponse.getSchool().getIdSchool();
+        }
+
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram == null || studyProgram.getId() == null) {
+            throw new IllegalArgumentException("Program studi Bank Soal tidak ditemukan.");
+        }
+
+        return studyProgram;
+    }
+
+    private void validateRequiredReferences(BankSoalRequest request, SoalUjian soalUjian, TahunAjaran tahunAjaran,
+            Semester semester, Taksonomi taksonomi, Subject subject, RPSDetail rpsDetail, Kelas kelas, Season season) {
+        if (soalUjian == null || soalUjian.getIdSoalUjian() == null) {
+            throw new IllegalArgumentException("Nama ujian tidak ditemukan.");
+        }
+        if (tahunAjaran == null || tahunAjaran.getIdTahun() == null) {
+            throw new IllegalArgumentException("Tahun ajaran tidak ditemukan.");
+        }
+        if (semester == null || semester.getIdSemester() == null) {
+            throw new IllegalArgumentException("Semester tidak ditemukan.");
+        }
+        if (taksonomi == null || taksonomi.getIdTaksonomi() == null) {
+            throw new IllegalArgumentException("Taksonomi tidak ditemukan.");
+        }
+        if (subject == null || subject.getId() == null) {
+            throw new IllegalArgumentException("Mata kuliah tidak ditemukan.");
+        }
+        if (rpsDetail == null || rpsDetail.getId() == null) {
+            throw new IllegalArgumentException("RPS Detail tidak ditemukan.");
+        }
+        if (request.getIdKelas() != null && (kelas == null || kelas.getIdKelas() == null)) {
+            throw new IllegalArgumentException("Kelas tidak ditemukan.");
+        }
+        if (request.getIdSeason() != null && (season == null || season.getIdSeason() == null)) {
+            throw new IllegalArgumentException("Season tidak ditemukan.");
+        }
     }
 
     // Validation methods

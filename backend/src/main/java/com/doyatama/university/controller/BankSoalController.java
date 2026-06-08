@@ -45,8 +45,15 @@ public class BankSoalController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createBankSoal(@Valid @RequestBody BankSoalRequest bankSoalRequest) throws IOException {
+    public ResponseEntity<?> createBankSoal(@Valid @RequestBody BankSoalRequest bankSoalRequest,
+            @CurrentUser UserPrincipal currentUser) throws IOException {
         try {
+            if ((bankSoalRequest.getIdStudyProgram() == null || bankSoalRequest.getIdStudyProgram().trim().isEmpty())
+                    && currentUser != null) {
+                bankSoalRequest.setIdStudyProgram(currentUser.getSchoolId());
+                bankSoalRequest.setIdSchool(currentUser.getSchoolId());
+            }
+
             BankSoal bankSoal = bankSoalService.createBankSoal(bankSoalRequest);
 
             URI location = ServletUriComponentsBuilder

@@ -384,7 +384,9 @@ public class UjianSession {
             if (this.violationIds == null) {
                 this.violationIds = new ArrayList<>();
             }
-            this.violationIds.add(detection.getIdDetection());
+            if (!this.violationIds.contains(detection.getIdDetection())) {
+                this.violationIds.add(detection.getIdDetection());
+            }
 
             // Update security metadata
             if (this.securityMetadata == null) {

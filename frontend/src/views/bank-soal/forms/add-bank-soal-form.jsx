@@ -33,7 +33,7 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
   const [bankSoal, setBankSoal] = useState([]);
   const [form] = Form.useForm();
 
-  const [userSchoolId, setUserSchoolId] = useState([]); // State untuk menyimpan ID sekolah user
+  const [userSchoolId, setUserSchoolId] = useState(null); // State untuk menyimpan ID prodi user
   const [subjectList, setSubjectList] = useState([]);
   const [rpsDetailList, setRpsDetailList] = useState([]);
   const [tahunAjaranList, setTahunAjaranList] = useState([]);
@@ -131,6 +131,20 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     setFilteredSeasonList(filtered);
   };
 
+  const getStudyProgramName = (item) => {
+    const studyProgram = item?.studyProgram || item?.study_program;
+    return (
+      studyProgram?.name ||
+      studyProgram?.nameSchool ||
+      studyProgram?.nama ||
+      studyProgram?.namaProdi ||
+      "Prodi tidak diketahui"
+    );
+  };
+
+  const renderWithStudyProgram = (label, item) =>
+    `${label || "-"} (${getStudyProgramName(item)})`;
+
   const fetchSoalUjian = async () => {
     try {
       const result = await getSoalUjian();
@@ -169,6 +183,11 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
     );
     if (selectedSoal) {
       setSelectedSoalData(selectedSoal);
+      const selectedStudyProgramId =
+        selectedSoal.school?.idSchool ||
+        selectedSoal.study_program?.idSchool ||
+        selectedSoal.studyProgram?.id ||
+        userSchoolId;
 
       // Set form fields dengan data yang dipilih
       form.setFieldsValue({
@@ -181,7 +200,7 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
         toleransiTypo: selectedSoal.toleransiTypo,
         jawabanBenar: selectedSoal.jawabanBenar,
         idTaksonomi: selectedSoal.taksonomi?.idTaksonomi,
-        idStudyProgram: selectedSoal.school?.idSchool || userSchoolId,
+        idStudyProgram: selectedStudyProgramId,
       });
     }
   };
@@ -389,7 +408,7 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                   <Select placeholder="Pilih Tahun Ajaran" showSearch optionFilterProp="children">
                     {tahunAjaranList.map((item) => (
                       <Option key={item.idTahun} value={item.idTahun}>
-                        {item.tahunAjaran}
+                        {renderWithStudyProgram(item.tahunAjaran, item)}
                       </Option>
                     ))}
                   </Select>
@@ -413,7 +432,7 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                   >
                     {semesterList.map((item) => (
                       <Option key={item.idSemester} value={item.idSemester}>
-                        {item.namaSemester}
+                        {renderWithStudyProgram(item.namaSemester, item)}
                       </Option>
                     ))}
                   </Select>
@@ -437,7 +456,7 @@ const AddBankSoalForm = ({ visible, onCancel, onOk, confirmLoading }) => {
                   >
                     {kelasList.map((item) => (
                       <Option key={item.idKelas} value={item.idKelas}>
-                        {item.namaKelas}
+                        {renderWithStudyProgram(item.namaKelas, item)}
                       </Option>
                     ))}
                   </Select>

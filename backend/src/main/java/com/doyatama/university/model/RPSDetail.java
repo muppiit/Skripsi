@@ -22,6 +22,7 @@ public class RPSDetail {
     private List<AppraisalForm> appraisal_forms;
     private List<String> assessment_indicators;
     private Float weight;
+    private String weekLabel;
     private Instant created_at;
 
     public RPSDetail() {
@@ -46,6 +47,7 @@ public class RPSDetail {
         this.appraisal_forms = appraisal_forms;
         this.assessment_indicators = assessment_indicators;
         this.weight = weight;
+        this.weekLabel = weekLabel;
         this.created_at = created_at;
 
     }
@@ -59,18 +61,22 @@ public class RPSDetail {
     }
 
     public String getWeekLabel() {
-        if (week == null) {
-            return "No Week";
-        } else if (week >= 1 && week <= 4) {
-            return "quiz_1";
-        } else if (week >= 5 && week <= 8) {
-            return "quiz_2";
-        } else {
-            return "No Quiz";
+        if (weekLabel != null && !weekLabel.isEmpty()
+                && !"quiz_1".equalsIgnoreCase(weekLabel)
+                && !"quiz_2".equalsIgnoreCase(weekLabel)
+                && !"No Quiz".equalsIgnoreCase(weekLabel)) {
+            return weekLabel;
         }
+
+        if (week == null) {
+            return "Minggu tidak diketahui";
+        }
+
+        return "Minggu " + week;
     }
 
     public void setWeekLabel(String weekLabel) {
+        this.weekLabel = weekLabel;
     }
 
     public Integer getWeek() {

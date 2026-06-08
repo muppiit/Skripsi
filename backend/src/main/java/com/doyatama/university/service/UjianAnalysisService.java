@@ -8,6 +8,7 @@ import com.doyatama.university.model.HasilUjian;
 import com.doyatama.university.model.UjianSession;
 import com.doyatama.university.model.CheatDetection;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.User;
 import com.doyatama.university.model.BankSoalUjian;
 import com.doyatama.university.payload.DefaultResponse;
@@ -19,6 +20,7 @@ import com.doyatama.university.repository.HasilUjianRepository;
 import com.doyatama.university.repository.UjianSessionRepository;
 import com.doyatama.university.repository.CheatDetectionRepository;
 import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.repository.UserRepository;
 import com.doyatama.university.util.AppConstants;
 
@@ -58,6 +60,8 @@ public class UjianAnalysisService {
 
     @Autowired
     private UserRepository userRepository;
+
+    private final StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
 
     // ==================== CRUD OPERATIONS ====================
 
@@ -242,15 +246,16 @@ public class UjianAnalysisService {
                             .collect(Collectors.toList());
 
                     // Calculate behavioral metrics
-                    int totalViolations = violations.size();
+                    int totalViolations = countViolationOccurrences(violations);
                     int severityScore = violations.stream()
                             .mapToInt(v -> {
                                 String severity = v.getSeverity(); // Use getSeverity() instead of getSeverityLevel()
+                                int occurrenceCount = getViolationOccurrenceCount(v);
                                 if ("HIGH".equals(severity))
-                                    return 3;
+                                    return 3 * occurrenceCount;
                                 if ("MEDIUM".equals(severity))
-                                    return 2;
-                                return 1;
+                                    return 2 * occurrenceCount;
+                                return occurrenceCount;
                             })
                             .sum();
 
@@ -375,8 +380,12 @@ public class UjianAnalysisService {
         // Validate ujian exists and is completed
         Ujian ujian = validateUjianForAnalysis(request.getIdUjian());
 
-        // Validate school
-        School school = validateSchool(request.getIdSchool());
+        if ("*".equals(request.getIdSchool())) {
+            request.setIdSchool(resolveStudyProgramIdFromUjian(ujian));
+        }
+
+        // Validate study program (legacy field name: idSchool)
+        School school = validateStudyProgramAsSchool(request.getIdSchool());
 
         // Check if analysis already exists
         List<UjianAnalysis> existingAnalysis = ujianAnalysisRepository.findByUjianIdAndAnalysisType(
@@ -805,7 +814,8 @@ public class UjianAnalysisService {
             cheatDetectionList = new ArrayList<>();
         }
 
-        analysis.setSuspiciousSubmissions(cheatDetectionList.size());
+        int totalViolationOccurrences = countViolationOccurrences(cheatDetectionList);
+        analysis.setSuspiciousSubmissions(totalViolationOccurrences);
 
         long flaggedParticipants = cheatDetectionList.stream()
                 .map(CheatDetection::getIdPeserta)
@@ -819,8 +829,27 @@ public class UjianAnalysisService {
         double integrityScore = Math.max(0.0, 1.0 - ((double) flaggedParticipants / totalParticipants));
         analysis.setIntegrityScore(integrityScore);
 
-        logger.debug("Generated cheating analysis: {} violations, {} flagged participants",
-                cheatDetectionList.size(), flaggedParticipants);
+        logger.debug("Generated cheating analysis: {} violation records, {} violation occurrences, {} flagged participants",
+                cheatDetectionList.size(), totalViolationOccurrences, flaggedParticipants);
+    }
+
+    private int countViolationOccurrences(List<CheatDetection> violations) {
+        if (violations == null || violations.isEmpty()) {
+            return 0;
+        }
+
+        return violations.stream()
+                .filter(Objects::nonNull)
+                .mapToInt(this::getViolationOccurrenceCount)
+                .sum();
+    }
+
+    private int getViolationOccurrenceCount(CheatDetection violation) {
+        if (violation == null || violation.getViolationCount() == null || violation.getViolationCount() < 1) {
+            return 1;
+        }
+
+        return violation.getViolationCount();
     }
 
     /**
@@ -1066,7 +1095,7 @@ public class UjianAnalysisService {
         }
 
         if (request.getIdSchool() == null || request.getIdSchool().trim().isEmpty()) {
-            throw new BadRequestException("ID School wajib diisi");
+            throw new BadRequestException("ID Program Studi wajib diisi");
         }
 
         if (request.getAnalysisConfiguration() == null) {
@@ -1097,6 +1126,33 @@ public class UjianAnalysisService {
             throw new ResourceNotFoundException("School", "id", schoolId);
         }
         return school;
+    }
+
+    private School validateStudyProgramAsSchool(String studyProgramId) throws IOException {
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram != null && studyProgram.getId() != null) {
+            return new School(studyProgram.getId(), studyProgram.getName(), "");
+        }
+
+        return validateSchool(studyProgramId);
+    }
+
+    private String resolveStudyProgramIdFromUjian(Ujian ujian) {
+        if (ujian == null) {
+            throw new BadRequestException("Data ujian tidak ditemukan untuk menentukan Program Studi");
+        }
+
+        if (ujian.getStudy_program() != null && ujian.getStudy_program().getId() != null
+                && !ujian.getStudy_program().getId().trim().isEmpty()) {
+            return ujian.getStudy_program().getId();
+        }
+
+        if (ujian.getSchool() != null && ujian.getSchool().getIdSchool() != null
+                && !ujian.getSchool().getIdSchool().trim().isEmpty()) {
+            return ujian.getSchool().getIdSchool();
+        }
+
+        throw new BadRequestException("Program Studi pada ujian belum tersedia");
     }
 
     private String calculateGrade(Double score) {

@@ -274,12 +274,12 @@ const menuList = [
   //   roles: ["ROLE_OPERATOR", "ROLE_TEACHER"],
   // },
 
-  // {
-  //   title: "Siswa",
-  //   path: "/student",
-  //   icon: TeamOutlined,
-  //   roles: ["ROLE_OPERATOR"],
-  // },
+  {
+    title: "Mahasiswa",
+    path: "/student",
+    icon: TeamOutlined,
+    roles: ["ROLE_OPERATOR"],
+  },
   // {
   //   title: "List Todo",
   //   path: "/list-todo-admin",

@@ -8,7 +8,7 @@ import {
   addLecture,
 } from "@/api/lecture";
 import { getReligions } from "@/api/religion";
-import { getUsersNotUsedInLectures } from "@/api/user";
+import { getUsers, getUsersNotUsedInLectures } from "@/api/user";
 import { getStudyPrograms } from "@/api/studyProgram";
 import TypingCard from "@/components/TypingCard";
 import EditLectureForm from "./forms/edit-lecture-form";
@@ -20,6 +20,7 @@ const Lecture = () => {
   const [lectures, setLectures] = useState([]);
   const [religions, setReligions] = useState([]);
   const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [studyPrograms, setStudyPrograms] = useState([]);
   const [editLectureModalVisible, setEditLectureModalVisible] = useState(false);
   const [editLectureModalLoading, setEditLectureModalLoading] = useState(false);
@@ -60,10 +61,13 @@ const Lecture = () => {
 
   const fetchUsers = async () => {
     try {
-      const result = await getUsersNotUsedInLectures();
-      const { content, statusCode } = result.data;
-      if (statusCode === 200) {
-        setUsers(content);
+      const [unusedResult, allResult] = await Promise.all([
+        getUsersNotUsedInLectures(),
+        getUsers(),
+      ]);
+      if (unusedResult.data.statusCode === 200 && allResult.data.statusCode === 200) {
+        setUsers(unusedResult.data.content || []);
+        setAllUsers((allResult.data.content || []).filter((user) => `${user.roles}` === "3"));
       } else {
         message.error("Gagal mengambil data pengguna");
       }
@@ -181,6 +185,7 @@ const Lecture = () => {
       <br />
       <Card title={title}>
         <Table variant rowKey="id" dataSource={lectures} pagination={false}>
+          <Column title="User Login" dataIndex="user_id" key="user_id" align="center" />
           <Column title="NIP" dataIndex="nip" key="nip" align="center" />
           <Column
             title="Nama Depan"
@@ -190,9 +195,9 @@ const Lecture = () => {
           />
           <Column
             title="Program Studi"
-            dataIndex="studyProgram.name"
-            key="studyProgram.name"
+            key="studyProgram"
             align="center"
+            render={(_, row) => row.studyProgram?.name || row.study_program?.name || "-"}
           />
           <Column
             title="Tempat Lahir"
@@ -202,9 +207,9 @@ const Lecture = () => {
           />
           <Column
             title="Agama"
-            dataIndex="religion.name"
-            key="religion.name"
+            key="religion"
             align="center"
+            render={(_, row) => row.religion?.name || "-"}
           />
           <Column
             title="Telepon"
@@ -248,6 +253,8 @@ const Lecture = () => {
         onCancel={handleCancel}
         onOk={handleEditLectureOk}
         religion={religions || []}
+        user={users || []}
+        allUser={allUsers || []}
         studyProgram={studyPrograms || []}
       />
 

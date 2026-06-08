@@ -30,8 +30,10 @@ export function getRPSDetailByWeekLabel(weekLabel) {
 }
 
 export function getRPSDetail(rpsID) {
+  const query = rpsID ? `?rpsID=${rpsID}` : "";
+
   return request({
-    url: `/rps-detail?rpsID=${rpsID}`,
+    url: `/rps-detail${query}`,
     method: "get",
   });
 }

@@ -63,6 +63,12 @@ public class UjianAnalysisRepository {
         saveMetadata(client, tableAnalysis, rowKey, analysis);
 
         client.insertRecord(tableAnalysis, rowKey, "detail", "created_by", "System");
+
+        if (!existsById(rowKey)) {
+            throw new IOException("Failed to save UjianAnalysis record to HBase table " + tableName
+                    + " with row key " + rowKey);
+        }
+
         return analysis;
     }
 
@@ -70,6 +76,7 @@ public class UjianAnalysisRepository {
         client.insertRecord(table, rowKey, "main", "idAnalysis", analysis.getIdAnalysis());
         client.insertRecord(table, rowKey, "main", "idUjian", analysis.getIdUjian());
         client.insertRecord(table, rowKey, "main", "studyProgramId", analysis.getIdSchool());
+        client.insertRecord(table, rowKey, "main", "idSchool", analysis.getIdSchool());
         client.insertRecord(table, rowKey, "main", "analysisType", analysis.getAnalysisType());
 
         if (analysis.getGeneratedBy() != null) {
@@ -440,6 +447,27 @@ public class UjianAnalysisRepository {
                 size,
                 indexedFields);
 
+        if (analysisList.isEmpty()) {
+            analysisList = client.getDataListByColumnIndeks(
+                    tableAnalysis.toString(),
+                    columnMapping,
+                    "main",
+                    "idSchool",
+                    studyProgramId,
+                    UjianAnalysis.class,
+                    size,
+                    indexedFields);
+        }
+
+        if (analysisList.isEmpty()) {
+            analysisList = findAll(size * 3).stream()
+                    .filter(analysis -> studyProgramId.equals(analysis.getIdSchool())
+                            || (analysis.getSchool() != null
+                                    && studyProgramId.equals(analysis.getSchool().getIdSchool())))
+                    .limit(size)
+                    .collect(Collectors.toList());
+        }
+
         return analysisList;
     }
 
@@ -573,6 +601,7 @@ public class UjianAnalysisRepository {
         columnMapping.put("idAnalysis", "idAnalysis");
         columnMapping.put("idUjian", "idUjian");
         columnMapping.put("studyProgramId", "idSchool");
+        columnMapping.put("idSchool", "idSchool");
         columnMapping.put("analysisType", "analysisType");
         columnMapping.put("generatedBy", "generatedBy");
         columnMapping.put("generatedAt", "generatedAt");
@@ -748,13 +777,13 @@ public class UjianAnalysisRepository {
 
             if (recommendations != null) {
                 String recommendationsJson = objectMapper.writeValueAsString(recommendations);
-                client.insertRecord(tableAnalysis, analysisId, "recommendations", "recommendations",
+                client.insertRecord(tableAnalysis, analysisId, "recommendation", "recommendations",
                         recommendationsJson);
             }
 
             if (improvements != null) {
                 String improvementsJson = objectMapper.writeValueAsString(improvements);
-                client.insertRecord(tableAnalysis, analysisId, "recommendations", "improvementSuggestions",
+                client.insertRecord(tableAnalysis, analysisId, "recommendation", "improvementSuggestions",
                         improvementsJson);
             }
 

@@ -12,15 +12,43 @@ const AddLectureForm = ({
   onOk,
   confirmLoading,
   religion,
+  user,
   studyProgram,
 }) => {
   const [form] = Form.useForm();
+
+  const getUserStudyProgramId = (selectedUser) =>
+    selectedUser?.school?.idSchool ||
+    selectedUser?.study_program?.idSchool ||
+    selectedUser?.studyProgram?.id ||
+    selectedUser?.study_program?.id;
 
   useEffect(() => {
     if (visible) {
       form.resetFields();
     }
   }, [visible, form]);
+
+  const handleUserChange = (userId) => {
+    const selectedUser = (user || []).find((item) => item.id === userId);
+    const studyProgramId = getUserStudyProgramId(selectedUser);
+    const selectedStudyProgram = (studyProgram || []).find((item) => item.id === studyProgramId);
+    form.setFieldsValue({
+      name: selectedUser?.name || form.getFieldValue("name"),
+      idStudyProgram: studyProgramId || undefined,
+      study_program_name: selectedStudyProgram?.name,
+    });
+  };
+
+  const handleReligionChange = (religionId) => {
+    const selectedReligion = (religion || []).find((item) => item.id === religionId);
+    form.setFieldsValue({ religion_name: selectedReligion?.name });
+  };
+
+  const handleStudyProgramChange = (studyProgramId) => {
+    const selectedStudyProgram = (studyProgram || []).find((item) => item.id === studyProgramId);
+    form.setFieldsValue({ study_program_name: selectedStudyProgram?.name });
+  };
 
   const formItemLayout = {
     labelCol: { xs: { span: 24 }, sm: { span: 8 } },
@@ -54,6 +82,25 @@ const AddLectureForm = ({
         form={form}
         initialValues={{ status: "dosen" }}
       >
+        <Form.Item
+          label="User Login:"
+          name="user_id"
+          rules={[{ required: true, message: "Silahkan pilih user login dosen" }]}
+        >
+          <Select
+            showSearch
+            placeholder="Pilih User Login Guru"
+            optionFilterProp="children"
+            onChange={handleUserChange}
+          >
+            {(user || []).map((item) => (
+              <Option key={item.id} value={item.id}>
+                {item.username} - {item.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
         <Form.Item
           label="NIP:"
           name="nip"
@@ -109,6 +156,14 @@ const AddLectureForm = ({
           <Input placeholder="Status" />
         </Form.Item>
 
+        <Form.Item name="religion_name" hidden>
+          <Input />
+        </Form.Item>
+
+        <Form.Item name="study_program_name" hidden>
+          <Input />
+        </Form.Item>
+
         <Form.Item
           label="Alamat:"
           name="address"
@@ -122,7 +177,7 @@ const AddLectureForm = ({
           name="religion_id"
           rules={[{ required: true, message: "Silahkan pilih agama" }]}
         >
-          <Select style={{ width: 300 }} placeholder="Pilih Agama">
+          <Select style={{ width: 300 }} placeholder="Pilih Agama" onChange={handleReligionChange}>
             {(religion || []).map((arr, key) => (
               <Select.Option value={arr.id} key={`religion-${key}`}>
                 {arr.name}
@@ -136,7 +191,7 @@ const AddLectureForm = ({
           name="idStudyProgram"
           rules={[{ required: true, message: "Silahkan pilih program studi" }]}
         >
-          <Select placeholder="Pilih Program Studi">
+          <Select placeholder="Pilih Program Studi" onChange={handleStudyProgramChange}>
             {(studyProgram || []).map((program) => (
               <Option key={program.id} value={program.id}>
                 {program.name}

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Button, Table, message, Divider } from "antd";
 import {
   getRPSDetail,
@@ -11,7 +11,7 @@ import { getFormLearnings } from "@/api/formLearning";
 import { getLearningMethods } from "@/api/learningMethod";
 import { getAssessmentCriterias } from "@/api/assessmentCriteria";
 import { getAppraisalForms } from "@/api/appraisalForm";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import TypingCard from "@/components/TypingCard";
 import EditRPSDetailForm from "./forms/edit-rpsDetail-form";
 import AddRPSDetailForm from "./forms/add-rpsDetail-form";
@@ -38,9 +38,6 @@ const RPSDetailDetail = () => {
     useState(false);
 
   const { rpsID } = useParams();
-  const editRPSDetailFormRef = useRef();
-  const addRPSDetailFormRef = useRef();
-
   const getRPSDetailData = async (rpsID) => {
     const result = await getRPSDetail(rpsID);
     const { content, statusCode } = result.data;
@@ -54,7 +51,7 @@ const RPSDetailDetail = () => {
     const { content, statusCode } = result.data;
     if (statusCode === 200) {
       setRps(content);
-      setDevLecturers(content.dev_lecturers);
+      setDevLecturers(content.dev_lecturers || []);
     }
   };
 
@@ -107,24 +104,18 @@ const RPSDetailDetail = () => {
     });
   };
 
-  const handleEditRPSDetailOk = () => {
-    const { form } = editRPSDetailFormRef.current;
-    form.validateFields((err, values) => {
-      if (err) return;
-
-      setEditRPSDetailModalLoading(true);
-      editRPSDetail(values)
-        .then(() => {
-          form.resetFields();
-          setEditRPSDetailModalVisible(false);
-          setEditRPSDetailModalLoading(false);
-          message.success("Berhasil!");
-          getRPSDetailData(rpsID);
-        })
-        .catch(() => {
-          message.error("Gagal!");
-        });
-    });
+  const handleEditRPSDetailOk = async (values) => {
+    setEditRPSDetailModalLoading(true);
+    try {
+      await editRPSDetail({ ...values, rps_id: rpsID }, values.id || currentRowData.id);
+      setEditRPSDetailModalVisible(false);
+      setEditRPSDetailModalLoading(false);
+      message.success("Berhasil!");
+      getRPSDetailData(rpsID);
+    } catch (error) {
+      setEditRPSDetailModalLoading(false);
+      message.error("Gagal!");
+    }
   };
 
   const handleCancel = () => {
@@ -136,26 +127,18 @@ const RPSDetailDetail = () => {
     setAddRPSDetailModalVisible(true);
   };
 
-  const handleAddRPSDetailOk = () => {
-    const { form } = addRPSDetailFormRef.current;
-    form.validateFields((err, values) => {
-      if (err) return;
-
-      setAddRPSDetailModalLoading(true);
-      const mergedObj = { ...{ rps_id: rpsID }, ...values };
-
-      addRPSDetail(mergedObj)
-        .then(() => {
-          form.resetFields();
-          setAddRPSDetailModalVisible(false);
-          setAddRPSDetailModalLoading(false);
-          message.success("Berhasil!");
-          getRPSDetailData(rpsID);
-        })
-        .catch(() => {
-          message.error("Gagal menambahkan, silakan coba lagi!");
-        });
-    });
+  const handleAddRPSDetailOk = async (values) => {
+    setAddRPSDetailModalLoading(true);
+    try {
+      await addRPSDetail({ ...values, rps_id: rpsID });
+      setAddRPSDetailModalVisible(false);
+      setAddRPSDetailModalLoading(false);
+      message.success("Berhasil!");
+      getRPSDetailData(rpsID);
+    } catch (error) {
+      setAddRPSDetailModalLoading(false);
+      message.error("Gagal menambahkan, silakan coba lagi!");
+    }
   };
 
   useEffect(() => {
@@ -218,15 +201,6 @@ const RPSDetailDetail = () => {
                   onClick={() => handleEditRPSDetail(row)}
                 />
                 <Divider type="vertical" />
-                <Link to={`/rps/${rpsID}/${row.id}`}>
-                  <Button
-                    type="primary"
-                    shape="circle"
-                    icon="diff"
-                    title="Detail"
-                  />
-                </Link>
-                <Divider type="vertical" />
                 <Button
                   type="primary"
                   shape="circle"
@@ -242,15 +216,17 @@ const RPSDetailDetail = () => {
 
       <EditRPSDetailForm
         currentRowData={currentRowData}
-        wrappedComponentRef={editRPSDetailFormRef}
         visible={editRPSDetailModalVisible}
         confirmLoading={editRPSDetailModalLoading}
         onCancel={handleCancel}
         onOk={handleEditRPSDetailOk}
+        formLearnings={formLearnings}
+        learningMethods={learningMethods}
+        assessmentCriterias={assessmentCriterias}
+        appraisalForms={appraisalForms}
       />
 
       <AddRPSDetailForm
-        wrappedComponentRef={addRPSDetailFormRef}
         visible={addRPSDetailModalVisible}
         confirmLoading={addRPSDetailModalLoading}
         onCancel={handleCancel}

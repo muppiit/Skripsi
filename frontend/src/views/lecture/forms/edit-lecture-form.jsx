@@ -14,14 +14,32 @@ const EditLectureForm = ({
   confirmLoading,
   currentRowData,
   religion,
+  user,
+  allUser,
   studyProgram,
 }) => {
   const [form] = Form.useForm();
+
+  const getUserStudyProgramId = (selectedUser) =>
+    selectedUser?.school?.idSchool ||
+    selectedUser?.study_program?.idSchool ||
+    selectedUser?.studyProgram?.id ||
+    selectedUser?.study_program?.id;
+
+  const userOptions = React.useMemo(() => {
+    const options = [...(user || [])];
+    const currentUser = (allUser || []).find((item) => item.id === currentRowData?.user_id);
+    if (currentUser && !options.some((item) => item.id === currentUser.id)) {
+      options.unshift(currentUser);
+    }
+    return options;
+  }, [user, allUser, currentRowData]);
 
   useEffect(() => {
     if (visible && currentRowData) {
       form.setFieldsValue({
         id: currentRowData.id,
+        user_id: currentRowData.user_id,
         nip: currentRowData.nip,
         name: currentRowData.name,
         place_born: currentRowData.place_born,
@@ -31,10 +49,34 @@ const EditLectureForm = ({
         status: currentRowData.status,
         address: currentRowData.address,
         religion_id: currentRowData.religion?.id,
+        religion_name: currentRowData.religion?.name,
         idStudyProgram: currentRowData.studyProgram?.id || currentRowData.study_program?.id,
+        study_program_name:
+          currentRowData.studyProgram?.name || currentRowData.study_program?.name,
       });
     }
   }, [visible, currentRowData, form]);
+
+  const handleUserChange = (userId) => {
+    const selectedUser = userOptions.find((item) => item.id === userId);
+    const studyProgramId = getUserStudyProgramId(selectedUser);
+    const selectedStudyProgram = (studyProgram || []).find((item) => item.id === studyProgramId);
+    form.setFieldsValue({
+      name: selectedUser?.name || form.getFieldValue("name"),
+      idStudyProgram: studyProgramId || form.getFieldValue("idStudyProgram"),
+      study_program_name: selectedStudyProgram?.name || form.getFieldValue("study_program_name"),
+    });
+  };
+
+  const handleReligionChange = (religionId) => {
+    const selectedReligion = (religion || []).find((item) => item.id === religionId);
+    form.setFieldsValue({ religion_name: selectedReligion?.name });
+  };
+
+  const handleStudyProgramChange = (studyProgramId) => {
+    const selectedStudyProgram = (studyProgram || []).find((item) => item.id === studyProgramId);
+    form.setFieldsValue({ study_program_name: selectedStudyProgram?.name });
+  };
 
   const formItemLayout = {
     labelCol: { xs: { span: 24 }, sm: { span: 8 } },
@@ -66,6 +108,25 @@ const EditLectureForm = ({
       <Form {...formItemLayout} form={form}>
         <Form.Item label="ID Dosen:" name="id">
           <Input disabled />
+        </Form.Item>
+
+        <Form.Item
+          label="User Login:"
+          name="user_id"
+          rules={[{ required: true, message: "Silahkan pilih user login dosen" }]}
+        >
+          <Select
+            showSearch
+            placeholder="Pilih User Login Guru"
+            optionFilterProp="children"
+            onChange={handleUserChange}
+          >
+            {userOptions.map((item) => (
+              <Option key={item.id} value={item.id}>
+                {item.username} - {item.name}
+              </Option>
+            ))}
+          </Select>
         </Form.Item>
 
         <Form.Item
@@ -123,6 +184,14 @@ const EditLectureForm = ({
           <Input placeholder="Status" />
         </Form.Item>
 
+        <Form.Item name="religion_name" hidden>
+          <Input />
+        </Form.Item>
+
+        <Form.Item name="study_program_name" hidden>
+          <Input />
+        </Form.Item>
+
         <Form.Item
           label="Alamat:"
           name="address"
@@ -136,7 +205,7 @@ const EditLectureForm = ({
           name="religion_id"
           rules={[{ required: true, message: "Silahkan pilih agama" }]}
         >
-          <Select style={{ width: 300 }} placeholder="Pilih Agama">
+          <Select style={{ width: 300 }} placeholder="Pilih Agama" onChange={handleReligionChange}>
             {(religion || []).map((arr, key) => (
               <Select.Option value={arr.id} key={`religion-${key}`}>
                 {arr.name}
@@ -150,7 +219,7 @@ const EditLectureForm = ({
           name="idStudyProgram"
           rules={[{ required: true, message: "Silahkan pilih program studi" }]}
         >
-          <Select placeholder="Pilih Program Studi">
+          <Select placeholder="Pilih Program Studi" onChange={handleStudyProgramChange}>
             {(studyProgram || []).map((program) => (
               <Option key={program.id} value={program.id}>
                 {program.name}

@@ -6,6 +6,7 @@ import com.doyatama.university.model.HasilUjian;
 import com.doyatama.university.model.Ujian;
 import com.doyatama.university.model.User;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.UjianSession;
 import com.doyatama.university.model.BankSoalUjian;
 import com.doyatama.university.model.CheatDetection;
@@ -15,7 +16,7 @@ import com.doyatama.university.payload.PagedResponse;
 import com.doyatama.university.repository.HasilUjianRepository;
 import com.doyatama.university.repository.UjianRepository;
 import com.doyatama.university.repository.UserRepository;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.repository.UjianSessionRepository;
 import com.doyatama.university.repository.CheatDetectionRepository;
 
@@ -53,8 +54,7 @@ public class HasilUjianService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private SchoolRepository schoolRepository;
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
     @Autowired
     private UjianSessionRepository ujianSessionRepository;
     @Autowired
@@ -72,11 +72,11 @@ public class HasilUjianService {
      * Get all hasil ujian dengan PagedResponse - FIXED FORMAT
      */
     public PagedResponse<HasilUjian> getAllHasilUjian(int page, int size, String schoolId) throws IOException {
-        logger.debug("Mengambil hasil ujian dengan page: {}, size: {}, school: {}", page, size, schoolId);
+        logger.debug("Mengambil hasil ujian dengan page: {}, size: {}, studyProgram: {}", page, size, schoolId);
 
         List<HasilUjian> results = hasilUjianRepository.findAll(size * (page + 1));
 
-        // Filter by school if specified
+        // Filter by study program if specified
         if (schoolId != null && !schoolId.equals("*")) {
             results = results.stream()
                     .filter(hasil -> schoolId.equals(hasil.getIdSchool()))
@@ -967,9 +967,21 @@ public class HasilUjianService {
         }
 
         if (hasil.getSchool() == null && hasil.getIdSchool() != null) {
-            School school = schoolRepository.findById(hasil.getIdSchool());
-            hasil.setSchool(school);
+            hasil.setSchool(resolveStudyProgramAsSchool(hasil.getIdSchool()));
         }
+    }
+
+    private School resolveStudyProgramAsSchool(String studyProgramId) throws IOException {
+        if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
+            return null;
+        }
+
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram == null || studyProgram.getId() == null) {
+            return null;
+        }
+
+        return new School(studyProgram.getId(), studyProgram.getName(), studyProgram.getDescription());
     }
 
     private List<HasilUjian> filterHasilByKelasAndSeason(List<HasilUjian> results, String kelasId, String seasonId) {
@@ -1712,10 +1724,13 @@ public class HasilUjianService {
             }
             data.put("riskLevel", riskLevel);
 
-            // School information
+            // Program Studi information
             if (hasilUjian.getSchool() != null) {
+                data.put("studyProgram", hasilUjian.getSchool().getNameSchool());
+                data.put("studyProgramId", hasilUjian.getSchool().getIdSchool());
                 data.put("school", hasilUjian.getSchool().getNameSchool());
             } else {
+                data.put("studyProgram", "Tidak Diketahui");
                 data.put("school", "Tidak Diketahui");
             }
         } catch (Exception e) {

@@ -1,6 +1,7 @@
 package com.doyatama.university.repository;
 
 import com.doyatama.university.helper.HBaseCustomClient;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.model.Student;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -19,6 +20,7 @@ public class StudentRepository {
     private Map<String, String> baseMapping() {
         Map<String, String> columnMapping = new HashMap<>();
         columnMapping.put("id", "id");
+        columnMapping.put("user_id", "user_id");
         columnMapping.put("nisn", "nisn");
         columnMapping.put("name", "name");
         columnMapping.put("gender", "gender");
@@ -77,6 +79,9 @@ public class StudentRepository {
         TableName tableStudent = TableName.valueOf(tableName);
 
         client.insertRecord(tableStudent, rowKey, "main", "id", rowKey);
+        if (student.getUser_id() != null) {
+            client.insertRecord(tableStudent, rowKey, "main", "user_id", student.getUser_id());
+        }
         client.insertRecord(tableStudent, rowKey, "main", "nisn", student.getNisn());
         client.insertRecord(tableStudent, rowKey, "main", "name", student.getName());
         client.insertRecord(tableStudent, rowKey, "main", "gender", student.getGender().toString());
@@ -94,10 +99,12 @@ public class StudentRepository {
         client.insertRecord(tableStudent, rowKey, "kelas", "idKelas", student.getKelas().getIdKelas());
         client.insertRecord(tableStudent, rowKey, "kelas", "namaKelas", student.getKelas().getNamaKelas());
 
-        if (student.getTahunAjaran() != null) {
+        if (student.getTahunAjaran() != null && student.getTahunAjaran().getIdTahun() != null) {
             client.insertRecord(tableStudent, rowKey, "tahunAjaran", "idTahun", student.getTahunAjaran().getIdTahun());
-            client.insertRecord(tableStudent, rowKey, "tahunAjaran", "tahunAjaran",
-                    student.getTahunAjaran().getTahunAjaran());
+            if (student.getTahunAjaran().getTahunAjaran() != null) {
+                client.insertRecord(tableStudent, rowKey, "tahunAjaran", "tahunAjaran",
+                        student.getTahunAjaran().getTahunAjaran());
+            }
         }
 
         client.insertRecord(tableStudent, rowKey, "detail", "created_by", "Doyatama");
@@ -113,6 +120,9 @@ public class StudentRepository {
         HBaseCustomClient client = new HBaseCustomClient(conf);
         TableName tableStudent = TableName.valueOf(tableName);
 
+        if (student.getUser_id() != null) {
+            client.insertRecord(tableStudent, studentId, "main", "user_id", student.getUser_id());
+        }
         client.insertRecord(tableStudent, studentId, "main", "nisn", student.getNisn());
         client.insertRecord(tableStudent, studentId, "main", "name", student.getName());
         client.insertRecord(tableStudent, studentId, "main", "gender", student.getGender().toString());
@@ -130,25 +140,40 @@ public class StudentRepository {
         client.insertRecord(tableStudent, studentId, "kelas", "idKelas", student.getKelas().getIdKelas());
         client.insertRecord(tableStudent, studentId, "kelas", "namaKelas", student.getKelas().getNamaKelas());
 
-        if (student.getTahunAjaran() != null) {
+        if (student.getTahunAjaran() != null && student.getTahunAjaran().getIdTahun() != null) {
             client.insertRecord(tableStudent, studentId, "tahunAjaran", "idTahun",
                     student.getTahunAjaran().getIdTahun());
-            client.insertRecord(tableStudent, studentId, "tahunAjaran", "tahunAjaran",
-                    student.getTahunAjaran().getTahunAjaran());
+            if (student.getTahunAjaran().getTahunAjaran() != null) {
+                client.insertRecord(tableStudent, studentId, "tahunAjaran", "tahunAjaran",
+                        student.getTahunAjaran().getTahunAjaran());
+            }
         }
 
         client.insertRecord(tableStudent, studentId, "detail", "created_by", "Doyatama");
         return student;
     }
 
-    public boolean existsByUserID(String UID) throws IOException {
+    public Student findByUserId(String userId) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
-        TableName tableUsers = TableName.valueOf(tableName);
-        Map<String, String> columnMapping = new HashMap<>();
-        columnMapping.put("id", "id");
-
-        Student student = client.getDataByColumn(tableUsers.toString(), columnMapping, "user", "id", UID,
+        TableName tableStudent = TableName.valueOf(tableName);
+        return client.getDataByColumn(tableStudent.toString(), baseMapping(), "main", "user_id", userId,
                 Student.class);
+    }
+
+    public void updateStudyProgramByUserId(String userId, StudyProgram studyProgram) throws IOException {
+        Student student = findByUserId(userId);
+        if (student == null || student.getId() == null || studyProgram == null || studyProgram.getId() == null) {
+            return;
+        }
+
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+        TableName tableStudent = TableName.valueOf(tableName);
+        client.insertRecord(tableStudent, student.getId(), "study_program", "id", studyProgram.getId());
+        client.insertRecord(tableStudent, student.getId(), "study_program", "name", studyProgram.getName());
+    }
+
+    public boolean existsByUserID(String UID) throws IOException {
+        Student student = findByUserId(UID);
         return student != null && student.getId() != null;
     }
 

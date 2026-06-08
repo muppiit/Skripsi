@@ -1,6 +1,7 @@
 package com.doyatama.university.payload;
 
 public class LectureRequest {
+    private String user_id;
     private String nip;
     private String name;
     private String place_born;
@@ -8,7 +9,9 @@ public class LectureRequest {
     private String gender;
     private String status;
     private String religion_id;
+    private String religion_name;
     private String idStudyProgram;
+    private String study_program_name;
     private String address;
     private String phone;
 
@@ -27,6 +30,14 @@ public class LectureRequest {
         this.idStudyProgram = idStudyProgram;
         this.address = address;
         this.phone = phone;
+    }
+
+    public String getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
     }
 
     public String getNip() {
@@ -85,12 +96,28 @@ public class LectureRequest {
         this.religion_id = religion_id;
     }
 
+    public String getReligion_name() {
+        return religion_name;
+    }
+
+    public void setReligion_name(String religion_name) {
+        this.religion_name = religion_name;
+    }
+
     public String getIdStudyProgram() {
         return idStudyProgram;
     }
 
     public void setIdStudyProgram(String idStudyProgram) {
         this.idStudyProgram = idStudyProgram;
+    }
+
+    public String getStudy_program_name() {
+        return study_program_name;
+    }
+
+    public void setStudy_program_name(String study_program_name) {
+        this.study_program_name = study_program_name;
     }
 
     public String getAddress() {
@@ -132,11 +159,17 @@ public class LectureRequest {
             case "religion_id":
                 this.religion_id = value;
                 break;
+            case "religion_name":
+                this.religion_name = value;
+                break;
             case "user_id":
-                this.religion_id = value;
+                this.user_id = value;
                 break;
             case "idStudyProgram":
                 this.idStudyProgram = value;
+                break;
+            case "study_program_name":
+                this.study_program_name = value;
                 break;
             case "address":
                 this.address = value;

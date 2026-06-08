@@ -13,8 +13,22 @@ const AddRPSForm = ({
   learningMediaHardwares,
   subjects,
   lectures,
+  semesterList = [],
 }) => {
   const [form] = Form.useForm();
+
+  const renderSemesterLabel = (semester) => {
+    const studyProgramName =
+      semester?.studyProgram?.nameSchool ||
+      semester?.study_program?.nameSchool ||
+      semester?.studyProgram?.name ||
+      semester?.study_program?.name ||
+      semester?.studyProgram?.nama ||
+      semester?.study_program?.nama ||
+      "Tanpa Program Studi";
+
+    return `${semester.namaSemester} (${studyProgramName})`;
+  };
 
   const formItemLayout = {
     labelCol: {
@@ -67,7 +81,16 @@ const AddRPSForm = ({
           name="semester"
           rules={[{ required: true, message: "Semester wajib diisi" }]}
         >
-          <InputNumber placeholder="Semester" min={1} style={{ width: 300 }} />
+          <Select style={{ width: 300 }} placeholder="Pilih Semester">
+            {semesterList.map((item, key) => (
+              <Select.Option
+                value={item.idSemester}
+                key={`semester-${key}`}
+              >
+                {renderSemesterLabel(item)}
+              </Select.Option>
+            ))}
+          </Select>
         </Form.Item>
 
         <Form.Item

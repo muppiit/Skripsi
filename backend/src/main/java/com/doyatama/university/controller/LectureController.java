@@ -1,6 +1,7 @@
 package com.doyatama.university.controller;
 
 import com.doyatama.university.model.Lecture;
+import com.doyatama.university.exception.BadRequestException;
 import com.doyatama.university.payload.ApiResponse;
 import com.doyatama.university.payload.DefaultResponse;
 import com.doyatama.university.payload.LectureRequest;
@@ -32,18 +33,21 @@ public class LectureController {
 
     @PostMapping
     public ResponseEntity<?> createLecture(@Valid @RequestBody LectureRequest lectureRequest) throws IOException {
-        Lecture lecture = lectureService.createLecture(lectureRequest);
+        try {
+            Lecture lecture = lectureService.createLecture(lectureRequest);
 
-        if(lecture == null){
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Religion ID / User ID not found"));
-        }else{
+            if (lecture == null) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Agama, program studi, atau user login tidak ditemukan"));
+            }
             URI location = ServletUriComponentsBuilder
                     .fromCurrentRequest().path("/{lectureId}")
                     .buildAndExpand(lecture.getId()).toUri();
 
             return ResponseEntity.created(location)
                     .body(new ApiResponse(true, "Lecture Created Successfully"));
+        } catch (BadRequestException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
         }
     }
 
@@ -56,18 +60,21 @@ public class LectureController {
     @PutMapping("/{lectureId}")
     public ResponseEntity<?> updateLecture(@PathVariable String lectureId,
                                                 @Valid @RequestBody LectureRequest lectureRequest) throws IOException {
-        Lecture lecture = lectureService.updateLecture(lectureId, lectureRequest);
+        try {
+            Lecture lecture = lectureService.updateLecture(lectureId, lectureRequest);
 
-        if(lecture == null){
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse(false, "Religion ID / User ID not found"));
-        }else{
+            if (lecture == null) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Agama, program studi, atau user login tidak ditemukan"));
+            }
             URI location = ServletUriComponentsBuilder
                     .fromCurrentRequest().path("/{lectureId}")
                     .buildAndExpand(lecture.getId()).toUri();
 
             return ResponseEntity.created(location)
                     .body(new ApiResponse(true, "Lecture Updated Successfully"));
+        } catch (BadRequestException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
         }
     }
 

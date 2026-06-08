@@ -60,6 +60,8 @@ public class RpsSeeder {
                                 "{\"id\":\"LM001\",\"name\":\"LMS\"}");
                 client.insertRecord(TABLE_RPS, id, "learning_media_hardwares", "hard_0",
                                 "{\"id\":\"LM002\",\"name\":\"Projector\"}");
+                client.insertRecord(TABLE_RPS, id, "requirement_subjects", "req_0",
+                                "{\"id\":\"" + subjectId + "\",\"name\":\"" + name + "\"}");
 
                 client.insertRecord(TABLE_RPS, id, "study_program", "id", studyProgramId);
                 client.insertRecord(TABLE_RPS, id, "study_program", "name", studyProgramName);

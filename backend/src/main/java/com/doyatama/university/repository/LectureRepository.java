@@ -3,9 +3,16 @@ package com.doyatama.university.repository;
 
 import com.doyatama.university.helper.HBaseCustomClient;
 import com.doyatama.university.model.Lecture;
+import com.doyatama.university.model.StudyProgram;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.CompareOperator;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.*;
@@ -22,6 +29,7 @@ public class LectureRepository {
 
         // Add the mappings to the HashMap
         columnMapping.put("id", "id");
+        columnMapping.put("user_id", "user_id");
         columnMapping.put("nip", "nip");
         columnMapping.put("name", "name");
         columnMapping.put("place_born", "place_born");
@@ -42,6 +50,9 @@ public class LectureRepository {
 
         TableName tableLecture = TableName.valueOf(tableName);
         client.insertRecord(tableLecture, rowKey, "main", "id", rowKey);
+        if (lecture.getUser_id() != null) {
+            client.insertRecord(tableLecture, rowKey, "main", "user_id", lecture.getUser_id());
+        }
         client.insertRecord(tableLecture, rowKey, "main", "nip", lecture.getNip());
         client.insertRecord(tableLecture, rowKey, "main", "name", lecture.getName());
         client.insertRecord(tableLecture, rowKey, "main", "place_born", lecture.getPlace_born());
@@ -68,6 +79,7 @@ public class LectureRepository {
 
         // Add the mappings to the HashMap
         columnMapping.put("id", "id");
+        columnMapping.put("user_id", "user_id");
         columnMapping.put("nip", "nip");
         columnMapping.put("name", "name");
         columnMapping.put("place_born", "place_born");
@@ -89,6 +101,7 @@ public class LectureRepository {
         Map<String, String> columnMapping = new HashMap<>();
         // Add the mappings to the HashMap
         columnMapping.put("id", "id");
+        columnMapping.put("user_id", "user_id");
         columnMapping.put("nip", "nip");
         columnMapping.put("name", "name");
         columnMapping.put("place_born", "place_born");
@@ -116,6 +129,7 @@ public class LectureRepository {
         TableName table = TableName.valueOf(tableName);
         Map<String, String> columnMapping = new HashMap<>();
         columnMapping.put("id", "id");
+        columnMapping.put("user_id", "user_id");
         columnMapping.put("nip", "nip");
         columnMapping.put("name", "name");
         columnMapping.put("place_born", "place_born");
@@ -149,6 +163,7 @@ public class LectureRepository {
         Map<String, String> columnMapping = new HashMap<>();
         // Add the mappings to the HashMap
         columnMapping.put("id", "id");
+        columnMapping.put("user_id", "user_id");
         columnMapping.put("nip", "nip");
         columnMapping.put("name", "name");
         columnMapping.put("place_born", "place_born");
@@ -175,6 +190,9 @@ public class LectureRepository {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
         TableName tableLecture = TableName.valueOf(tableName);
+        if (lecture.getUser_id() != null) {
+            client.insertRecord(tableLecture, lectureId, "main", "user_id", lecture.getUser_id());
+        }
         client.insertRecord(tableLecture, lectureId, "main", "nip", lecture.getNip());
         client.insertRecord(tableLecture, lectureId, "main", "name", lecture.getName());
         client.insertRecord(tableLecture, lectureId, "main", "place_born", lecture.getPlace_born());
@@ -190,6 +208,42 @@ public class LectureRepository {
         
         lecture.setId(lectureId);
         return lecture;
+    }
+
+    public Lecture findByUserId(String userId) throws IOException {
+        if (userId == null || userId.trim().isEmpty()) {
+            return new Lecture();
+        }
+
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+        Scan scan = new Scan();
+        SingleColumnValueFilter filter = new SingleColumnValueFilter(Bytes.toBytes("main"), Bytes.toBytes("user_id"),
+                CompareOperator.EQUAL, Bytes.toBytes(userId));
+        filter.setFilterIfMissing(true);
+        scan.setFilter(filter);
+
+        ResultScanner scanner = client.getTable(tableName).getScanner(scan);
+        try {
+            for (Result result : scanner) {
+                return findById(Bytes.toString(result.getRow()));
+            }
+        } finally {
+            scanner.close();
+        }
+
+        return new Lecture();
+    }
+
+    public void updateStudyProgramByUserId(String userId, StudyProgram studyProgram) throws IOException {
+        Lecture lecture = findByUserId(userId);
+        if (lecture == null || lecture.getId() == null || studyProgram == null || studyProgram.getId() == null) {
+            return;
+        }
+
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+        TableName tableLecture = TableName.valueOf(tableName);
+        client.insertRecord(tableLecture, lecture.getId(), "study_program", "id", studyProgram.getId());
+        client.insertRecord(tableLecture, lecture.getId(), "study_program", "name", studyProgram.getName());
     }
 
     public boolean deleteById(String lectureId) throws IOException {

@@ -39,6 +39,8 @@ import {
   ExclamationCircleOutlined,
   PlayCircleOutlined,
   SaveOutlined,
+  DownloadOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import moment from "moment";
@@ -61,6 +63,17 @@ import {
 import { reqUserInfo } from "@/api/user";
 import { getAnalysisByUjian } from "@/api/ujianAnalysis";
 import { recordViolation } from "@/api/cheatDetection";
+import {
+  addOfflineViolationLog,
+  buildOfflineExamPackageId,
+  getOfflineFinalSubmission,
+  getOfflineExamPackage,
+  getOfflineViolationLogs,
+  removeOfflineFinalSubmission,
+  saveOfflineAnswerDraft,
+  saveOfflineExamPackage,
+  saveOfflineFinalSubmission,
+} from "@/utils/offlineExamStorage";
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -127,9 +140,17 @@ const UjianCATView = () => {
   const [ujianData, setUjianData] = useState(null);
   const [soalList, setSoalList] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
-  const [schoolInfo, setSchoolInfo] = useState(null);
+  const [studyProgramInfo, setStudyProgramInfo] = useState(null);
   const [studentInfo, setStudentInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [offlinePackageReady, setOfflinePackageReady] = useState(false);
+  const [offlineDownloadLoading, setOfflineDownloadLoading] = useState(false);
+  const [offlineDownloadProgress, setOfflineDownloadProgress] = useState(0);
+  const [offlineDownloadStatus, setOfflineDownloadStatus] = useState("");
+  const [finalUploadStatus, setFinalUploadStatus] = useState("idle");
+  const [finalUploadProgress, setFinalUploadProgress] = useState(0);
+  const [finalUploadMessage, setFinalUploadMessage] = useState("");
+  const [pendingFinalSubmission, setPendingFinalSubmission] = useState(null);
 
   // Session states
   const [sessionId, setSessionId] = useState(null);
@@ -178,6 +199,11 @@ const UjianCATView = () => {
   const autoSaveRef = useRef(null);
   const keepAliveRef = useRef(null);
   const timeSyncRef = useRef(null);
+  const antiCheatEventRef = useRef({
+    lastType: null,
+    lastAt: 0,
+    pendingBlurTimer: null,
+  });
 
   // Enhanced Auto Fullscreen - Cannot be disabled during exam
   useEffect(() => {
@@ -306,7 +332,9 @@ const UjianCATView = () => {
         const response = await reqUserInfo();
         setUserInfo(response.data);
         setStudentInfo(response.data.id); // Asumsikan response.data sudah berisi info siswa
-        setSchoolInfo(response.data.school_id); // Asumsikan ada school info di response
+        setStudyProgramInfo(
+          response.data.study_program_id || response.data.school_id
+        );
       } catch (error) {
         console.error("Error fetching user info:", error);
         message.error("Gagal mengambil informasi pengguna");
@@ -387,6 +415,10 @@ const UjianCATView = () => {
         }
 
         // Set data ujian dan soal sekaligus
+        setOfflinePackageReady(false);
+        setOfflineDownloadLoading(false);
+        setOfflineDownloadProgress(0);
+        setOfflineDownloadStatus("");
         setUjianData(ujian);
         setSessionContext({
           kelas: ujian.kelas || null,
@@ -476,7 +508,11 @@ const UjianCATView = () => {
         console.log("Validation endpoint not found, skipping validation");
         await checkExistingSession(idUjian);
       } else {
-        message.error("Gagal memvalidasi ujian: " + error.message);
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message;
+        message.error("Gagal memvalidasi ujian: " + errorMessage);
         setLoading(false);
       }
     }
@@ -561,8 +597,120 @@ const UjianCATView = () => {
     }
     return shuffled;
   };
+
+  const waitDownloadStep = (ms = 250) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const createOfflineExamPackage = () => {
+    const idUjian = ujianData?.idUjian;
+    const idPeserta = userInfo?.id;
+
+    return {
+      id: buildOfflineExamPackageId(idUjian, idPeserta),
+      version: 1,
+      downloadedAt: new Date().toISOString(),
+      idUjian,
+      idPeserta,
+      kodeUjian: ujianData?.pengaturan?.kodeUjian,
+      ujian: {
+        ...ujianData,
+        bankSoalList: soalList,
+      },
+      soalList,
+      peserta: {
+        id: userInfo?.id,
+        username: userInfo?.username,
+        name: userInfo?.name,
+        fullName: userInfo?.fullName,
+        role: userInfo?.role,
+        studyProgramId:
+          userInfo?.study_program_id ||
+          userInfo?.studyProgram?.id ||
+          userInfo?.schoolId,
+      },
+      sessionContext,
+      timer: {
+        durasiMenit: ujianData?.durasiMenit,
+        initialTimeLeft: (ujianData?.durasiMenit || 0) * 60,
+      },
+      security: {
+        preventCheating: ujianData?.preventCheating,
+        fullscreenRequired: true,
+      },
+      localState: {
+        jawaban: {},
+        currentSoal: 0,
+        violations: [],
+        syncStatus: "LOCAL_READY",
+      },
+    };
+  };
+
+  const handleDownloadExamPackage = async () => {
+    if (!ujianData || !userInfo) {
+      message.error("Data ujian atau pengguna belum lengkap");
+      return;
+    }
+
+    if (!soalList || soalList.length === 0) {
+      message.error("Tidak ada soal yang bisa didownload");
+      return;
+    }
+
+    try {
+      setOfflineDownloadLoading(true);
+      setOfflinePackageReady(false);
+      setOfflineDownloadProgress(5);
+      setOfflineDownloadStatus("Menyiapkan paket ujian...");
+      await waitDownloadStep();
+
+      setOfflineDownloadProgress(25);
+      setOfflineDownloadStatus("Memvalidasi metadata ujian dan peserta...");
+      await waitDownloadStep();
+
+      setOfflineDownloadProgress(45);
+      setOfflineDownloadStatus("Mengemas soal tanpa kunci jawaban...");
+      const offlinePackage = createOfflineExamPackage();
+      await waitDownloadStep();
+
+      setOfflineDownloadProgress(70);
+      setOfflineDownloadStatus("Menyimpan paket ujian ke IndexedDB...");
+      await saveOfflineExamPackage(offlinePackage);
+      await waitDownloadStep();
+
+      setOfflineDownloadProgress(90);
+      setOfflineDownloadStatus("Memverifikasi paket ujian lokal...");
+      const savedPackage = await getOfflineExamPackage(
+        ujianData.idUjian,
+        userInfo.id
+      );
+
+      if (!savedPackage || savedPackage.soalList?.length !== soalList.length) {
+        throw new Error("Paket ujian lokal tidak lengkap");
+      }
+
+      setOfflineDownloadProgress(100);
+      setOfflineDownloadStatus("Download selesai. Ujian siap dimulai.");
+      setOfflinePackageReady(true);
+      message.success("Paket ujian berhasil didownload ke perangkat ini");
+    } catch (error) {
+      console.error("Download paket ujian gagal:", error);
+      setOfflinePackageReady(false);
+      setOfflineDownloadProgress(0);
+      setOfflineDownloadStatus("");
+      message.error("Gagal download ujian: " + error.message);
+    } finally {
+      setOfflineDownloadLoading(false);
+    }
+  };
+
   // Start ujian session - UPDATED to use resume-or-start
   const handleStartUjian = async () => {
+    if (!offlinePackageReady) {
+      message.warning("Download ujian terlebih dahulu sebelum mulai");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -623,15 +771,15 @@ const UjianCATView = () => {
           setShowSoalPanel(false);
         }
 
-        // Start keep-alive mechanism
-        startKeepAlive();
-
-        // Start server time synchronization
-        startTimeSync();
+        // Ujian berjalan local-first. Data jawaban/pelanggaran diupload saat kumpulkan.
       }
     } catch (error) {
       console.error("Start ujian error:", error);
-      message.error("Gagal memulai ujian: " + error.message);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message;
+      message.error("Gagal memulai ujian: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -777,6 +925,121 @@ const UjianCATView = () => {
       if (timeSyncRef.current) clearInterval(timeSyncRef.current);
     };
   }, []);
+
+  const buildAnswerDraftPayload = useCallback(
+    (answers, currentIndex = currentSoal) => ({
+      id: buildOfflineExamPackageId(ujianData?.idUjian, userInfo?.id),
+      idUjian: ujianData?.idUjian,
+      idPeserta: userInfo?.id,
+      sessionId,
+      answers,
+      currentSoalIndex: currentIndex,
+      timeRemaining: timeLeft,
+      updatedAt: new Date().toISOString(),
+    }),
+    [currentSoal, sessionId, timeLeft, ujianData, userInfo]
+  );
+
+  const saveAnswerDraftLocally = useCallback(
+    async (answers, currentIndex = currentSoal) => {
+      if (!ujianData?.idUjian || !userInfo?.id) return;
+      await saveOfflineAnswerDraft(buildAnswerDraftPayload(answers, currentIndex));
+    },
+    [buildAnswerDraftPayload, currentSoal, ujianData, userInfo]
+  );
+
+  const buildFinalSubmissionPayload = useCallback(
+    async (isAutoSubmit = false, answers = jawaban) => {
+      const allViolationLogs = await getOfflineViolationLogs();
+      const relatedViolations = (allViolationLogs || []).filter(
+        (log) => log.idUjian === ujianData?.idUjian && log.idPeserta === userInfo?.id
+      );
+      const now = new Date().toISOString();
+
+      return {
+        id: buildOfflineExamPackageId(ujianData?.idUjian, userInfo?.id),
+        idUjian: ujianData?.idUjian,
+        idPeserta: userInfo?.id,
+        sessionId,
+        kodeUjian: ujianData?.pengaturan?.kodeUjian,
+        answers,
+        isAutoSubmit,
+        finalTimeRemaining: timeLeft,
+        submittedAt: now,
+        metadata: {
+          currentSoalIndex: currentSoal,
+          attemptNumber,
+          userAgent: navigator.userAgent,
+          onlineAtSubmit: navigator.onLine,
+          localSubmittedAt: now,
+          durationUsedSeconds: Math.max(
+            0,
+            (ujianData?.durasiMenit || 0) * 60 - timeLeft
+          ),
+        },
+        violations: relatedViolations,
+      };
+    },
+    [attemptNumber, currentSoal, jawaban, sessionId, timeLeft, ujianData, userInfo]
+  );
+
+  const uploadFinalSubmission = useCallback(
+    async (submissionPayload) => {
+      setFinalUploadStatus("uploading");
+      setFinalUploadProgress(10);
+      setFinalUploadMessage("Menyiapkan data final ujian...");
+
+      await saveOfflineFinalSubmission(submissionPayload);
+
+      if (!navigator.onLine) {
+        throw new Error("Perangkat sedang offline. Data tersimpan lokal.");
+      }
+
+      setFinalUploadProgress(35);
+      setFinalUploadMessage("Mengupload log pelanggaran...");
+
+      for (const violation of submissionPayload.violations || []) {
+        await recordViolation(violation);
+      }
+
+      setFinalUploadProgress(70);
+      setFinalUploadMessage("Mengupload jawaban akhir...");
+
+      const submitResponse = await submitUjian({
+        idUjian: submissionPayload.idUjian,
+        idPeserta: submissionPayload.idPeserta,
+        sessionId: submissionPayload.sessionId,
+        answers: submissionPayload.answers,
+        isAutoSubmit: submissionPayload.isAutoSubmit,
+        finalTimeRemaining: submissionPayload.finalTimeRemaining,
+        submittedAt: submissionPayload.submittedAt,
+        metadata: submissionPayload.metadata,
+        violations: submissionPayload.violations,
+      });
+
+      if (
+        submitResponse.data.statusCode !== 200 &&
+        submitResponse.data.success !== true
+      ) {
+        throw new Error(
+          submitResponse.data.message || "Server menolak submit ujian"
+        );
+      }
+
+      setFinalUploadProgress(100);
+      setFinalUploadMessage("Upload selesai.");
+      setFinalUploadStatus("success");
+      setPendingFinalSubmission(null);
+      await removeOfflineFinalSubmission(
+        submissionPayload.idUjian,
+        submissionPayload.idPeserta
+      );
+
+      return submitResponse;
+    },
+    []
+  );
+
   // Auto save function
   const handleAutoSave = useCallback(async () => {
     if (!sessionActive || Object.keys(jawaban).length === 0) return;
@@ -784,15 +1047,7 @@ const UjianCATView = () => {
     try {
       setAutoSaveStatus("saving");
 
-      await autoSaveProgress({
-        idUjian: ujianData.idUjian,
-        idPeserta: userInfo.id,
-        sessionId: sessionId,
-        answers: jawaban,
-        currentSoalIndex: currentSoal,
-        timestamp: new Date().toISOString(),
-      });
-
+      await saveAnswerDraftLocally(jawaban, currentSoal);
       setAutoSaveStatus("saved");
       setLastSaved(new Date());
 
@@ -801,12 +1056,17 @@ const UjianCATView = () => {
       setAutoSaveStatus("error");
       console.error("Auto save failed:", error);
     }
-  }, [sessionActive, jawaban, ujianData, userInfo, sessionId, currentSoal]);
+  }, [
+    currentSoal,
+    jawaban,
+    saveAnswerDraftLocally,
+    sessionActive,
+  ]);
 
   // Handle manual save
   const handleManualSave = async () => {
     await handleAutoSave();
-    message.success("Jawaban berhasil disimpan");
+    message.success("Jawaban tersimpan lokal di perangkat ini");
   };
 
   // Format waktu
@@ -851,24 +1111,22 @@ const UjianCATView = () => {
       formattedJawaban = jawaban_baru;
     }
 
+    const updatedJawaban = {
+      ...jawaban,
+      [soalId]: formattedJawaban,
+    };
+
     setJawaban((prev) => ({
       ...prev,
       [soalId]: formattedJawaban,
     }));
 
-    // Save individual answer immediately
     try {
-      await saveJawaban({
-        idUjian: ujianData.idUjian,
-        idPeserta: userInfo.id,
-        sessionId: sessionId,
-        idBankSoal: soalId,
-        jawaban: formattedJawaban,
-        attemptNumber: attemptNumber,
-        timestamp: new Date().toISOString(),
-      });
+      await saveAnswerDraftLocally(updatedJawaban, currentSoal);
+      setLastSaved(new Date());
     } catch (error) {
-      console.error("Failed to save individual answer:", error);
+      console.error("Failed to save local answer draft:", error);
+      message.warning("Jawaban belum berhasil disimpan lokal");
     }
   };
 
@@ -877,11 +1135,10 @@ const UjianCATView = () => {
     setCurrentSoal(index);
     setSelectedLeftItem(null); // Reset selected item when changing questions
 
-    // Update current soal index on server
     try {
-      await updateCurrentSoal(ujianData.idUjian, userInfo.id, index);
+      await saveAnswerDraftLocally(jawaban, index);
     } catch (error) {
-      console.error("Failed to update current soal:", error);
+      console.error("Failed to save current soal locally:", error);
     }
 
     if (screens.xs || screens.sm) {
@@ -908,67 +1165,61 @@ const UjianCATView = () => {
   const handleSubmitUjian = useCallback(
     async (isAutoSubmit = false) => {
       const submitAction = async () => {
+        let finalPayload = null;
         try {
           setLoading(true);
+          setFinalUploadStatus("uploading");
+          setFinalUploadProgress(0);
 
           // Final save before submit
           await handleAutoSave();
+          finalPayload = await buildFinalSubmissionPayload(isAutoSubmit);
+          await saveOfflineFinalSubmission(finalPayload);
 
-          // Submit ujian
-          const submitResponse = await submitUjian({
-            idUjian: ujianData.idUjian,
-            idPeserta: userInfo.id,
-            sessionId: sessionId,
-            answers: jawaban,
-            attemptNumber: attemptNumber,
-            isAutoSubmit: isAutoSubmit,
-            submittedAt: new Date().toISOString(),
-          }); // Check if submit was successful - either statusCode 200 or success: true
-          if (
-            submitResponse.data.statusCode === 200 ||
-            submitResponse.data.success === true
-          ) {
-            setIsFinished(true);
-            setIsStarted(false);
-            setSessionActive(false);
+          const submitResponse = await uploadFinalSubmission(finalPayload);
 
-            message.success(
-              isAutoSubmit
-                ? "Waktu habis! Ujian otomatis dikumpulkan."
-                : "Ujian berhasil dikumpulkan!"
-            );
-
-            // Clear all intervals
-            if (timerRef.current) clearInterval(timerRef.current);
-            if (autoSaveRef.current) clearInterval(autoSaveRef.current);
-            if (keepAliveRef.current) clearInterval(keepAliveRef.current); // Store result data for display
-            const resultData = submitResponse.data.data;
-            setHasilUjian(resultData);
-
-            // Show result immediately instead of redirecting to dashboard
-            setTimeout(() => {
-              console.log("Submit berhasil, menampilkan hasil:", resultData);
-            }, 1000);
-          }
-        } catch (error) {
-          console.error("Submit error:", error);
-
-          // Even if submit fails, mark session as ended and redirect
           setIsFinished(true);
           setIsStarted(false);
           setSessionActive(false);
+          setPendingFinalSubmission(null);
 
-          // Clear all intervals
+          message.success(
+            isAutoSubmit
+              ? "Waktu habis! Ujian otomatis dikumpulkan."
+              : "Ujian berhasil dikumpulkan!"
+          );
+
           if (timerRef.current) clearInterval(timerRef.current);
           if (autoSaveRef.current) clearInterval(autoSaveRef.current);
           if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+          if (timeSyncRef.current) clearInterval(timeSyncRef.current);
 
-          message.error("Gagal mengumpulkan ujian: " + error.message);
+          const resultData = submitResponse.data.data;
+          setHasilUjian(resultData);
+        } catch (error) {
+          console.error("Submit error:", error);
 
-          // Redirect to dashboard after 3 seconds even on error
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 3000);
+          if (finalPayload) {
+            await saveOfflineFinalSubmission(finalPayload);
+            setPendingFinalSubmission(finalPayload);
+          }
+
+          setIsFinished(true);
+          setIsStarted(false);
+          setSessionActive(false);
+          setFinalUploadStatus("failed");
+          setFinalUploadMessage(
+            error.message || "Upload gagal. Data tersimpan lokal."
+          );
+
+          if (timerRef.current) clearInterval(timerRef.current);
+          if (autoSaveRef.current) clearInterval(autoSaveRef.current);
+          if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+          if (timeSyncRef.current) clearInterval(timeSyncRef.current);
+
+          message.error(
+            "Upload jawaban gagal. Data tetap tersimpan lokal, silakan Upload Ulang."
+          );
         } finally {
           setLoading(false);
         }
@@ -990,13 +1241,37 @@ const UjianCATView = () => {
     [
       ujianData,
       userInfo,
-      sessionId,
-      jawaban,
-      attemptNumber,
-      navigate,
       handleAutoSave,
+      buildFinalSubmissionPayload,
+      uploadFinalSubmission,
     ]
   );
+
+  const handleRetryFinalUpload = async () => {
+    try {
+      setLoading(true);
+      const submission =
+        pendingFinalSubmission ||
+        (await getOfflineFinalSubmission(ujianData?.idUjian, userInfo?.id));
+
+      if (!submission) {
+        message.warning("Tidak ada data upload lokal yang perlu dikirim ulang");
+        return;
+      }
+
+      const submitResponse = await uploadFinalSubmission(submission);
+      setPendingFinalSubmission(null);
+      setHasilUjian(submitResponse.data.data);
+      message.success("Upload ulang berhasil");
+    } catch (error) {
+      console.error("Retry upload failed:", error);
+      setFinalUploadStatus("failed");
+      setFinalUploadMessage(error.message || "Upload ulang gagal");
+      message.error("Upload ulang gagal: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Status soal
   const getSoalStatus = (index) => {
@@ -1481,6 +1756,55 @@ const UjianCATView = () => {
     }
   };
 
+  const renderOfflineSyncStatus = () => {
+    switch (finalUploadStatus) {
+      case "uploading":
+        return <Tag color="processing">Upload...</Tag>;
+      case "failed":
+        return <Tag color="warning">Upload Tertunda</Tag>;
+      case "success":
+        return <Tag color="success">Terupload</Tag>;
+      default:
+        return null;
+    }
+  };
+
+  const renderFinalUploadProgress = () => {
+    if (finalUploadStatus === "idle") return null;
+
+    return (
+      <Alert
+        type={finalUploadStatus === "failed" ? "warning" : "info"}
+        showIcon
+        message={
+          finalUploadStatus === "failed"
+            ? "Upload Jawaban Tertunda"
+            : "Upload Jawaban Akhir"
+        }
+        description={
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Progress
+              percent={finalUploadProgress}
+              status={finalUploadStatus === "failed" ? "exception" : "active"}
+            />
+            <Text>{finalUploadMessage}</Text>
+            {finalUploadStatus === "failed" && (
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                loading={loading}
+                onClick={handleRetryFinalUpload}
+              >
+                Upload Ulang
+              </Button>
+            )}
+          </Space>
+        }
+        style={{ marginBottom: "24px", textAlign: "left" }}
+      />
+    );
+  };
+
   // Fetch analysis after ujian selesai - HANYA UNTUK OPERATOR & TEACHER
   useEffect(() => {
     if (isFinished && ujianData && userInfo) {
@@ -1539,53 +1863,99 @@ const UjianCATView = () => {
 
     // Handler untuk kirim pelanggaran ke backend dan update counter
     const handleViolation = (type, extra = {}) => {
+      const now = Date.now();
+      const lastEvent = antiCheatEventRef.current;
+
+      if (lastEvent.lastType === type && now - lastEvent.lastAt < 750) {
+        return;
+      }
+
+      lastEvent.lastType = type;
+      lastEvent.lastAt = now;
+
       // Ensure evidence always has at least one non-empty key
       const evidence =
         Object.keys(extra).length > 0
           ? extra
           : { source: "frontend", detector: "anti-cheat" };
 
-      recordViolation({
+      const violationPayload = {
+        id: `violation:${sessionId}:${type}:${now}`,
         sessionId,
         idPeserta: userInfo.id,
         idUjian: ujianData.idUjian,
+        idSchool:
+          sessionContext?.idStudyProgram ||
+          sessionContext?.idSchool ||
+          sessionContext?.studyProgram?.id ||
+          sessionContext?.study_program?.id ||
+          sessionContext?.school?.idSchool ||
+          ujianData.idStudyProgram ||
+          ujianData.idSchool ||
+          ujianData.study_program?.id ||
+          ujianData.school?.idSchool ||
+          userInfo.studyProgram?.id ||
+          userInfo.study_program?.id ||
+          userInfo.school?.idSchool ||
+          userInfo.schoolId ||
+          studyProgramInfo,
+        idStudyProgram:
+          sessionContext?.idStudyProgram ||
+          sessionContext?.idSchool ||
+          sessionContext?.studyProgram?.id ||
+          sessionContext?.study_program?.id ||
+          ujianData.idStudyProgram ||
+          ujianData.idSchool ||
+          ujianData.study_program?.id ||
+          userInfo.studyProgram?.id ||
+          userInfo.study_program?.id ||
+          userInfo.schoolId ||
+          studyProgramInfo,
         typeViolation: type,
         detectedAt: new Date().toISOString(),
         evidence: evidence,
+        browserInfo: navigator.userAgent,
+        userAgent: navigator.userAgent,
+        windowTitle: document.title,
+        screenWidth: window.screen?.width,
+        screenHeight: window.screen?.height,
+        fullscreenStatus: !!document.fullscreenElement,
+      };
+
+      addOfflineViolationLog(violationPayload).catch((error) => {
+        console.error("Gagal menyimpan pelanggaran lokal:", error);
       });
 
-      setViolationCount((prev) => {
-        const next = prev + 1;
-
-        // Set violation details for alert
-        setLastViolationType(type);
-        setViolationDetails(getViolationDescription(type));
-
-        // Show immediate violation alert
-        setViolationModalVisible(true);
-
-        // Critical violation check - if more than 10 violations
-        // if (next > 10) {
-        //   setCriticalViolationModal(true);
-        //   setViolationReason(type);
-
-        //   // Auto submit ujian jika pelanggaran > 10
-        //   if (!isFinished && sessionActive) {
-        //     setTimeout(() => {
-        //       handleSubmitUjian(true);
-        //     }, 5000); // Give 3 seconds for user to see the message
-        //   }
-        // }
-
-        return next;
-      });
+      setViolationCount((prev) => prev + 1);
+      setLastViolationType(type);
+      setViolationDetails(getViolationDescription(type));
+      setViolationModalVisible(true);
     };
 
     // Tab/window blur
-    const handleBlur = () => handleViolation("WINDOW_BLUR");
+    const handleBlur = () => {
+      if (antiCheatEventRef.current.pendingBlurTimer) {
+        clearTimeout(antiCheatEventRef.current.pendingBlurTimer);
+      }
+
+      antiCheatEventRef.current.pendingBlurTimer = setTimeout(() => {
+        if (document.visibilityState === "visible") {
+          handleViolation("WINDOW_BLUR");
+        }
+
+        antiCheatEventRef.current.pendingBlurTimer = null;
+      }, 150);
+    };
     // Visibility change
     const handleVisibility = () => {
-      if (document.visibilityState === "hidden") handleViolation("TAB_SWITCH");
+      if (document.visibilityState === "hidden") {
+        if (antiCheatEventRef.current.pendingBlurTimer) {
+          clearTimeout(antiCheatEventRef.current.pendingBlurTimer);
+          antiCheatEventRef.current.pendingBlurTimer = null;
+        }
+
+        handleViolation("TAB_SWITCH");
+      }
     };
     // Copy
     const handleCopy = (e) =>
@@ -1662,6 +2032,11 @@ const UjianCATView = () => {
       window.removeEventListener("keydown", handleKeydown);
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("dragstart", handleDragStart);
+
+      if (antiCheatEventRef.current.pendingBlurTimer) {
+        clearTimeout(antiCheatEventRef.current.pendingBlurTimer);
+        antiCheatEventRef.current.pendingBlurTimer = null;
+      }
     };
   }, [
     isStarted,
@@ -1669,6 +2044,8 @@ const UjianCATView = () => {
     ujianData,
     userInfo,
     sessionId,
+    sessionContext,
+    studyProgramInfo,
     isFinished,
     handleSubmitUjian,
   ]);
@@ -1831,7 +2208,10 @@ const UjianCATView = () => {
                     <li>Anda dapat mereview jawaban sebelum mengumpulkan</li>
                   )}
                   <li>Jawaban akan tersimpan otomatis setiap 30 detik</li>
-                  <li>Pastikan koneksi internet stabil selama ujian</li>
+                  <li>
+                    Download ujian terlebih dahulu agar data penting tersedia di
+                    perangkat
+                  </li>
                   <li>Ujian akan otomatis terkumpul ketika waktu habis</li>
                   <li>Maksimal percobaan: {ujianData.maxAttempts} kali</li>
                 </ul>
@@ -1840,16 +2220,56 @@ const UjianCATView = () => {
               style={{ marginBottom: "32px" }}
             />
 
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlayCircleOutlined />}
-              onClick={handleStartUjian}
-              loading={loading}
-              style={{ padding: "8px 32px", height: "auto" }}
-            >
-              Mulai Ujian
-            </Button>
+            {(offlineDownloadLoading ||
+              offlineDownloadProgress > 0 ||
+              offlinePackageReady) && (
+              <Card
+                size="small"
+                style={{ marginBottom: "24px", textAlign: "left" }}
+              >
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Text strong>Status Download Ujian</Text>
+                  <Progress
+                    percent={offlineDownloadProgress}
+                    status={
+                      offlinePackageReady
+                        ? "success"
+                        : offlineDownloadLoading
+                        ? "active"
+                        : "normal"
+                    }
+                  />
+                  <Text type={offlinePackageReady ? "success" : "secondary"}>
+                    {offlineDownloadStatus ||
+                      "Paket ujian belum didownload ke perangkat ini."}
+                  </Text>
+                </Space>
+              </Card>
+            )}
+
+            {!offlinePackageReady ? (
+              <Button
+                type="primary"
+                size="large"
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadExamPackage}
+                loading={offlineDownloadLoading}
+                style={{ padding: "8px 32px", height: "auto" }}
+              >
+                Download Ujian
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlayCircleOutlined />}
+                onClick={handleStartUjian}
+                loading={loading}
+                style={{ padding: "8px 32px", height: "auto" }}
+              >
+                Mulai Ujian
+              </Button>
+            )}
           </div>
         </Card>
       </div>
@@ -1869,12 +2289,17 @@ const UjianCATView = () => {
                 marginBottom: "16px",
               }}
             />
-            <Title level={2}>Ujian Berhasil Diselesaikan!</Title>
+            <Title level={2}>
+              {finalUploadStatus === "failed"
+                ? "Ujian Selesai, Upload Tertunda"
+                : "Ujian Berhasil Diselesaikan!"}
+            </Title>
             <Text type="secondary">
               {ujianData?.namaUjian} - Kode: {ujianData?.pengaturan?.kodeUjian}
             </Text>
           </div>
           <Divider />
+          {renderFinalUploadProgress()}
           {/* Hasil Ujian */}
           {hasilUjian && (
             <div style={{ marginBottom: "24px" }}>
@@ -2409,6 +2834,7 @@ const UjianCATView = () => {
                   </Badge>
                 )}
                 {renderAutoSaveStatus()}
+                {renderOfflineSyncStatus()}
                 {screens.xs || screens.sm ? (
                   <Button
                     icon={
@@ -2676,6 +3102,18 @@ const UjianCATView = () => {
             />
           </Modal>
         )}
+        <Modal
+          open={finalUploadStatus === "uploading"}
+          title="Mengupload Hasil Ujian"
+          footer={null}
+          closable={false}
+          centered
+        >
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Progress percent={finalUploadProgress} status="active" />
+            <Text>{finalUploadMessage || "Mengirim data ujian..."}</Text>
+          </Space>
+        </Modal>
       </div>
     </div>
   );

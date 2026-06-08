@@ -8,13 +8,14 @@ import com.doyatama.university.model.HasilUjian;
 import com.doyatama.university.model.Ujian;
 import com.doyatama.university.model.User;
 import com.doyatama.university.model.School;
+import com.doyatama.university.model.StudyProgram;
 import com.doyatama.university.payload.CheatDetectionRequest;
 import com.doyatama.university.repository.CheatDetectionRepository;
 import com.doyatama.university.repository.UjianSessionRepository;
 import com.doyatama.university.repository.HasilUjianRepository;
 import com.doyatama.university.repository.UjianRepository;
 import com.doyatama.university.repository.UserRepository;
-import com.doyatama.university.repository.SchoolRepository;
+import com.doyatama.university.repository.StudyProgramRepository;
 import com.doyatama.university.constants.ViolationType;
 import com.doyatama.university.constants.SeverityLevel;
 import com.doyatama.university.constants.ActionType;
@@ -58,8 +59,7 @@ public class CheatDetectionService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private SchoolRepository schoolRepository;
+    private StudyProgramRepository studyProgramRepository = new StudyProgramRepository();
 
     @Autowired
     private UjianSessionService ujianSessionService;
@@ -93,7 +93,7 @@ public class CheatDetectionService {
         // VALIDASI TAMBAHAN MENGGUNAKAN REPOSITORY
         validateUjian(idUjian);
         validatePeserta(idPeserta);
-        validateSchool(session.getIdSchool());
+        validateStudyProgram(session.getIdSchool());
 
         return session;
     }
@@ -138,24 +138,23 @@ public class CheatDetectionService {
     }
 
     /**
-     * VALIDATE SCHOOL - MENGGUNAKAN SchoolRepository
+     * VALIDATE PROGRAM STUDI - MENGGUNAKAN StudyProgramRepository
      */
-    private School validateSchool(String idSchool) throws IOException {
-        if (idSchool == null || idSchool.trim().isEmpty()) {
-            throw new BadRequestException("School ID wajib diisi");
+    private StudyProgram validateStudyProgram(String studyProgramId) throws IOException {
+        if (studyProgramId == null || studyProgramId.trim().isEmpty()) {
+            throw new BadRequestException("ID Program Studi wajib diisi");
         }
 
-        School school = schoolRepository.findById(idSchool);
-        if (school == null) {
-            throw new ResourceNotFoundException("School", "id", idSchool);
+        StudyProgram studyProgram = studyProgramRepository.findById(studyProgramId);
+        if (studyProgram == null) {
+            throw new ResourceNotFoundException("Program Studi", "id", studyProgramId);
         }
 
-        // Check school masih aktif
-        if (!school.isValid()) {
-            throw new BadRequestException("School tidak aktif");
+        if (studyProgram.getId() == null || studyProgram.getName() == null) {
+            throw new BadRequestException("Program Studi tidak aktif");
         }
 
-        return school;
+        return studyProgram;
     }
 
     /**
@@ -399,10 +398,13 @@ public class CheatDetectionService {
             validateRecordViolationRequest(request); // ENHANCED validation dengan semua repository
             UjianSession session = validateActiveSession(request.getSessionId(), request.getIdPeserta(),
                     request.getIdUjian());
+            if (request.getIdSchool() == null || request.getIdSchool().trim().isEmpty()) {
+                request.setIdSchool(session.getIdSchool());
+            }
             // Validate related entities (will throw exception if invalid)
             validateUjian(request.getIdUjian());
             validatePeserta(request.getIdPeserta());
-            validateSchool(request.getIdSchool());
+            validateStudyProgram(request.getIdSchool());
 
             // Check existing violation (spam prevention)
             CheatDetection existingViolation = findRecentViolation(request.getSessionId(), request.getTypeViolation(),
@@ -460,6 +462,10 @@ public class CheatDetectionService {
 
             // Save detection
             CheatDetection savedDetection = cheatDetectionRepository.save(detection);
+
+            // Update session with violation so HasilUjian/Report can inherit violation metadata
+            session.addViolation(savedDetection);
+            ujianSessionRepository.save(session);
 
             // Process violation action (including session updates)
             processViolationAction(savedDetection, session);
@@ -1189,6 +1195,8 @@ public class CheatDetectionService {
             Map<String, Object> formatted = new HashMap<>();
             formatted.put("idDetection", violation.getIdDetection());
             formatted.put("sessionId", violation.getSessionId());
+            formatted.put("idPeserta", violation.getIdPeserta());
+            formatted.put("idUjian", violation.getIdUjian());
             formatted.put("typeViolation", violation.getTypeViolation());
             formatted.put("severity", violation.getSeverity());
             formatted.put("violationCount", violation.getViolationCount());

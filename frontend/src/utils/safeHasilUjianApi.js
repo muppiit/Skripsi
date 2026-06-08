@@ -99,7 +99,7 @@ export function transformHasilUjianData(hasil, index = 0) {
     nimSiswa: hasil.peserta?.nim || hasil.peserta?.id || hasil.idPeserta,
     namaSiswa: hasil.peserta?.nama || hasil.peserta?.name || hasil.idPeserta,
     pesertaNama: hasil.peserta?.nama || hasil.peserta?.name || hasil.idPeserta,
-    pesertaUsername: hasil.peserta?.username || hasil.idPeserta, // Class and school information - check both direct and ujian-nested locations
+    pesertaUsername: hasil.peserta?.username || hasil.idPeserta, // Class and study program information - check both direct and ujian-nested locations
     namaKelas:
       hasil.kelas?.namaKelas ||
       hasil.ujian?.kelas?.namaKelas ||
@@ -111,11 +111,31 @@ export function transformHasilUjianData(hasil, index = 0) {
     mapel: hasil.mapel?.name || hasil.ujian?.mapel?.name || "Tidak Diketahui",
     namaMapel:
       hasil.mapel?.name || hasil.ujian?.mapel?.name || "Tidak Diketahui",
+    studyProgram:
+      hasil.studyProgram ||
+      hasil.study_program?.name ||
+      hasil.ujian?.study_program?.name ||
+      hasil.school?.nameSchool ||
+      hasil.ujian?.school?.nameSchool ||
+      "Tidak Diketahui",
+    studyProgramId:
+      hasil.studyProgramId ||
+      hasil.study_program?.id ||
+      hasil.ujian?.study_program?.id ||
+      hasil.school?.idSchool ||
+      hasil.ujian?.school?.idSchool ||
+      "",
     school:
+      hasil.studyProgram ||
+      hasil.study_program?.name ||
+      hasil.ujian?.study_program?.name ||
       hasil.school?.nameSchool ||
       hasil.ujian?.school?.nameSchool ||
       "Tidak Diketahui",
     namaSekolah:
+      hasil.studyProgram ||
+      hasil.study_program?.name ||
+      hasil.ujian?.study_program?.name ||
       hasil.school?.nameSchool ||
       hasil.ujian?.school?.nameSchool ||
       "Tidak Diketahui",
@@ -240,11 +260,12 @@ function getViolationCount(hasil) {
   }
 
   if (hasil.metadata?.violations && Array.isArray(hasil.metadata.violations)) {
-    // Sum violationCount from each item in the violations array
-    return hasil.metadata.violations.reduce(
+    // Sum violationCount from each item in the violations array, or count items
+    const violationCount = hasil.metadata.violations.reduce(
       (sum, v) => sum + (parseInt(v.violationCount) || 0),
       0
     );
+    return violationCount || hasil.metadata.violations.length;
   }
 
   // Fallback: count from violations array in metadata (if it's not an array, try to parse it)
@@ -253,9 +274,10 @@ function getViolationCount(hasil) {
       const violations = Array.isArray(hasil.metadata.violations)
         ? hasil.metadata.violations
         : [hasil.metadata.violations]; // Treat as single item if not array
-      return violations
+      const violationCount = violations
         .filter((v) => v && v.violationCount)
         .reduce((sum, v) => sum + (parseInt(v.violationCount) || 0), 0);
+      return violationCount || violations.filter(Boolean).length;
     } catch (error) {
       console.warn("Error parsing violations from metadata:", error);
       return 0;

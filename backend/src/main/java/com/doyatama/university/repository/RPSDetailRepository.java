@@ -68,8 +68,21 @@ public class RPSDetailRepository {
         columnMapping.put("weight", "weight");
         columnMapping.put("created_at", "created_at");
 
-        return client.getDataListByColumn(tableUsers.toString(), columnMapping, "rps", "id", rpsID, RPSDetail.class,
-                size);
+        List<RPSDetail> filteredRpsDetails = client.getDataListByColumn(tableUsers.toString(), columnMapping, "rps",
+                "id", rpsID, RPSDetail.class, Integer.MAX_VALUE);
+        if (filteredRpsDetails != null && !filteredRpsDetails.isEmpty()) {
+            return filteredRpsDetails;
+        }
+
+        List<RPSDetail> allRpsDetails = client.showListTable(tableUsers.toString(), columnMapping, RPSDetail.class,
+                Integer.MAX_VALUE);
+        List<RPSDetail> fallbackRpsDetails = new ArrayList<>();
+        for (RPSDetail rpsDetail : allRpsDetails) {
+            if (rpsDetail.getRps() != null && rpsID.equals(rpsDetail.getRps().getId())) {
+                fallbackRpsDetails.add(rpsDetail);
+            }
+        }
+        return fallbackRpsDetails;
     }
 
     public RPSDetail save(RPSDetail rpsDetail) throws IOException {
@@ -84,6 +97,7 @@ public class RPSDetailRepository {
         } else {
             rowKey = UUID.randomUUID().toString().substring(0, 10) + "-" + week;
         }
+        rpsDetail.setId(rowKey);
 
         TableName tableRPSDetail = TableName.valueOf(tableName);
         client.insertRecord(tableRPSDetail, rowKey, "main", "id", rowKey);
@@ -229,7 +243,8 @@ public class RPSDetailRepository {
         // student_learning_experience
         for (int i = 0; i < rpsDetail.getStudent_learning_experiences().size(); i++) {
             String studentLearningExperience = rpsDetail.getStudent_learning_experiences().get(i);
-            client.insertRecord(tableRPSDetail, rpsDetailId, "estimated_times", "et_" + i, studentLearningExperience);
+            client.insertRecord(tableRPSDetail, rpsDetailId, "student_learning_experiences", "sle_" + i,
+                    studentLearningExperience);
         }
 
         // assessment_criteria

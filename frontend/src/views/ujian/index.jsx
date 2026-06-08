@@ -313,6 +313,12 @@ const Ujian = () => {
               idUjian
             );
 
+            if (analysisResult?.data?.success === false) {
+              throw new Error(
+                analysisResult.data.message || "Analisis ujian gagal dibuat"
+              );
+            }
+
             // Step 3: Fetch analysis data untuk menampilkan info detail
             setTimeout(async () => {
               try {
@@ -358,7 +364,9 @@ const Ujian = () => {
                     width: 500,
                   });
                 } else {
-                  message.success("success");
+                  message.warning(
+                    "Ujian berakhir, tetapi data analisis belum ditemukan di tabel ujian_analysis."
+                  );
                 }
               } catch (fetchError) {
                 console.warn("Failed to fetch analysis details:", fetchError);

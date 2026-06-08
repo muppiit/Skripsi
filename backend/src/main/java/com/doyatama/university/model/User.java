@@ -23,6 +23,7 @@ public class User {
     private String password;
 
     private School school;
+    private School study_program;
 
     @NotBlank
     private String roles;
@@ -78,11 +79,23 @@ public class User {
     }
 
     public School getSchool() {
-        return school;
+        return school != null ? school : study_program;
     }
 
     public void setSchool(School school) {
         this.school = school;
+        this.study_program = school;
+    }
+
+    public School getStudy_program() {
+        return study_program != null ? study_program : school;
+    }
+
+    public void setStudy_program(School study_program) {
+        this.study_program = study_program;
+        if (this.school == null) {
+            this.school = study_program;
+        }
     }
 
     public String getPassword() {
@@ -111,7 +124,7 @@ public class User {
 
     public boolean isValid() {
         return id != null && name != null && username != null
-                && email != null && password != null && school != null
+                && email != null && password != null && getSchool() != null
                 && roles != null;
     }
 
