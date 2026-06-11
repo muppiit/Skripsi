@@ -386,7 +386,9 @@ const UjianCATView = () => {
 
         // Validasi status ujian
         if (!["AKTIF", "BERLANGSUNG"].includes(ujian.statusUjian)) {
-          message.error("Ujian tidak tersedia untuk dikerjakan");
+          message.error(
+            `Ujian tidak tersedia untuk dikerjakan. Status saat ini: ${ujian.statusUjian || "-"}`
+          );
           setLoginLoading(false);
           return;
         }
@@ -486,6 +488,7 @@ const UjianCATView = () => {
         const validation = validateResponse.data.content;
 
         if (!validation.canStart) {
+          console.warn("Validasi mulai ujian ditolak:", validation);
           message.error(validation.reason || "Tidak dapat memulai ujian");
           setLoading(false);
           return;
@@ -1167,9 +1170,9 @@ const UjianCATView = () => {
       const submitAction = async () => {
         let finalPayload = null;
         try {
-          setLoading(true);
           setFinalUploadStatus("uploading");
           setFinalUploadProgress(0);
+          setFinalUploadMessage("Menyiapkan data jawaban...");
 
           // Final save before submit
           await handleAutoSave();
@@ -1221,7 +1224,8 @@ const UjianCATView = () => {
             "Upload jawaban gagal. Data tetap tersimpan lokal, silakan Upload Ulang."
           );
         } finally {
-          setLoading(false);
+          // Jangan gunakan loading global di sini agar halaman ujian tidak berubah
+          // menjadi layar putih/spinner saat proses upload berlangsung.
         }
       };
 
@@ -1249,7 +1253,6 @@ const UjianCATView = () => {
 
   const handleRetryFinalUpload = async () => {
     try {
-      setLoading(true);
       const submission =
         pendingFinalSubmission ||
         (await getOfflineFinalSubmission(ujianData?.idUjian, userInfo?.id));
@@ -1269,7 +1272,7 @@ const UjianCATView = () => {
       setFinalUploadMessage(error.message || "Upload ulang gagal");
       message.error("Upload ulang gagal: " + error.message);
     } finally {
-      setLoading(false);
+      // Status upload ulang ditampilkan melalui finalUploadStatus/progress.
     }
   };
 
@@ -2851,9 +2854,14 @@ const UjianCATView = () => {
                 <Button
                   type="primary"
                   danger
+                  loading={finalUploadStatus === "uploading"}
+                  disabled={finalUploadStatus === "uploading"}
                   onClick={() => handleSubmitUjian(false)}
                 >
-                  <SendOutlined /> Kumpulkan
+                  <SendOutlined />{" "}
+                  {finalUploadStatus === "uploading"
+                    ? "Mengupload..."
+                    : "Kumpulkan"}
                 </Button>
               </Space>
             </div>
@@ -3108,10 +3116,20 @@ const UjianCATView = () => {
           footer={null}
           closable={false}
           centered
+          maskClosable={false}
+          keyboard={false}
         >
-          <Space direction="vertical" style={{ width: "100%" }}>
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Alert
+              type="info"
+              showIcon
+              message="Mohon tunggu, jawaban sedang dikirim"
+              description="Jangan menutup halaman sampai proses upload selesai. Jika jaringan bermasalah, data tetap tersimpan lokal dan bisa diupload ulang."
+            />
             <Progress percent={finalUploadProgress} status="active" />
-            <Text>{finalUploadMessage || "Mengirim data ujian..."}</Text>
+            <Text strong>
+              {finalUploadMessage || "Mengirim data ujian ke server..."}
+            </Text>
           </Space>
         </Modal>
       </div>
