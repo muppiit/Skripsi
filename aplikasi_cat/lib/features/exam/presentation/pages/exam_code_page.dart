@@ -151,31 +151,61 @@ class _ExamCodePageState extends State<ExamCodePage> {
       showBackButton: true,
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.qr_code_2_outlined,
-                  size: 56,
-                  color: Theme.of(context).colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Icon(
+                    Icons.qr_code_2_outlined,
+                    size: 58,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 22),
                 Text(
                   'Masukkan Kode Ujian',
                   textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Aplikasi akan memeriksa apakah ujian sudah berlangsung dan bisa dikerjakan.',
+                  'Aplikasi akan memeriksa status ujian, peserta, dan kesiapan sesi sebelum download paket soal.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.verified_user_outlined, size: 20),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Gunakan kode ujian yang diberikan dosen/operator.',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -209,7 +239,7 @@ class _ExamCodePageState extends State<ExamCodePage> {
                           ),
                         )
                       : const Icon(Icons.login_outlined),
-                  label: Text(_isLoading ? 'Memeriksa...' : 'Masuk Ujian'),
+                  label: Text(_isLoading ? 'Memeriksa...' : 'Lanjutkan'),
                 ),
               ],
             ),

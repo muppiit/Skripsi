@@ -63,16 +63,25 @@ import {
 import { reqUserInfo } from "@/api/user";
 import { getAnalysisByUjian } from "@/api/ujianAnalysis";
 import { recordViolation } from "@/api/cheatDetection";
+import { recordExamClientAuditLog } from "@/api/examClientAuditLog";
 import {
   addOfflineViolationLog,
   buildOfflineExamPackageId,
   getOfflineFinalSubmission,
   getOfflineExamPackage,
   getOfflineViolationLogs,
+  DOWNLOAD_STATUS,
+  OFFLINE_PACKAGE_SEGMENTS,
+  UPLOAD_STATUS,
   removeOfflineFinalSubmission,
   saveOfflineAnswerDraft,
   saveOfflineExamPackage,
   saveOfflineFinalSubmission,
+  createCompletePackageChecksum,
+  createSegmentManifest,
+  createUploadManifest,
+  hashOfflinePayload,
+  validateOfflineExamPackage,
 } from "@/utils/offlineExamStorage";
 
 const { Title, Text } = Typography;
@@ -199,11 +208,98 @@ const UjianCATView = () => {
   const autoSaveRef = useRef(null);
   const keepAliveRef = useRef(null);
   const timeSyncRef = useRef(null);
+  const downloadFailureCountRef = useRef(0);
+  const uploadFailureCountRef = useRef(0);
+  const downloadRetryCountRef = useRef(0);
+  const uploadRetryCountRef = useRef(0);
   const antiCheatEventRef = useRef({
     lastType: null,
     lastAt: 0,
     pendingBlurTimer: null,
   });
+
+  const getWebDeviceInfo = useCallback(() => {
+    const connection =
+      navigator.connection ||
+      navigator.mozConnection ||
+      navigator.webkitConnection ||
+      {};
+
+    return {
+      platform: navigator.platform,
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      screenWidth: window.screen?.width,
+      screenHeight: window.screen?.height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      deviceMemory: navigator.deviceMemory,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      browserOnline: navigator.onLine,
+      connectionType: connection.effectiveType || connection.type,
+      downlink: connection.downlink,
+      rtt: connection.rtt,
+    };
+  }, []);
+
+  const recordClientAuditLog = useCallback(
+    async ({
+      eventType,
+      status,
+      segmentName,
+      message: logMessage,
+      errorMessage,
+      downloadInfo = {},
+      uploadInfo = {},
+      eventData = {},
+    }) => {
+      if (!ujianData?.idUjian || !userInfo?.id || !eventType) return;
+
+      try {
+        const deviceInfo = getWebDeviceInfo();
+        await recordExamClientAuditLog({
+          idUjian: ujianData.idUjian,
+          idPeserta: userInfo.id,
+          sessionId,
+          studyProgramId:
+            userInfo?.study_program_id ||
+            userInfo?.studyProgram?.id ||
+            userInfo?.schoolId,
+          eventType,
+          platform: "WEB",
+          clientEventId: `${ujianData.idUjian}::${userInfo.id}::${
+            sessionId || "no-session"
+          }::${eventType}::${segmentName || "general"}::${Date.now()}`,
+          segmentName,
+          status,
+          attemptNumber,
+          failureCount:
+            eventType?.startsWith("DOWNLOAD")
+              ? downloadFailureCountRef.current
+              : uploadFailureCountRef.current,
+          retryCount:
+            eventType?.startsWith("DOWNLOAD")
+              ? downloadRetryCountRef.current
+              : uploadRetryCountRef.current,
+          message: logMessage,
+          errorMessage,
+          deviceInfo,
+          networkInfo: {
+            online: navigator.onLine,
+            connectionType: deviceInfo.connectionType,
+            downlink: deviceInfo.downlink,
+            rtt: deviceInfo.rtt,
+          },
+          downloadInfo,
+          uploadInfo,
+          eventData,
+        });
+      } catch (error) {
+        console.warn("Gagal mencatat audit log client:", error);
+      }
+    },
+    [attemptNumber, getWebDeviceInfo, sessionId, ujianData, userInfo]
+  );
 
   // Enhanced Auto Fullscreen - Cannot be disabled during exam
   useEffect(() => {
@@ -604,17 +700,20 @@ const UjianCATView = () => {
   const waitDownloadStep = (ms = 250) =>
     new Promise((resolve) => setTimeout(resolve, ms));
 
-  const createOfflineExamPackage = () => {
+  const createOfflineExamSegments = () => {
     const idUjian = ujianData?.idUjian;
     const idPeserta = userInfo?.id;
 
     return {
-      id: buildOfflineExamPackageId(idUjian, idPeserta),
-      version: 1,
-      downloadedAt: new Date().toISOString(),
-      idUjian,
-      idPeserta,
-      kodeUjian: ujianData?.pengaturan?.kodeUjian,
+      metadata: {
+        id: buildOfflineExamPackageId(idUjian, idPeserta),
+        version: 2,
+        strategy: "SEGMENTED_CHECKSUM",
+        idUjian,
+        idPeserta,
+        kodeUjian: ujianData?.pengaturan?.kodeUjian,
+        downloadedAt: new Date().toISOString(),
+      },
       ujian: {
         ...ujianData,
         bankSoalList: soalList,
@@ -649,6 +748,19 @@ const UjianCATView = () => {
     };
   };
 
+  const createOfflineExamPackage = async (segments, previousPackage = {}) => ({
+    id: segments.metadata.id,
+    version: segments.metadata.version,
+    downloadedAt: segments.metadata.downloadedAt,
+    idUjian: segments.metadata.idUjian,
+    idPeserta: segments.metadata.idPeserta,
+    kodeUjian: segments.metadata.kodeUjian,
+    ...previousPackage,
+    ...segments,
+    downloadManifest:
+      previousPackage.downloadManifest || (await createSegmentManifest(segments)),
+  });
+
   const handleDownloadExamPackage = async () => {
     if (!ujianData || !userInfo) {
       message.error("Data ujian atau pengguna belum lengkap");
@@ -661,43 +773,156 @@ const UjianCATView = () => {
     }
 
     try {
+      downloadRetryCountRef.current += 1;
       setOfflineDownloadLoading(true);
       setOfflinePackageReady(false);
       setOfflineDownloadProgress(5);
-      setOfflineDownloadStatus("Menyiapkan paket ujian...");
+      setOfflineDownloadStatus("Menyiapkan resume download...");
+      await recordClientAuditLog({
+        eventType: "DOWNLOAD_STARTED",
+        status: "STARTED",
+        message: "Mulai download paket ujian",
+        downloadInfo: {
+          strategy: "SEGMENTED_CHECKSUM",
+          retryCount: downloadRetryCountRef.current,
+          totalSegments: OFFLINE_PACKAGE_SEGMENTS.length,
+        },
+      });
       await waitDownloadStep();
 
-      setOfflineDownloadProgress(25);
-      setOfflineDownloadStatus("Memvalidasi metadata ujian dan peserta...");
-      await waitDownloadStep();
+      const segments = createOfflineExamSegments();
+      const existingPackage =
+        (await getOfflineExamPackage(ujianData.idUjian, userInfo.id)) || {};
+      let workingPackage = await createOfflineExamPackage(
+        segments,
+        existingPackage
+      );
 
-      setOfflineDownloadProgress(45);
-      setOfflineDownloadStatus("Mengemas soal tanpa kunci jawaban...");
-      const offlinePackage = createOfflineExamPackage();
-      await waitDownloadStep();
+      if (!workingPackage.downloadManifest?.segments) {
+        workingPackage.downloadManifest = await createSegmentManifest(segments);
+      }
 
-      setOfflineDownloadProgress(70);
-      setOfflineDownloadStatus("Menyimpan paket ujian ke IndexedDB...");
-      await saveOfflineExamPackage(offlinePackage);
-      await waitDownloadStep();
+      for (let index = 0; index < OFFLINE_PACKAGE_SEGMENTS.length; index += 1) {
+        const segmentName = OFFLINE_PACKAGE_SEGMENTS[index];
+        const progressStart = 8 + Math.round((index / OFFLINE_PACKAGE_SEGMENTS.length) * 78);
+        const progressEnd = 8 + Math.round(((index + 1) / OFFLINE_PACKAGE_SEGMENTS.length) * 78);
+        const expectedChecksum = await hashOfflinePayload(
+          segments[segmentName] ?? null
+        );
+        const currentSegment =
+          workingPackage.downloadManifest.segments[segmentName];
+        const currentChecksum = await hashOfflinePayload(
+          workingPackage[segmentName] ?? null
+        );
+
+        if (
+          currentSegment?.status === DOWNLOAD_STATUS.verified &&
+          currentSegment.checksum === expectedChecksum &&
+          currentChecksum === expectedChecksum
+        ) {
+          setOfflineDownloadProgress(progressEnd);
+          setOfflineDownloadStatus(
+            `Segmen ${segmentName} sudah valid, lanjut segmen berikutnya...`
+          );
+          await waitDownloadStep(120);
+          continue;
+        }
+
+        setOfflineDownloadProgress(progressStart);
+        setOfflineDownloadStatus(`Mendownload segmen ${segmentName}...`);
+        workingPackage.downloadManifest.status = DOWNLOAD_STATUS.downloading;
+        workingPackage.downloadManifest.segments[segmentName] = {
+          status: DOWNLOAD_STATUS.downloading,
+          checksum: expectedChecksum,
+          verifiedAt: null,
+        };
+        await saveOfflineExamPackage(workingPackage);
+        await waitDownloadStep();
+
+        workingPackage = {
+          ...workingPackage,
+          [segmentName]: segments[segmentName],
+        };
+
+        const savedChecksum = await hashOfflinePayload(
+          workingPackage[segmentName] ?? null
+        );
+        if (savedChecksum !== expectedChecksum) {
+          workingPackage.downloadManifest.segments[segmentName] = {
+            status: DOWNLOAD_STATUS.failed,
+            checksum: expectedChecksum,
+            verifiedAt: null,
+          };
+          await saveOfflineExamPackage(workingPackage);
+          await recordClientAuditLog({
+            eventType: "DOWNLOAD_SEGMENT_FAILED",
+            status: "FAILED",
+            segmentName,
+            errorMessage: `Checksum segmen ${segmentName} tidak cocok`,
+            downloadInfo: {
+              checksum: expectedChecksum,
+              strategy: "SEGMENTED_CHECKSUM",
+            },
+          });
+          throw new Error(`Checksum segmen ${segmentName} tidak cocok`);
+        }
+
+        workingPackage.downloadManifest.segments[segmentName] = {
+          status: DOWNLOAD_STATUS.verified,
+          checksum: expectedChecksum,
+          verifiedAt: new Date().toISOString(),
+        };
+        await saveOfflineExamPackage(workingPackage);
+        setOfflineDownloadProgress(progressEnd);
+        setOfflineDownloadStatus(`Segmen ${segmentName} berhasil diverifikasi`);
+        await waitDownloadStep(150);
+      }
 
       setOfflineDownloadProgress(90);
       setOfflineDownloadStatus("Memverifikasi paket ujian lokal...");
-      const savedPackage = await getOfflineExamPackage(
-        ujianData.idUjian,
-        userInfo.id
-      );
+      workingPackage.downloadManifest.packageChecksum =
+        await createCompletePackageChecksum(workingPackage);
+      workingPackage.downloadManifest.status = DOWNLOAD_STATUS.complete;
+      workingPackage.downloadManifest.completedAt = new Date().toISOString();
+      await saveOfflineExamPackage(workingPackage);
 
-      if (!savedPackage || savedPackage.soalList?.length !== soalList.length) {
+      const savedPackage = await getOfflineExamPackage(ujianData.idUjian, userInfo.id);
+
+      if (
+        !savedPackage ||
+        savedPackage.soalList?.length !== soalList.length ||
+        !(await validateOfflineExamPackage(savedPackage))
+      ) {
         throw new Error("Paket ujian lokal tidak lengkap");
       }
 
       setOfflineDownloadProgress(100);
       setOfflineDownloadStatus("Download selesai. Ujian siap dimulai.");
       setOfflinePackageReady(true);
+      await recordClientAuditLog({
+        eventType: "DOWNLOAD_COMPLETED",
+        status: "COMPLETED",
+        message: "Paket ujian berhasil didownload dan diverifikasi",
+        downloadInfo: {
+          strategy: "SEGMENTED_CHECKSUM",
+          totalSegments: OFFLINE_PACKAGE_SEGMENTS.length,
+          packageChecksum: savedPackage.downloadManifest?.packageChecksum,
+        },
+      });
       message.success("Paket ujian berhasil didownload ke perangkat ini");
     } catch (error) {
       console.error("Download paket ujian gagal:", error);
+      downloadFailureCountRef.current += 1;
+      await recordClientAuditLog({
+        eventType: "DOWNLOAD_FAILED",
+        status: "FAILED",
+        errorMessage: error.message,
+        downloadInfo: {
+          strategy: "SEGMENTED_CHECKSUM",
+          failureCount: downloadFailureCountRef.current,
+          retryCount: downloadRetryCountRef.current,
+        },
+      });
       setOfflinePackageReady(false);
       setOfflineDownloadProgress(0);
       setOfflineDownloadStatus("");
@@ -716,6 +941,16 @@ const UjianCATView = () => {
 
     try {
       setLoading(true);
+
+      const localPackage = await getOfflineExamPackage(
+        ujianData.idUjian,
+        userInfo.id
+      );
+      if (!(await validateOfflineExamPackage(localPackage))) {
+        setOfflinePackageReady(false);
+        message.warning("Paket ujian lokal belum lengkap. Download ulang ujian.");
+        return;
+      }
 
       // Enhanced fullscreen when starting exam - MANDATORY MODE
       try {
@@ -959,8 +1194,13 @@ const UjianCATView = () => {
       );
       const now = new Date().toISOString();
 
+      const idempotencyKey = `${ujianData?.idUjian || "unknown"}::${
+        userInfo?.id || "unknown"
+      }::${sessionId || "unknown"}`;
+
       return {
         id: buildOfflineExamPackageId(ujianData?.idUjian, userInfo?.id),
+        idempotencyKey,
         idUjian: ujianData?.idUjian,
         idPeserta: userInfo?.id,
         sessionId,
@@ -992,8 +1232,28 @@ const UjianCATView = () => {
       setFinalUploadProgress(10);
       setFinalUploadMessage("Menyiapkan data final ujian...");
 
-      await saveOfflineFinalSubmission(submissionPayload);
+      let workingSubmission = {
+        ...submissionPayload,
+        uploadManifest:
+          submissionPayload.uploadManifest ||
+          (await createUploadManifest(submissionPayload)),
+      };
+      await saveOfflineFinalSubmission(workingSubmission);
 
+      uploadRetryCountRef.current += 1;
+      await recordClientAuditLog({
+        eventType: "UPLOAD_STARTED",
+        status: "STARTED",
+        message: "Mulai upload hasil ujian",
+        uploadInfo: {
+          strategy: "SEGMENTED_UPLOAD_IDEMPOTENCY",
+          retryCount: uploadRetryCountRef.current,
+          totalViolations: workingSubmission.violations?.length || 0,
+          answeredCount: Object.keys(workingSubmission.answers || {}).length,
+        },
+      });
+
+      try {
       if (!navigator.onLine) {
         throw new Error("Perangkat sedang offline. Data tersimpan lokal.");
       }
@@ -1001,24 +1261,138 @@ const UjianCATView = () => {
       setFinalUploadProgress(35);
       setFinalUploadMessage("Mengupload log pelanggaran...");
 
-      for (const violation of submissionPayload.violations || []) {
-        await recordViolation(violation);
+      const violationsChecksum = await hashOfflinePayload(
+        workingSubmission.violations || []
+      );
+      const violationSegment =
+        workingSubmission.uploadManifest?.segments?.violations;
+
+      if (
+        violationSegment?.status !== UPLOAD_STATUS.uploaded ||
+        violationSegment?.checksum !== violationsChecksum
+      ) {
+        workingSubmission.uploadManifest = {
+          ...workingSubmission.uploadManifest,
+          status: UPLOAD_STATUS.uploading,
+          segments: {
+            ...workingSubmission.uploadManifest.segments,
+            violations: {
+              ...violationSegment,
+              status: UPLOAD_STATUS.uploading,
+              checksum: violationsChecksum,
+            },
+          },
+        };
+        await saveOfflineFinalSubmission(workingSubmission);
+
+        for (const violation of workingSubmission.violations || []) {
+          await recordViolation({
+            ...violation,
+            clientEventId:
+              violation.clientEventId ||
+              violation.id ||
+              `${workingSubmission.idempotencyKey}::violation::${
+                violation.typeViolation || violation.violationType || "UNKNOWN"
+              }::${violation.timestamp || violation.detectedAt || ""}`,
+            uploadIdempotencyKey: workingSubmission.idempotencyKey,
+          });
+        }
+
+        workingSubmission.uploadManifest = {
+          ...workingSubmission.uploadManifest,
+          segments: {
+            ...workingSubmission.uploadManifest.segments,
+            violations: {
+              status: UPLOAD_STATUS.uploaded,
+              checksum: violationsChecksum,
+              uploadedAt: new Date().toISOString(),
+            },
+          },
+        };
+        await saveOfflineFinalSubmission(workingSubmission);
+        await recordClientAuditLog({
+          eventType: "UPLOAD_SEGMENT_COMPLETED",
+          status: "COMPLETED",
+          segmentName: "violations",
+          message: "Log pelanggaran berhasil diupload",
+          uploadInfo: {
+            segmentName: "violations",
+            totalViolations: workingSubmission.violations?.length || 0,
+            checksum: violationsChecksum,
+          },
+        });
       }
 
       setFinalUploadProgress(70);
       setFinalUploadMessage("Mengupload jawaban akhir...");
 
-      const submitResponse = await submitUjian({
-        idUjian: submissionPayload.idUjian,
-        idPeserta: submissionPayload.idPeserta,
-        sessionId: submissionPayload.sessionId,
-        answers: submissionPayload.answers,
-        isAutoSubmit: submissionPayload.isAutoSubmit,
-        finalTimeRemaining: submissionPayload.finalTimeRemaining,
-        submittedAt: submissionPayload.submittedAt,
-        metadata: submissionPayload.metadata,
-        violations: submissionPayload.violations,
-      });
+      const finalSubmissionPayload = {
+        idUjian: workingSubmission.idUjian,
+        idPeserta: workingSubmission.idPeserta,
+        sessionId: workingSubmission.sessionId,
+        answers: workingSubmission.answers,
+        isAutoSubmit: workingSubmission.isAutoSubmit,
+        finalTimeRemaining: workingSubmission.finalTimeRemaining,
+        submittedAt: workingSubmission.submittedAt,
+        metadata: workingSubmission.metadata,
+        violations: workingSubmission.violations,
+        idempotencyKey: workingSubmission.idempotencyKey,
+      };
+      const finalSubmissionChecksum = await hashOfflinePayload(
+        finalSubmissionPayload
+      );
+      const finalSegment =
+        workingSubmission.uploadManifest?.segments?.finalSubmission;
+      let submitResponse = finalSegment?.serverResult
+        ? { data: finalSegment.serverResult }
+        : null;
+
+      if (
+        finalSegment?.status !== UPLOAD_STATUS.verified ||
+        finalSegment?.checksum !== finalSubmissionChecksum ||
+        !submitResponse
+      ) {
+        workingSubmission.uploadManifest = {
+          ...workingSubmission.uploadManifest,
+          status: UPLOAD_STATUS.uploading,
+          segments: {
+            ...workingSubmission.uploadManifest.segments,
+            finalSubmission: {
+              ...finalSegment,
+              status: UPLOAD_STATUS.uploading,
+              checksum: finalSubmissionChecksum,
+            },
+          },
+        };
+        await saveOfflineFinalSubmission(workingSubmission);
+
+        submitResponse = await submitUjian(finalSubmissionPayload);
+
+        workingSubmission.uploadManifest = {
+          ...workingSubmission.uploadManifest,
+          segments: {
+            ...workingSubmission.uploadManifest.segments,
+            finalSubmission: {
+              status: UPLOAD_STATUS.verified,
+              checksum: finalSubmissionChecksum,
+              uploadedAt: new Date().toISOString(),
+              serverResult: submitResponse.data,
+            },
+          },
+        };
+        await saveOfflineFinalSubmission(workingSubmission);
+        await recordClientAuditLog({
+          eventType: "UPLOAD_SEGMENT_COMPLETED",
+          status: "COMPLETED",
+          segmentName: "finalSubmission",
+          message: "Jawaban akhir berhasil diupload",
+          uploadInfo: {
+            segmentName: "finalSubmission",
+            answeredCount: Object.keys(workingSubmission.answers || {}).length,
+            checksum: finalSubmissionChecksum,
+          },
+        });
+      }
 
       if (
         submitResponse.data.statusCode !== 200 &&
@@ -1033,14 +1407,45 @@ const UjianCATView = () => {
       setFinalUploadMessage("Upload selesai.");
       setFinalUploadStatus("success");
       setPendingFinalSubmission(null);
+      workingSubmission.uploadManifest = {
+        ...workingSubmission.uploadManifest,
+        status: UPLOAD_STATUS.complete,
+        completedAt: new Date().toISOString(),
+      };
+      await saveOfflineFinalSubmission(workingSubmission);
       await removeOfflineFinalSubmission(
-        submissionPayload.idUjian,
-        submissionPayload.idPeserta
+        workingSubmission.idUjian,
+        workingSubmission.idPeserta
       );
+      await recordClientAuditLog({
+        eventType: "UPLOAD_COMPLETED",
+        status: "COMPLETED",
+        message: "Upload hasil ujian selesai",
+        uploadInfo: {
+          strategy: "SEGMENTED_UPLOAD_IDEMPOTENCY",
+          resultId:
+            submitResponse.data?.data?.idHasilUjian ||
+            submitResponse.data?.idHasilUjian,
+        },
+      });
 
       return submitResponse;
+      } catch (error) {
+        uploadFailureCountRef.current += 1;
+        await recordClientAuditLog({
+          eventType: "UPLOAD_FAILED",
+          status: "FAILED",
+          errorMessage: error.message,
+          uploadInfo: {
+            strategy: "SEGMENTED_UPLOAD_IDEMPOTENCY",
+            failureCount: uploadFailureCountRef.current,
+            retryCount: uploadRetryCountRef.current,
+          },
+        });
+        throw error;
+      }
     },
-    []
+    [recordClientAuditLog]
   );
 
   // Auto save function

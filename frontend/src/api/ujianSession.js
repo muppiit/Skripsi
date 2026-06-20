@@ -49,6 +49,11 @@ export function submitUjian({
   answers,
   isAutoSubmit,
   finalTimeRemaining,
+  submittedAt,
+  metadata,
+  violations,
+  idempotencyKey,
+  uploadManifest,
 }) {
   return request({
     url: "/ujian-session/submit",
@@ -60,6 +65,11 @@ export function submitUjian({
       answers,
       isAutoSubmit,
       finalTimeRemaining,
+      submittedAt,
+      metadata,
+      violations,
+      idempotencyKey,
+      uploadManifest,
     },
   });
 }

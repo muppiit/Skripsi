@@ -406,6 +406,13 @@ public class CheatDetectionService {
             validatePeserta(request.getIdPeserta());
             validateStudyProgram(request.getIdSchool());
 
+            CheatDetection idempotentViolation = findViolationByClientEventId(
+                    request.getSessionId(), request.getClientEventId());
+            if (idempotentViolation != null) {
+                logger.info("Idempotent violation retry ignored for clientEventId: {}", request.getClientEventId());
+                return idempotentViolation;
+            }
+
             // Check existing violation (spam prevention)
             CheatDetection existingViolation = findRecentViolation(request.getSessionId(), request.getTypeViolation(),
                     30);
@@ -417,6 +424,13 @@ public class CheatDetectionService {
 
                 if (request.getEvidence() != null) {
                     existingViolation.getEvidence().putAll(request.getEvidence());
+                }
+                if (request.getClientEventId() != null && !request.getClientEventId().trim().isEmpty()) {
+                    existingViolation.getEvidence().put("clientEventId", request.getClientEventId());
+                    addClientEventId(existingViolation.getEvidence(), request.getClientEventId());
+                }
+                if (request.getUploadIdempotencyKey() != null && !request.getUploadIdempotencyKey().trim().isEmpty()) {
+                    existingViolation.getEvidence().put("uploadIdempotencyKey", request.getUploadIdempotencyKey());
                 }
 
                 // TAMBAHAN: Sync dengan session
@@ -452,6 +466,13 @@ public class CheatDetectionService {
             if (request.getFrontendEvents() != null) {
                 detection.setFrontendEvents(request.getFrontendEvents());
             }
+            if (request.getClientEventId() != null && !request.getClientEventId().trim().isEmpty()) {
+                detection.getEvidence().put("clientEventId", request.getClientEventId());
+                addClientEventId(detection.getEvidence(), request.getClientEventId());
+            }
+            if (request.getUploadIdempotencyKey() != null && !request.getUploadIdempotencyKey().trim().isEmpty()) {
+                detection.getEvidence().put("uploadIdempotencyKey", request.getUploadIdempotencyKey());
+            }
 
             // Record answer timing if provided
             if (request.getQuestionId() != null && request.getDetectionTimestamp() != null) {
@@ -485,6 +506,48 @@ public class CheatDetectionService {
             logger.error("Unexpected error in recordViolation: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to record violation: " + e.getMessage());
         }
+    }
+
+    private CheatDetection findViolationByClientEventId(String sessionId, String clientEventId) throws IOException {
+        if (sessionId == null || sessionId.trim().isEmpty()
+                || clientEventId == null || clientEventId.trim().isEmpty()) {
+            return null;
+        }
+
+        List<CheatDetection> sessionViolations = cheatDetectionRepository.findBySessionId(sessionId);
+        for (CheatDetection violation : sessionViolations) {
+            Map<String, Object> evidence = violation.getEvidence();
+            if (evidence != null) {
+                if (clientEventId.equals(String.valueOf(evidence.get("clientEventId")))) {
+                    return violation;
+                }
+                Object clientEventIds = evidence.get("clientEventIds");
+                if (clientEventIds instanceof List<?>) {
+                    for (Object existingId : (List<?>) clientEventIds) {
+                        if (clientEventId.equals(String.valueOf(existingId))) {
+                            return violation;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private void addClientEventId(Map<String, Object> evidence, String clientEventId) {
+        if (evidence == null || clientEventId == null || clientEventId.trim().isEmpty()) {
+            return;
+        }
+
+        List<Object> clientEventIds = new ArrayList<>();
+        Object existingIds = evidence.get("clientEventIds");
+        if (existingIds instanceof List<?>) {
+            clientEventIds.addAll((List<?>) existingIds);
+        }
+        if (!clientEventIds.contains(clientEventId)) {
+            clientEventIds.add(clientEventId);
+        }
+        evidence.put("clientEventIds", clientEventIds);
     }
 
     /**

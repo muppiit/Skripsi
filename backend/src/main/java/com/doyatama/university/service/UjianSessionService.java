@@ -309,11 +309,21 @@ public class UjianSessionService {
             UjianSession session = ujianSessionRepository.findBySessionId(request.getSessionId());
             if (session == null) {
                 logger.warn("Session not found: {}", request.getSessionId());
+                HasilUjian existingResult = hasilUjianRepository.findBySessionId(request.getSessionId());
+                if (existingResult != null && existingResult.getIdHasilUjian() != null) {
+                    logger.info("Idempotent submit retry for missing session: {}", request.getSessionId());
+                    return existingResult;
+                }
                 throw new BadRequestException("Session tidak ditemukan");
             }
 
             if (!session.isActive()) {
                 logger.warn("Session not active: {}, status: {}", request.getSessionId(), session.getStatus());
+                HasilUjian existingResult = hasilUjianRepository.findBySessionId(request.getSessionId());
+                if (existingResult != null && existingResult.getIdHasilUjian() != null) {
+                    logger.info("Idempotent submit retry for finalized session: {}", request.getSessionId());
+                    return existingResult;
+                }
                 throw new BadRequestException("Session tidak aktif");
             }
 

@@ -110,31 +110,41 @@ class _LoginPageState extends State<LoginPage> {
       subtitle: AppConstants.appDescription,
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.school_outlined,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.24),
+                        blurRadius: 28,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.school_outlined,
+                    size: 54,
+                    color: Colors.white,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 22),
                 Text(
                   'Masuk CAT',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Gunakan akun mahasiswa untuk mengakses ujian CAT.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -185,9 +195,9 @@ class _LoginPageState extends State<LoginPage> {
                   },
                 ),
                 const SizedBox(height: 20),
-                FilledButton(
+                FilledButton.icon(
                   onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading
+                  icon: _isLoading
                       ? const SizedBox(
                           width: 22,
                           height: 22,
@@ -196,13 +206,8 @@ class _LoginPageState extends State<LoginPage> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Masuk'),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Pastikan backend aktif dan alamat API sudah sesuai perangkat.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
+                      : const Icon(Icons.login_outlined),
+                  label: Text(_isLoading ? 'Memproses...' : 'Masuk'),
                 ),
               ],
             ),

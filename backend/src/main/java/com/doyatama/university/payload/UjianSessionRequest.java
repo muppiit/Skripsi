@@ -165,6 +165,7 @@ public class UjianSessionRequest {
     }
 
     // Subclass untuk submit ujian
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SubmitUjianRequest {
         private String sessionId;
         private String idUjian;
@@ -172,6 +173,10 @@ public class UjianSessionRequest {
         private Map<String, Object> answers;
         private Boolean isAutoSubmit;
         private Integer finalTimeRemaining;
+        private String idempotencyKey;
+        private String submittedAt;
+        private Map<String, Object> metadata;
+        private Map<String, Object> uploadManifest;
 
         // Constructors
         public SubmitUjianRequest() {
@@ -224,6 +229,38 @@ public class UjianSessionRequest {
 
         public void setFinalTimeRemaining(Integer finalTimeRemaining) {
             this.finalTimeRemaining = finalTimeRemaining;
+        }
+
+        public String getIdempotencyKey() {
+            return idempotencyKey;
+        }
+
+        public void setIdempotencyKey(String idempotencyKey) {
+            this.idempotencyKey = idempotencyKey;
+        }
+
+        public String getSubmittedAt() {
+            return submittedAt;
+        }
+
+        public void setSubmittedAt(String submittedAt) {
+            this.submittedAt = submittedAt;
+        }
+
+        public Map<String, Object> getMetadata() {
+            return metadata;
+        }
+
+        public void setMetadata(Map<String, Object> metadata) {
+            this.metadata = metadata;
+        }
+
+        public Map<String, Object> getUploadManifest() {
+            return uploadManifest;
+        }
+
+        public void setUploadManifest(Map<String, Object> uploadManifest) {
+            this.uploadManifest = uploadManifest;
         }
     }
 

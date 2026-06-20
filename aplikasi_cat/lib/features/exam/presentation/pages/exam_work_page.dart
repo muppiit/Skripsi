@@ -297,12 +297,19 @@ class _ExamWorkPageState extends State<ExamWorkPage>
     return PopScope(
       canPop: false,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          backgroundColor: Colors.white,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_ujian['namaUjian']?.toString() ?? 'Pengerjaan Ujian'),
+              Text(
+                _ujian['namaUjian']?.toString() ?? 'Pengerjaan Ujian',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
               Text(
                 'Soal ${_currentIndex + 1}/${_soalList.length}',
                 style: Theme.of(context).textTheme.bodySmall,
@@ -316,6 +323,8 @@ class _ExamWorkPageState extends State<ExamWorkPage>
                 child: Chip(
                   avatar: const Icon(Icons.timer_outlined, size: 18),
                   label: Text(_formatTime(_timeRemaining)),
+                  backgroundColor: const Color(0xFFEEF2FF),
+                  side: const BorderSide(color: Color(0xFFC7D2FE)),
                 ),
               ),
             ),
@@ -325,28 +334,53 @@ class _ExamWorkPageState extends State<ExamWorkPage>
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                 child: Row(
                   children: [
-                    _StatusChip(
-                      icon: Icons.edit_note_outlined,
-                      label: '$answeredCount dijawab',
+                    Expanded(
+                      child: _StatusTile(
+                        label: 'Dijawab',
+                        value: '$answeredCount/${_soalList.length}',
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    _StatusChip(
-                      icon: Icons.warning_amber_outlined,
-                      label: '$_violationCount pelanggaran',
+                    Expanded(
+                      child: _StatusTile(
+                        label: 'Pelanggaran',
+                        value: '$_violationCount',
+                        danger: _violationCount > 0,
+                      ),
                     ),
-                    const Spacer(),
-                    if (_isSaving)
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      const Icon(Icons.save_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: _isSaving
+                            ? const _StatusTile(
+                                key: ValueKey('saving'),
+                                label: 'Status',
+                                value: 'Simpan',
+                              )
+                            : const _StatusTile(
+                                key: ValueKey('saved'),
+                                label: 'Status',
+                                value: 'Aman',
+                                success: true,
+                              ),
+                      ),
+                    ),
                   ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: (_currentIndex + 1) / _soalList.length,
+                    minHeight: 8,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                  ),
                 ),
               ),
               SizedBox(
@@ -365,10 +399,9 @@ class _ExamWorkPageState extends State<ExamWorkPage>
 
                     return ChoiceChip(
                       selected: isActive,
-                      label: Text('${index + 1}'),
-                      avatar: isAnswered
-                          ? const Icon(Icons.check_circle, size: 18)
-                          : null,
+                      label: Text(
+                        isAnswered ? '✓ ${index + 1}' : '${index + 1}',
+                      ),
                       onSelected: (_) => _goToQuestion(index),
                     );
                   },
@@ -376,36 +409,73 @@ class _ExamWorkPageState extends State<ExamWorkPage>
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   child: Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(22),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Chip(
-                                label: Text(
-                                  currentSoal['jenisSoal']?.toString() ?? '-',
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDBEAFE),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${_currentIndex + 1}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF1D4ED8),
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Chip(
-                                label: Text(
-                                  'Bobot ${currentSoal['bobot'] ?? '-'}',
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Pertanyaan',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge
+                                          ?.copyWith(
+                                            color: const Color(0xFF64748B),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    Text(
+                                      'Jawab dengan teliti sebelum lanjut',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
+                          const Divider(height: 28),
                           Text(
                             currentSoal['pertanyaan']?.toString() ??
                                 'Pertanyaan tidak tersedia',
                             style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.35,
+                                ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 22),
                           _buildAnswerInput(currentSoal, questionId),
                         ],
                       ),
@@ -414,7 +484,7 @@ class _ExamWorkPageState extends State<ExamWorkPage>
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Row(
                   children: [
                     Expanded(
@@ -479,11 +549,24 @@ class _ExamWorkPageState extends State<ExamWorkPage>
     return Column(
       children: opsi.entries.map<Widget>((entry) {
         final key = entry.key.toString();
-        return RadioListTile<String>(
-          value: key,
-          groupValue: selected,
-          onChanged: (value) => _setAnswer(questionId, value),
-          title: Text('$key. ${entry.value}'),
+        final isSelected = selected == key;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: DecoratedBox(
+            decoration: _answerDecoration(isSelected),
+            child: RadioListTile<String>(
+              value: key,
+              groupValue: selected,
+              onChanged: (value) => _setAnswer(questionId, value),
+              title: Text(
+                '$key. ${entry.value}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+          ),
         );
       }).toList(),
     );
@@ -502,20 +585,43 @@ class _ExamWorkPageState extends State<ExamWorkPage>
         final key = entry.key.toString();
         final checked = selected.contains(key);
 
-        return CheckboxListTile(
-          value: checked,
-          title: Text('$key. ${entry.value}'),
-          onChanged: (value) {
-            final next = [...selected];
-            if (value == true && !next.contains(key)) {
-              next.add(key);
-            } else {
-              next.remove(key);
-            }
-            _setAnswer(questionId, next);
-          },
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: DecoratedBox(
+            decoration: _answerDecoration(checked),
+            child: CheckboxListTile(
+              value: checked,
+              title: Text(
+                '$key. ${entry.value}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              onChanged: (value) {
+                final next = [...selected];
+                if (value == true && !next.contains(key)) {
+                  next.add(key);
+                } else {
+                  next.remove(key);
+                }
+                _setAnswer(questionId, next);
+              },
+            ),
+          ),
         );
       }).toList(),
+    );
+  }
+
+  BoxDecoration _answerDecoration(bool selected) {
+    return BoxDecoration(
+      color: selected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: selected ? const Color(0xFF60A5FA) : const Color(0xFFE2E8F0),
+        width: selected ? 1.4 : 1,
+      ),
     );
   }
 
@@ -592,19 +698,58 @@ class _ExamWorkPageState extends State<ExamWorkPage>
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.icon, required this.label});
+class _StatusTile extends StatelessWidget {
+  const _StatusTile({
+    super.key,
+    required this.label,
+    required this.value,
+    this.success = false,
+    this.danger = false,
+  });
 
-  final IconData icon;
   final String label;
+  final String value;
+  final bool success;
+  final bool danger;
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: Icon(icon, size: 18),
-      label: Text(label),
-      backgroundColor: const Color(0xFFF1F5F9),
-      side: const BorderSide(color: Color(0xFFE2E8F0)),
+    final valueColor = danger
+        ? const Color(0xFFDC2626)
+        : success
+        ? const Color(0xFF16A34A)
+        : const Color(0xFF1D4ED8);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: valueColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

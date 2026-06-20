@@ -42,6 +42,11 @@ class ExamRemoteDatasource {
     required Map<String, dynamic> answers,
     required bool isAutoSubmit,
     required int finalTimeRemaining,
+    String? submittedAt,
+    Map<String, dynamic>? metadata,
+    List<Map<String, dynamic>>? violations,
+    String? idempotencyKey,
+    Map<String, dynamic>? uploadManifest,
   }) {
     return _apiClient.post(
       ApiEndpoints.ujianSessionSubmit,
@@ -52,11 +57,20 @@ class ExamRemoteDatasource {
         'answers': answers,
         'isAutoSubmit': isAutoSubmit,
         'finalTimeRemaining': finalTimeRemaining,
+        if (submittedAt != null) 'submittedAt': submittedAt,
+        if (metadata != null) 'metadata': metadata,
+        if (violations != null) 'violations': violations,
+        if (idempotencyKey != null) 'idempotencyKey': idempotencyKey,
+        if (uploadManifest != null) 'uploadManifest': uploadManifest,
       },
     );
   }
 
   Future<Map<String, dynamic>> recordViolation(Map<String, dynamic> violation) {
     return _apiClient.post(ApiEndpoints.recordViolation, data: violation);
+  }
+
+  Future<Map<String, dynamic>> recordAuditLog(Map<String, dynamic> auditLog) {
+    return _apiClient.post(ApiEndpoints.examClientAuditLog, data: auditLog);
   }
 }

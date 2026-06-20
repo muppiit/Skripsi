@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/device/client_audit_info.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../shared/widgets/page_shell.dart';
 import '../../data/datasources/exam_local_datasource.dart';
@@ -27,6 +31,14 @@ class _ExamResultPageState extends State<ExamResultPage> {
   FinalUploadStatus _status = FinalUploadStatus.idle;
   double _progress = 0;
   String _message = 'Menunggu upload hasil ujian';
+  int _uploadFailureCount = 0;
+  int _uploadRetryCount = 0;
+
+  static const _uploadStatusPending = 'PENDING';
+  static const _uploadStatusUploading = 'UPLOADING';
+  static const _uploadStatusUploaded = 'UPLOADED';
+  static const _uploadStatusVerified = 'VERIFIED';
+  static const _uploadStatusComplete = 'COMPLETE';
 
   @override
   void didChangeDependencies() {
@@ -94,25 +106,90 @@ class _ExamResultPageState extends State<ExamResultPage> {
     });
 
     try {
+      var workingSubmission = await _ensureUploadManifest(_submission!);
+      await _saveWorkingSubmission(workingSubmission);
+      _uploadRetryCount += 1;
+      await _recordAuditLog(
+        eventType: 'UPLOAD_STARTED',
+        status: 'STARTED',
+        message: 'Mulai upload hasil ujian',
+        uploadInfo: {
+          'strategy': 'SEGMENTED_UPLOAD_IDEMPOTENCY',
+          'retryCount': _uploadRetryCount,
+          'totalViolations': _extractViolationList(
+            workingSubmission['violations'],
+          ).length,
+          'answeredCount':
+              _extractMap(workingSubmission['answers'])?.length ?? 0,
+        },
+      );
+
       final violations = _normalizeViolations(
-        _extractViolationList(_submission!['violations']),
+        _extractViolationList(workingSubmission['violations']),
         fallbackSessionId: sessionId,
       );
-      var failedViolationUploads = 0;
+      final violationsChecksum = await _hashPayload(violations);
+      var uploadManifest = _extractMap(workingSubmission['uploadManifest'])!;
+      var manifestSegments = _extractMap(uploadManifest['segments'])!;
+      final violationSegment =
+          _extractMap(manifestSegments['violations']) ?? {};
 
-      if (violations.isNotEmpty) {
+      if (violationSegment['status'] != _uploadStatusUploaded ||
+          violationSegment['checksum'] != violationsChecksum) {
         setState(() {
           _progress = 0.3;
           _message = 'Mengupload ${violations.length} log pelanggaran...';
         });
 
+        manifestSegments['violations'] = {
+          ...violationSegment,
+          'status': _uploadStatusUploading,
+          'checksum': violationsChecksum,
+        };
+        uploadManifest = {
+          ...uploadManifest,
+          'status': _uploadStatusUploading,
+          'segments': manifestSegments,
+        };
+        workingSubmission = {
+          ...workingSubmission,
+          'uploadManifest': uploadManifest,
+        };
+        await _saveWorkingSubmission(workingSubmission);
+
         for (final violation in violations) {
-          try {
-            await _remoteDatasource.recordViolation(violation);
-          } catch (_) {
-            failedViolationUploads++;
-          }
+          await _remoteDatasource.recordViolation({
+            ...violation,
+            'clientEventId':
+                violation['clientEventId'] ??
+                violation['id'] ??
+                '${workingSubmission['idempotencyKey']}::violation::${violation['typeViolation'] ?? 'UNKNOWN'}::${violation['timestamp'] ?? violation['detectedAt'] ?? ''}',
+            'uploadIdempotencyKey': workingSubmission['idempotencyKey'],
+          });
         }
+
+        manifestSegments['violations'] = {
+          'status': _uploadStatusUploaded,
+          'checksum': violationsChecksum,
+          'uploadedAt': DateTime.now().toIso8601String(),
+        };
+        uploadManifest = {...uploadManifest, 'segments': manifestSegments};
+        workingSubmission = {
+          ...workingSubmission,
+          'uploadManifest': uploadManifest,
+        };
+        await _saveWorkingSubmission(workingSubmission);
+        await _recordAuditLog(
+          eventType: 'UPLOAD_SEGMENT_COMPLETED',
+          status: 'COMPLETED',
+          segmentName: 'violations',
+          message: 'Log pelanggaran berhasil diupload',
+          uploadInfo: {
+            'segmentName': 'violations',
+            'totalViolations': violations.length,
+            'checksum': violationsChecksum,
+          },
+        );
       }
 
       setState(() {
@@ -120,19 +197,110 @@ class _ExamResultPageState extends State<ExamResultPage> {
         _message = 'Mengupload jawaban akhir...';
       });
 
-      final response = await _remoteDatasource.submitUjian(
-        idUjian: _idUjian!,
-        idPeserta: _idPeserta!,
-        sessionId: sessionId,
-        answers: _extractMap(_submission!['answers']) ?? {},
-        isAutoSubmit: _submission!['isAutoSubmit'] == true,
-        finalTimeRemaining:
-            int.tryParse('${_submission!['finalTimeRemaining'] ?? 0}') ?? 0,
-      );
+      final finalSubmissionPayload = {
+        'idUjian': _idUjian!,
+        'idPeserta': _idPeserta!,
+        'sessionId': sessionId,
+        'answers': _extractMap(workingSubmission['answers']) ?? {},
+        'isAutoSubmit': workingSubmission['isAutoSubmit'] == true,
+        'finalTimeRemaining':
+            int.tryParse('${workingSubmission['finalTimeRemaining'] ?? 0}') ??
+            0,
+        'submittedAt': workingSubmission['submittedAt'],
+        'metadata': _extractMap(workingSubmission['metadata']) ?? {},
+        'violations': violations,
+        'idempotencyKey': workingSubmission['idempotencyKey']?.toString(),
+      };
+      final finalChecksum = await _hashPayload(finalSubmissionPayload);
+      final finalSegment =
+          _extractMap(manifestSegments['finalSubmission']) ?? {};
+      Map<String, dynamic> response =
+          _extractMap(finalSegment['serverResult']) ?? {};
+
+      if (finalSegment['status'] != _uploadStatusVerified ||
+          finalSegment['checksum'] != finalChecksum ||
+          response.isEmpty) {
+        manifestSegments['finalSubmission'] = {
+          ...finalSegment,
+          'status': _uploadStatusUploading,
+          'checksum': finalChecksum,
+        };
+        uploadManifest = {
+          ...uploadManifest,
+          'status': _uploadStatusUploading,
+          'segments': manifestSegments,
+        };
+        workingSubmission = {
+          ...workingSubmission,
+          'uploadManifest': uploadManifest,
+        };
+        await _saveWorkingSubmission(workingSubmission);
+
+        response = await _remoteDatasource.submitUjian(
+          idUjian: _idUjian!,
+          idPeserta: _idPeserta!,
+          sessionId: sessionId,
+          answers: _extractMap(workingSubmission['answers']) ?? {},
+          isAutoSubmit: workingSubmission['isAutoSubmit'] == true,
+          finalTimeRemaining:
+              int.tryParse('${workingSubmission['finalTimeRemaining'] ?? 0}') ??
+              0,
+          submittedAt: workingSubmission['submittedAt']?.toString(),
+          metadata: _extractMap(workingSubmission['metadata']) ?? {},
+          violations: violations,
+          idempotencyKey: workingSubmission['idempotencyKey']?.toString(),
+          uploadManifest: uploadManifest,
+        );
+
+        manifestSegments['finalSubmission'] = {
+          'status': _uploadStatusVerified,
+          'checksum': finalChecksum,
+          'uploadedAt': DateTime.now().toIso8601String(),
+          'serverResult': response,
+        };
+        uploadManifest = {...uploadManifest, 'segments': manifestSegments};
+        workingSubmission = {
+          ...workingSubmission,
+          'uploadManifest': uploadManifest,
+        };
+        await _saveWorkingSubmission(workingSubmission);
+        await _recordAuditLog(
+          eventType: 'UPLOAD_SEGMENT_COMPLETED',
+          status: 'COMPLETED',
+          segmentName: 'finalSubmission',
+          message: 'Jawaban akhir berhasil diupload',
+          uploadInfo: {
+            'segmentName': 'finalSubmission',
+            'answeredCount':
+                _extractMap(workingSubmission['answers'])?.length ?? 0,
+            'checksum': finalChecksum,
+          },
+        );
+      }
+
+      uploadManifest = {
+        ...uploadManifest,
+        'status': _uploadStatusComplete,
+        'completedAt': DateTime.now().toIso8601String(),
+      };
+      workingSubmission = {
+        ...workingSubmission,
+        'uploadManifest': uploadManifest,
+      };
+      await _saveWorkingSubmission(workingSubmission);
 
       await _localDatasource.removeFinalSubmission(
         idUjian: _idUjian!,
         idPeserta: _idPeserta!,
+      );
+      await _recordAuditLog(
+        eventType: 'UPLOAD_COMPLETED',
+        status: 'COMPLETED',
+        message: 'Upload hasil ujian selesai',
+        uploadInfo: {
+          'strategy': 'SEGMENTED_UPLOAD_IDEMPOTENCY',
+          'resultId': _extractMap(response['data'])?['idHasilUjian'],
+        },
       );
 
       if (!mounted) return;
@@ -140,18 +308,38 @@ class _ExamResultPageState extends State<ExamResultPage> {
         _serverResult = _extractMap(response['data']) ?? response;
         _status = FinalUploadStatus.success;
         _progress = 1;
-        _message = failedViolationUploads > 0
-            ? 'Jawaban berhasil diupload. $failedViolationUploads log pelanggaran gagal dikirim.'
-            : 'Upload berhasil. Hasil ujian sudah tersimpan di server.';
+        _message = 'Upload berhasil. Hasil ujian sudah tersimpan di server.';
       });
     } on ApiException catch (error) {
+      _uploadFailureCount += 1;
+      await _recordAuditLog(
+        eventType: 'UPLOAD_FAILED',
+        status: 'FAILED',
+        errorMessage: error.message,
+        uploadInfo: {
+          'strategy': 'SEGMENTED_UPLOAD_IDEMPOTENCY',
+          'failureCount': _uploadFailureCount,
+          'retryCount': _uploadRetryCount,
+        },
+      );
       if (!mounted) return;
       setState(() {
         _status = FinalUploadStatus.failed;
         _progress = 0;
         _message = error.message;
       });
-    } catch (_) {
+    } catch (error) {
+      _uploadFailureCount += 1;
+      await _recordAuditLog(
+        eventType: 'UPLOAD_FAILED',
+        status: 'FAILED',
+        errorMessage: error.toString(),
+        uploadInfo: {
+          'strategy': 'SEGMENTED_UPLOAD_IDEMPOTENCY',
+          'failureCount': _uploadFailureCount,
+          'retryCount': _uploadRetryCount,
+        },
+      );
       if (!mounted) return;
       setState(() {
         _status = FinalUploadStatus.failed;
@@ -215,6 +403,141 @@ class _ExamResultPageState extends State<ExamResultPage> {
               violation['typeViolation'] != null,
         )
         .toList();
+  }
+
+  Future<Map<String, dynamic>> _ensureUploadManifest(
+    Map<String, dynamic> submission,
+  ) async {
+    if (submission['idempotencyKey'] == null) {
+      submission = {
+        ...submission,
+        'idempotencyKey': '$_idUjian::$_idPeserta::${submission['sessionId']}',
+      };
+    }
+
+    if (submission['uploadManifest'] is Map) return submission;
+
+    final violations = _normalizeViolations(
+      _extractViolationList(submission['violations']),
+      fallbackSessionId: submission['sessionId']?.toString() ?? '',
+    );
+    final finalSubmission = {
+      'idUjian': _idUjian,
+      'idPeserta': _idPeserta,
+      'sessionId': submission['sessionId'],
+      'answers': _extractMap(submission['answers']) ?? {},
+      'isAutoSubmit': submission['isAutoSubmit'] == true,
+      'finalTimeRemaining':
+          int.tryParse('${submission['finalTimeRemaining'] ?? 0}') ?? 0,
+      'submittedAt': submission['submittedAt'],
+      'metadata': _extractMap(submission['metadata']) ?? {},
+      'idempotencyKey': submission['idempotencyKey'],
+    };
+
+    return {
+      ...submission,
+      'violations': violations,
+      'uploadManifest': {
+        'version': 1,
+        'strategy': 'SEGMENTED_UPLOAD_IDEMPOTENCY',
+        'idempotencyKey': submission['idempotencyKey'],
+        'status': _uploadStatusPending,
+        'segments': {
+          'violations': {
+            'status': _uploadStatusPending,
+            'checksum': await _hashPayload(violations),
+            'uploadedAt': null,
+          },
+          'finalSubmission': {
+            'status': _uploadStatusPending,
+            'checksum': await _hashPayload(finalSubmission),
+            'uploadedAt': null,
+            'serverResult': null,
+          },
+        },
+        'completedAt': null,
+      },
+    };
+  }
+
+  Future<void> _recordAuditLog({
+    required String eventType,
+    required String status,
+    String? segmentName,
+    String? message,
+    String? errorMessage,
+    Map<String, dynamic> uploadInfo = const {},
+    Map<String, dynamic> eventData = const {},
+  }) async {
+    if (_idUjian == null || _idPeserta == null) return;
+
+    try {
+      if (!mounted) return;
+      final deviceInfo = ClientAuditInfo.deviceInfo(context);
+      final networkInfo = await ClientAuditInfo.networkInfo();
+
+      await _remoteDatasource.recordAuditLog({
+        'idUjian': _idUjian,
+        'idPeserta': _idPeserta,
+        'sessionId':
+            _submission?['sessionId']?.toString() ??
+            _routeData['sessionId']?.toString(),
+        'studyProgramId':
+            _routeData['studyProgramId']?.toString() ??
+            _routeData['study_program_id']?.toString(),
+        'eventType': eventType,
+        'platform': 'ANDROID',
+        'clientEventId':
+            '$_idUjian::$_idPeserta::${_submission?['sessionId'] ?? _routeData['sessionId'] ?? 'no-session'}::$eventType::${segmentName ?? 'general'}::${DateTime.now().millisecondsSinceEpoch}',
+        'segmentName': segmentName,
+        'status': status,
+        'failureCount': _uploadFailureCount,
+        'retryCount': _uploadRetryCount,
+        'message': message,
+        'errorMessage': errorMessage,
+        'deviceInfo': deviceInfo,
+        'networkInfo': networkInfo,
+        'uploadInfo': uploadInfo,
+        'eventData': eventData,
+      });
+    } catch (_) {
+      // Audit log must never block final submission retry.
+    }
+  }
+
+  Future<void> _saveWorkingSubmission(Map<String, dynamic> submission) async {
+    await _localDatasource.saveFinalSubmission(
+      idUjian: _idUjian!,
+      idPeserta: _idPeserta!,
+      submission: submission,
+    );
+    if (mounted) {
+      setState(() => _submission = submission);
+    }
+  }
+
+  Future<String> _hashPayload(dynamic value) async {
+    final hash = await Sha256().hash(utf8.encode(_stableJson(value)));
+    return hash.bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  String _stableJson(dynamic value) {
+    if (value == null || value is num || value is bool || value is String) {
+      return jsonEncode(value);
+    }
+
+    if (value is List) {
+      return '[${value.map(_stableJson).join(',')}]';
+    }
+
+    if (value is Map) {
+      final keys = value.keys.map((key) => key.toString()).toList()..sort();
+      return '{${keys.map((key) => '${jsonEncode(key)}:${_stableJson(value[key])}').join(',')}}';
+    }
+
+    return jsonEncode(value.toString());
   }
 
   Color _statusColor(BuildContext context) {

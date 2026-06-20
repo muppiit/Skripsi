@@ -208,6 +208,15 @@ public class HBaseClientStructure {
                 client.deleteTable(tableCheatDetection);
                 client.createTable(tableCheatDetection, cheatDetectionColumns);
 
+                // Create Table Exam Client Audit Logs
+                TableName tableExamClientAuditLogs = TableName.valueOf("exam_client_audit_logs");
+                String[] examClientAuditLogColumns = {
+                                "main", "peserta", "ujian", "session", "study_program", "device", "network",
+                                "download", "upload", "event", "error", "detail"
+                };
+                client.deleteTable(tableExamClientAuditLogs);
+                client.createTable(tableExamClientAuditLogs, examClientAuditLogColumns);
+
                 // Create Table UjianAnalysis
                 TableName tableUjianAnalysis = TableName.valueOf("ujian_analysis");
                 String[] ujianAnalysisColumns = {

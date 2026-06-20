@@ -93,6 +93,8 @@ public class CheatDetectionRequest {
         private String severity; // LOW, MEDIUM, HIGH, CRITICAL
         private Map<String, Object> evidence;
         private Map<String, Object> frontendEvents;
+        private String clientEventId;
+        private String uploadIdempotencyKey;
 
         // Browser & System Info
         private String browserInfo;
@@ -148,6 +150,22 @@ public class CheatDetectionRequest {
 
         public void setFrontendEvents(Map<String, Object> frontendEvents) {
             this.frontendEvents = frontendEvents;
+        }
+
+        public String getClientEventId() {
+            return clientEventId;
+        }
+
+        public void setClientEventId(String clientEventId) {
+            this.clientEventId = clientEventId;
+        }
+
+        public String getUploadIdempotencyKey() {
+            return uploadIdempotencyKey;
+        }
+
+        public void setUploadIdempotencyKey(String uploadIdempotencyKey) {
+            this.uploadIdempotencyKey = uploadIdempotencyKey;
         }
 
         public String getBrowserInfo() {

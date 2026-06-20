@@ -61,6 +61,25 @@ public class HasilUjianRepository {
         return hasilUjian;
     }
 
+    public HasilUjian findBySessionId(String sessionId) throws IOException {
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            return null;
+        }
+
+        HBaseCustomClient client = new HBaseCustomClient(conf);
+        TableName tableHasilUjian = TableName.valueOf(tableName);
+        Map<String, String> columnMapping = getStandardColumnMapping();
+
+        HasilUjian hasilUjian = client.getDataByColumn(
+                tableHasilUjian.toString(),
+                columnMapping,
+                "main",
+                "sessionId",
+                sessionId,
+                HasilUjian.class);
+        return hasilUjian != null && hasilUjian.getIdHasilUjian() != null ? hasilUjian : null;
+    }
+
     private void saveMainInfo(HBaseCustomClient client, TableName table, String rowKey, HasilUjian hasilUjian) {
         // Save required fields with null checks
         client.insertRecord(table, rowKey, "main", "idHasilUjian",

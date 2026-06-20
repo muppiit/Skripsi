@@ -65,6 +65,10 @@ import {
 } from "@/utils/safeHasilUjianApi";
 import { deleteHasilUjian } from "@/api/hasilUjian";
 import { getBankSoal } from "@/api/bankSoal"; // Import untuk mengambil detail soal
+import {
+  getExamClientAuditLogsByPeserta,
+  getExamClientAuditLogsBySession,
+} from "@/api/examClientAuditLog";
 import { useAuth } from "@/contexts/AuthContext";
 import TypingCard from "@/components/TypingCard";
 // -------------------
@@ -96,6 +100,9 @@ const ReportNilaiSiswa = () => {
   const [violationModalVisible, setViolationModalVisible] = useState(false);
   const [violations, setViolations] = useState([]); // Violations for a specific student's exam session
   const [loadingViolations, setLoadingViolations] = useState(false);
+  const [auditLogModalVisible, setAuditLogModalVisible] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
   const [statistics, setStatistics] = useState({
     totalSiswa: 0,
     rataRataNilai: 0,
@@ -449,11 +456,81 @@ const ReportNilaiSiswa = () => {
     response?.data?.content ||
     [];
 
+  const extractAuditLogList = (response) =>
+    response?.data?.data || response?.data?.content || [];
+
+  const normalizeAuditMap = (value) => {
+    if (!value) return {};
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch (_) {
+        return {};
+      }
+    }
+    return typeof value === "object" ? value : {};
+  };
+
+  const getAuditEventColor = (eventType = "", status = "") => {
+    if (status === "FAILED" || eventType.includes("FAILED")) return "red";
+    if (status === "COMPLETED" || eventType.includes("COMPLETED")) return "green";
+    if (status === "STARTED" || eventType.includes("STARTED")) return "blue";
+    return "default";
+  };
+
   const getRecordUjianId = (record) =>
     record?.idUjian || record?.ujianId || record?.ujian?.idUjian || record?.ujian_id;
 
   const getRecordPesertaId = (record) =>
     record?.idPeserta || record?.siswaId || record?.peserta?.id || record?.peserta?.idUser;
+
+  const showAuditLogModal = async (record) => {
+    if (!record) {
+      message.warning("Data hasil ujian tidak ditemukan.");
+      return;
+    }
+
+    setAuditLogModalVisible(true);
+    setLoadingAuditLogs(true);
+    setAuditLogs([]);
+
+    try {
+      const sessionId = record.sessionId;
+      const idPeserta = getRecordPesertaId(record);
+      const idUjian = getRecordUjianId(record);
+      let logs = [];
+
+      if (sessionId) {
+        const response = await getExamClientAuditLogsBySession(sessionId, 1000);
+        logs = extractAuditLogList(response);
+      } else if (idPeserta) {
+        const response = await getExamClientAuditLogsByPeserta(idPeserta, 1000);
+        logs = extractAuditLogList(response);
+      }
+
+      if (idUjian) {
+        logs = logs.filter(
+          (log) => !log.idUjian || log.idUjian === idUjian || log.ujian?.id === idUjian
+        );
+      }
+
+      logs = logs.sort((a, b) => {
+        const first = new Date(a.eventTime || a.createdAt || 0).getTime();
+        const second = new Date(b.eventTime || b.createdAt || 0).getTime();
+        return second - first;
+      });
+
+      setAuditLogs(logs);
+      if (logs.length === 0) {
+        message.info("Belum ada log perangkat untuk sesi ujian ini.");
+      }
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      message.error("Gagal memuat log perangkat.");
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
 
   const getRecordViolationsFromMetadata = (record) => {
     if (!record) return [];
@@ -692,6 +769,91 @@ const ReportNilaiSiswa = () => {
       key: "detectedAt",
       render: (text) =>
         text ? dayjs(text).format("DD/MM/YYYY HH:mm:ss") : "N/A",
+    },
+  ];
+
+  const auditLogColumns = [
+    {
+      title: "Waktu",
+      key: "eventTime",
+      width: 155,
+      render: (_, record) =>
+        record.eventTime || record.createdAt
+          ? dayjs(record.eventTime || record.createdAt).format("DD/MM/YYYY HH:mm:ss")
+          : "-",
+    },
+    {
+      title: "Event",
+      key: "eventType",
+      width: 210,
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Tag color={getAuditEventColor(record.eventType, record.status)}>
+            {record.eventType || "-"}
+          </Tag>
+          {record.segmentName && <Text type="secondary">{record.segmentName}</Text>}
+        </Space>
+      ),
+    },
+    {
+      title: "Platform / Device",
+      key: "device",
+      width: 240,
+      render: (_, record) => {
+        const deviceInfo = normalizeAuditMap(record.deviceInfo);
+        const networkInfo = normalizeAuditMap(record.networkInfo);
+        return (
+          <Space direction="vertical" size={2}>
+            <Text strong>{record.platform || deviceInfo.platform || "-"}</Text>
+            <Text type="secondary">
+              {deviceInfo.userAgent ||
+                deviceInfo.platformVersion ||
+                deviceInfo.appRuntime ||
+                "-"}
+            </Text>
+            <Text type="secondary">
+              Network:{" "}
+              {networkInfo.connectionType ||
+                networkInfo.connectionTypes?.join(", ") ||
+                (networkInfo.online === false ? "offline" : "online")}
+            </Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Retry / Gagal",
+      key: "retry",
+      width: 120,
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Text>Retry: {record.retryCount ?? 0}</Text>
+          <Text type={record.failureCount > 0 ? "danger" : "secondary"}>
+            Gagal: {record.failureCount ?? 0}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Pesan",
+      key: "message",
+      render: (_, record) => {
+        const downloadInfo = normalizeAuditMap(record.downloadInfo);
+        const uploadInfo = normalizeAuditMap(record.uploadInfo);
+        const detailInfo = Object.keys(downloadInfo).length > 0 ? downloadInfo : uploadInfo;
+
+        return (
+          <Space direction="vertical" size={2}>
+            <Text>{record.message || "-"}</Text>
+            {record.errorMessage && <Text type="danger">{record.errorMessage}</Text>}
+            {Object.keys(detailInfo).length > 0 && (
+              <Tooltip title={JSON.stringify(detailInfo, null, 2)}>
+                <Text type="secondary">Detail teknis tersedia</Text>
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
   ];
   // ---------------------------------------------------
@@ -1867,6 +2029,14 @@ const ReportNilaiSiswa = () => {
             Lihat Pelanggaran ({getViolationsCount(detailModal.data || {})})
           </Button>,
           <Button
+            key="audit-logs"
+            icon={<DatabaseOutlined />}
+            onClick={() => showAuditLogModal(detailModal.data)}
+            loading={loadingAuditLogs}
+          >
+            Lihat Log Perangkat
+          </Button>,
+          <Button
             key="close"
             onClick={() => setDetailModal({ visible: false, data: null })}
           >
@@ -3006,6 +3176,44 @@ const ReportNilaiSiswa = () => {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Device / Client Audit Log Modal */}
+      <Modal
+        title={
+          <Space>
+            <DatabaseOutlined />
+            <span>Log Perangkat & Sinkronisasi</span>
+          </Space>
+        }
+        open={auditLogModalVisible}
+        onCancel={() => setAuditLogModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setAuditLogModalVisible(false)}>
+            Tutup
+          </Button>,
+        ]}
+        width={1100}
+      >
+        <Alert
+          message="Riwayat aktivitas client saat download/upload ujian"
+          description="Log ini mencatat perangkat, jaringan, retry, kegagalan, dan status sinkronisasi data ujian."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Table
+          columns={auditLogColumns}
+          dataSource={auditLogs}
+          loading={loadingAuditLogs}
+          rowKey={(record, index) => record.idLog || `${record.clientEventId}-${index}`}
+          size="small"
+          pagination={{ pageSize: 8 }}
+          scroll={{ x: 1000 }}
+          locale={{
+            emptyText: "Belum ada log perangkat untuk sesi ujian ini",
+          }}
+        />
       </Modal>
 
       {/* --- NEW: Modal to Display All Cheat Detections --- */}

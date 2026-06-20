@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:cryptography/cryptography.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -10,8 +13,13 @@ class LocalStorageService {
 
   static const _databaseName = 'cat_offline_exam.db';
   static const _databaseVersion = 1;
+  static const _encryptionVersion = 1;
+  static const _encryptionKeyName = 'cat_offline_exam_key_v1';
+  static const _secureStorage = FlutterSecureStorage();
+  static final _algorithm = AesGcm.with256bits();
 
   static Database? _database;
+  static SecretKey? _secretKey;
 
   static Future<void> init() async {
     _database ??= await _openDatabase();
@@ -86,11 +94,12 @@ class LocalStorageService {
     String? idPeserta,
   }) async {
     final db = await database;
+    final encryptedPayload = await _encodePayload(value);
     await db.insert(table, {
       'key': key,
       if (idUjian != null) 'id_ujian': idUjian,
       if (idPeserta != null) 'id_peserta': idPeserta,
-      'payload': jsonEncode(value),
+      'payload': encryptedPayload,
       'updated_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
@@ -137,10 +146,13 @@ class LocalStorageService {
       orderBy: 'updated_at ASC',
     );
 
-    return rows
-        .map((row) => _decodePayload(row['payload']))
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    final decodedRows = <Map<String, dynamic>>[];
+    for (final row in rows) {
+      final decoded = await _decodePayload(row['payload']);
+      if (decoded != null) decodedRows.add(decoded);
+    }
+
+    return decodedRows;
   }
 
   static Future<void> deleteByKey({
@@ -164,11 +176,69 @@ class LocalStorageService {
     );
   }
 
-  static Map<String, dynamic>? _decodePayload(Object? payload) {
+  static Future<String> _encodePayload(Map<String, dynamic> payload) async {
+    final secretKey = await _getSecretKey();
+    final nonce = _createNonce();
+    final plaintext = utf8.encode(jsonEncode(payload));
+    final secretBox = await _algorithm.encrypt(
+      plaintext,
+      secretKey: secretKey,
+      nonce: nonce,
+    );
+
+    return jsonEncode({
+      'encrypted': true,
+      'encryptionVersion': _encryptionVersion,
+      'algorithm': 'AES-GCM',
+      'nonce': base64Encode(secretBox.nonce),
+      'cipherText': base64Encode(secretBox.cipherText),
+      'mac': base64Encode(secretBox.mac.bytes),
+    });
+  }
+
+  static Future<Map<String, dynamic>?> _decodePayload(Object? payload) async {
     if (payload == null) return null;
     final decoded = jsonDecode(payload.toString());
+    if (decoded is Map && decoded['encrypted'] == true) {
+      final secretKey = await _getSecretKey();
+      final secretBox = SecretBox(
+        base64Decode(decoded['cipherText'].toString()),
+        nonce: base64Decode(decoded['nonce'].toString()),
+        mac: Mac(base64Decode(decoded['mac'].toString())),
+      );
+      final decrypted = await _algorithm.decrypt(
+        secretBox,
+        secretKey: secretKey,
+      );
+      final decryptedJson = jsonDecode(utf8.decode(decrypted));
+      if (decryptedJson is Map<String, dynamic>) return decryptedJson;
+      if (decryptedJson is Map) return Map<String, dynamic>.from(decryptedJson);
+      return null;
+    }
+
     if (decoded is Map<String, dynamic>) return decoded;
     if (decoded is Map) return Map<String, dynamic>.from(decoded);
     return null;
+  }
+
+  static Future<SecretKey> _getSecretKey() async {
+    if (_secretKey != null) return _secretKey!;
+
+    var encodedKey = await _secureStorage.read(key: _encryptionKeyName);
+    if (encodedKey == null || encodedKey.isEmpty) {
+      final keyBytes = List<int>.generate(
+        32,
+        (_) => Random.secure().nextInt(256),
+      );
+      encodedKey = base64Encode(keyBytes);
+      await _secureStorage.write(key: _encryptionKeyName, value: encodedKey);
+    }
+
+    _secretKey = SecretKey(base64Decode(encodedKey));
+    return _secretKey!;
+  }
+
+  static List<int> _createNonce() {
+    return List<int>.generate(12, (_) => Random.secure().nextInt(256));
   }
 }

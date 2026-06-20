@@ -21,4 +21,6 @@ class ApiEndpoints {
   }
 
   static const recordViolation = '/cheat-detection/record-violation';
+
+  static const examClientAuditLog = '/exam-client-audit/log';
 }
