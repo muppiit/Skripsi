@@ -34,6 +34,7 @@ public class SubjectRepository {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
         String rowKey = UUID.randomUUID().toString();
+        subject.setId(rowKey);
 
         TableName tableSubject = TableName.valueOf(tableName);
         client.insertRecord(tableSubject, rowKey, "main", "id", rowKey);
@@ -119,11 +120,12 @@ public class SubjectRepository {
     public Subject update(String subjectId, Subject subject) throws IOException {
         HBaseCustomClient client = new HBaseCustomClient(conf);
 
+        subject.setId(subjectId);
         TableName tableSubject = TableName.valueOf(tableName);
         client.insertRecord(tableSubject, subjectId, "main", "name", subject.getName());
         client.insertRecord(tableSubject, subjectId, "main", "description", subject.getDescription());
-        client.insertRecord(tableSubject, subjectId, "main", "credit_point", subject.getDescription().toString());
-        client.insertRecord(tableSubject, subjectId, "main", "year_commenced", subject.getDescription().toString());
+        client.insertRecord(tableSubject, subjectId, "main", "credit_point", subject.getCredit_point().toString());
+        client.insertRecord(tableSubject, subjectId, "main", "year_commenced", subject.getYear_commenced().toString());
         client.insertRecord(tableSubject, subjectId, "study_program", "id", subject.getStudyProgram().getId());
         client.insertRecord(tableSubject, subjectId, "study_program", "name", subject.getStudyProgram().getName());
         client.insertRecord(tableSubject, subjectId, "subject_group", "id", subject.getSubject_group().getId());

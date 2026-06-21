@@ -105,10 +105,10 @@ public class HBaseClientStructure {
                 client.deleteTable(tableTaksonomi);
                 client.createTable(tableTaksonomi, taksonomi);
 
-                TableName tableJadwal = TableName.valueOf("jadwalPelajarans");
-                String[] jadwal = { "main", "lecture", "mapel", "detail" };
-                client.deleteTable(tableJadwal);
-                client.createTable(tableJadwal, jadwal);
+                // TableName tableJadwal = TableName.valueOf("jadwalPelajarans");
+                // String[] jadwal = { "main", "lecture", "mapel", "detail" };
+                // client.deleteTable(tableJadwal);
+                // client.createTable(tableJadwal, jadwal);
 
                 // Create Tabel Tahun Ajaran
                 TableName tableTahun = TableName.valueOf("tahunAjaran");
@@ -300,10 +300,10 @@ public class HBaseClientStructure {
                 client.createTable(tableRPSDetail, RPSDetails);
 
                 // Create Table Pustaka
-                TableName tableReference = TableName.valueOf("references");
-                String[] references = { "main", "detail" };
-                client.deleteTable(tableReference);
-                client.createTable(tableReference, references);
+                // TableName tableReference = TableName.valueOf("references");
+                // String[] references = { "main", "detail" };
+                // client.deleteTable(tableReference);
+                // client.createTable(tableReference, references);
 
                 // Create Table Media Pembelajaran
                 TableName tableLearningMedia = TableName.valueOf("learning_medias");

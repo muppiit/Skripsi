@@ -1,79 +1,55 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Card,
   Button,
-  Table,
+  Card,
+  Col,
+  Divider,
+  Input,
   message,
   Modal,
   Row,
-  Col,
-  Upload,
-  Divider,
-  Input,
-  Space,
   Select,
+  Skeleton,
+  Table,
 } from "antd";
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import {
-  EditOutlined,
-  DeleteOutlined,
-  UploadOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
-import { getMapel, deleteMapel, addMapel, editMapel } from "@/api/mapel";
-import { getKelas } from "@/api/kelas";
-import { getSemester } from "@/api/semester";
-import { getTahunAjaran } from "@/api/tahun-ajaran";
+  addSubject,
+  deleteSubject,
+  editSubject,
+  getSubjects,
+} from "@/api/subject";
+import { getStudyPrograms } from "@/api/studyProgram";
+import { getSubjectGroups } from "@/api/subjectGroup";
 import TypingCard from "@/components/TypingCard";
-import AddMapelForm from "./forms/add-mapel-form";
-import EditMapelForm from "./forms/edit-mapel-form";
-import { Skeleton } from "antd";
-import Highlighter from "react-highlight-words";
 import { useTableSearch } from "@/helper/tableSearchHelper.jsx";
-import { reqUserInfo, getUserById } from "@/api/user";
-import { render } from "less";
+import AddSubjectForm from "./forms/add-mapel-form";
+import EditSubjectForm from "./forms/edit-mapel-form";
 
-const Mapel = () => {
-  const [mapel, setMapel] = useState([]);
-  const [addMapelModalVisible, setAddMapelModalVisible] = useState(false);
-  const [addMapelModalLoading, setAddMapelModalLoading] = useState(false);
-  const [editMapelModalVisible, setEditMapelModalVisible] = useState(false);
-  const [editMapelModalLoading, setEditMapelModalLoading] = useState(false);
-  const [importModalVisible, setImportModalVisible] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [currentRowData, setCurrentRowData] = useState({});
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [userIdJson, setUserIdJson] = useState("");
+const Subject = () => {
+  const [subjects, setSubjects] = useState([]);
+  const [studyPrograms, setStudyPrograms] = useState([]);
+  const [subjectGroups, setSubjectGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState("");
-  const [searchedColumn, setSearchedColumn] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStudyProgram, setSelectedStudyProgram] = useState(null);
+  const [selectedSubjectGroup, setSelectedSubjectGroup] = useState(null);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addModalLoading, setAddModalLoading] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editModalLoading, setEditModalLoading] = useState(false);
+  const [currentRowData, setCurrentRowData] = useState({});
 
-  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState(null);
-  const [selectedKelas, setSelectedKelas] = useState(null);
-  const [selectedSemester, setSelectedSemester] = useState(null);
-  const [tahunAjaranList, setTahunAjaranList] = useState([]);
-  const [kelasList, setKelasList] = useState([]);
-  const [semesterList, setSemesterList] = useState([]);
-
-  const [filteredMapel, setFilteredMapel] = useState([]);
-
-  // Fungsi Helper Table Search
   const { getColumnSearchProps } = useTableSearch();
 
-  const editMapelFormRef = useRef();
-  const addMapelFormRef = useRef();
-
-  const fetchMapel = useCallback(async () => {
+  const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getMapel();
-      const { content, statusCode } = result.data;
-      if (statusCode === 200) {
-        setMapel(content);
+      const result = await getSubjects();
+      if (result.data.statusCode === 200) {
+        setSubjects(result.data.content || []);
       } else {
-        message.error("Gagal mengambil data");
+        message.error("Gagal mengambil data mata kuliah");
       }
     } catch (error) {
       message.error("Terjadi kesalahan: " + error.message);
@@ -82,230 +58,191 @@ const Mapel = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMapel();
-  }, [fetchMapel]);
+  const fetchRelations = useCallback(async () => {
+    try {
+      const [studyProgramResult, subjectGroupResult] = await Promise.all([
+        getStudyPrograms(),
+        getSubjectGroups(),
+      ]);
 
-  useEffect(() => {
-    const fetchTahunAjaranAndKelasAndSemester = async () => {
-      setLoading(true);
-      try {
-        const tahunAjaranResult = await getTahunAjaran();
-        const kelasResult = await getKelas();
-        const semesterResult = await getSemester();
-
-        if (tahunAjaranResult.data.statusCode === 200) {
-          let tahunAjaranContent = tahunAjaranResult.data.content || [];
-          // Urutkan berdasarkan createdAt ASCENDING
-          tahunAjaranContent.sort(
-            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-          );
-          setTahunAjaranList(tahunAjaranContent);
-
-          // JANGAN setSelectedTahunAjaran di sini
-        }
-
-        if (kelasResult.data.statusCode === 200) {
-          let kelasContent = kelasResult.data.content || [];
-          kelasContent.sort(
-            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-          );
-          setKelasList(kelasContent);
-
-          // JANGAN setSelectedKelas di sini
-        }
-
-        if (semesterResult.data.statusCode === 200) {
-          let semesterContent = semesterResult.data.content || [];
-          semesterContent.sort(
-            (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-          );
-          setSemesterList(semesterContent);
-
-          // JANGAN setSelectedSemester di sini
-        }
-      } catch (error) {
-        message.error(
-          "Gagal mengambil data kelas atau semester: " + error.message
-        );
-      } finally {
-        setLoading(false);
+      if (studyProgramResult.data.statusCode === 200) {
+        setStudyPrograms(studyProgramResult.data.content || []);
       }
-    };
 
-    fetchTahunAjaranAndKelasAndSemester();
+      if (subjectGroupResult.data.statusCode === 200) {
+        setSubjectGroups(subjectGroupResult.data.content || []);
+      }
+    } catch (error) {
+      message.error("Gagal memuat data relasi mata kuliah");
+    }
   }, []);
 
-  const handleDeleteMapel = (row) => {
-    const { idMapel } = row;
+  useEffect(() => {
+    fetchSubjects();
+    fetchRelations();
+  }, [fetchRelations, fetchSubjects]);
+
+  const filteredSubjects = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+
+    return subjects.filter((subject) => {
+      const matchStudyProgram = selectedStudyProgram
+        ? subject.studyProgram?.id === selectedStudyProgram ||
+          subject.study_program?.id === selectedStudyProgram
+        : true;
+      const matchSubjectGroup = selectedSubjectGroup
+        ? subject.subject_group?.id === selectedSubjectGroup
+        : true;
+      const matchSearch = keyword
+        ? [
+            subject.name,
+            subject.description,
+            subject.studyProgram?.name,
+            subject.study_program?.name,
+            subject.subject_group?.name,
+            subject.credit_point,
+            subject.year_commenced,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(keyword))
+        : true;
+
+      return matchStudyProgram && matchSubjectGroup && matchSearch;
+    });
+  }, [searchQuery, selectedStudyProgram, selectedSubjectGroup, subjects]);
+
+  const handleAddSubjectOk = async (values) => {
+    setAddModalLoading(true);
+    try {
+      await addSubject({
+        name: values.name,
+        description: values.description,
+        credit_point: Number(values.credit_point),
+        year_commenced: Number(values.year_commenced),
+        study_program_id: values.study_program_id,
+        subject_group_id: values.subject_group_id,
+      });
+      setAddModalVisible(false);
+      message.success("Mata kuliah berhasil ditambahkan");
+      fetchSubjects();
+    } catch (error) {
+      message.error("Gagal menambahkan mata kuliah: " + error.message);
+    } finally {
+      setAddModalLoading(false);
+    }
+  };
+
+  const handleEditSubjectOk = async (values) => {
+    setEditModalLoading(true);
+    try {
+      await editSubject(
+        {
+          name: values.name,
+          description: values.description,
+          credit_point: Number(values.credit_point),
+          year_commenced: Number(values.year_commenced),
+          study_program_id: values.study_program_id,
+          subject_group_id: values.subject_group_id,
+        },
+        currentRowData.id
+      );
+      setEditModalVisible(false);
+      message.success("Mata kuliah berhasil diperbarui");
+      fetchSubjects();
+    } catch (error) {
+      message.error("Gagal mengubah mata kuliah: " + error.message);
+    } finally {
+      setEditModalLoading(false);
+    }
+  };
+
+  const handleDeleteSubject = (row) => {
     Modal.confirm({
       title: "Konfirmasi",
-      content: "Apakah Anda yakin ingin menghapus data ini?",
+      content: "Apakah Anda yakin ingin menghapus mata kuliah ini?",
       okText: "Ya",
       okType: "danger",
       cancelText: "Tidak",
       onOk: async () => {
         try {
-          await deleteMapel({ idMapel });
-          message.success("Berhasil dihapus");
-          fetchMapel();
+          await deleteSubject({ id: row.id });
+          message.success("Mata kuliah berhasil dihapus");
+          fetchSubjects();
         } catch (error) {
-          message.error("Gagal menghapus: " + error.message);
+          message.error("Gagal menghapus mata kuliah: " + error.message);
         }
       },
     });
   };
 
-  const handleEditMapel = (row) => {
-    setCurrentRowData({ ...row });
-    setEditMapelModalVisible(true);
-  };
-
-  const handleAddMapel = () => {
-    setAddMapelModalVisible(true);
-  };
-
-  const handleAddMapelOk = async (values) => {
-    setAddMapelModalLoading(true);
-    try {
-      const updatedData = {
-        idMapel: null,
-        name: values.name,
-        idSekolah: values.idSchool,
-        idTahun: values.idTahun,
-        idKelas: values.idKelas,
-        idSemester: values.idSemester,
-      };
-      await addMapel(updatedData);
-      setAddMapelModalVisible(false);
-      message.success("Berhasil menambahkan");
-      fetchMapel();
-    } catch (error) {
-      setAddMapelModalVisible(false);
-      message.error("Gagal menambahkan: " + error.message);
-    } finally {
-      setAddMapelModalLoading(false);
-      fetchMapel();
-    }
-  };
-
-  const handleEditMapelOk = async (values) => {
-    setEditMapelModalLoading(true);
-    try {
-      const updatedData = {
-        idMapel: values.idMapel,
-        name: values.name,
-        idSekolah: values.idSchool,
-        idTahun: values.idTahun,
-        idKelas: values.idKelas,
-        idSemester: values.idSemester,
-      };
-      await editMapel(updatedData, currentRowData.idMapel);
-      setEditMapelModalVisible(false);
-      setEditMapelModalLoading(false);
-      message.success("Berhasil mengedit");
-      fetchMapel();
-    } catch (error) {
-      setEditMapelModalVisible(false);
-      message.error("Gagal mengedit: " + error.message);
-    } finally {
-      setEditMapelModalLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setAddMapelModalVisible(false);
-    setEditMapelModalVisible(false);
-  };
-
-  const handleSearch = (keyword) => {
-    setSearchKeyword(keyword);
-    getMapel();
-  };
-
-  const getFilteredMapelList = () => {
-    return mapel.filter((item) => {
-      const matchTahunAjaran = selectedTahunAjaran
-        ? item.tahunAjaran?.idTahun === selectedTahunAjaran
-        : true;
-      const matchKelas = selectedKelas
-        ? item.kelas?.idKelas === selectedKelas
-        : true;
-      const matchSemester = selectedSemester
-        ? item.semester?.idSemester === selectedSemester
-        : true;
-
-      // Global search filter
-      const matchSearch = searchQuery
-        ? item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.tahunAjaran?.tahunAjaran
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          item.semester?.namaSemester
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          item.kelas?.namaKelas
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase())
-        : true;
-
-      return matchTahunAjaran && matchKelas && matchSemester && matchSearch;
-    });
-  };
-
-  const renderColumns = () => [
+  const columns = [
     {
       title: "No",
-      dataIndex: "index",
       key: "index",
       align: "center",
+      width: 70,
       render: (_, __, index) => index + 1,
     },
     {
-      title: "Tahun Ajaran",
-      dataIndex: ["tahunAjaran", "tahunAjaran"],
-      key: "tahunAjaran",
-      align: "center",
-      ...getColumnSearchProps("tahunAjaran", "tahunAjaran.tahunAjaran"),
-      sorter: (a, b) =>
-        a.tahunAjaran.tahunAjaran.localeCompare(b.tahunAjaran.tahunAjaran),
-    },
-    {
-      title: "Semester",
-      dataIndex: ["semester", "namaSemester"],
-      key: "namaSemester",
-      align: "center",
-      ...getColumnSearchProps("namaSemester", "semester.namaSemester"),
-      sorter: (a, b) =>
-        a.semester.namaSemester.localeCompare(b.semester.namaSemester),
-    },
-    {
-      title: "Kelas",
-      dataIndex: ["kelas", "namaKelas"],
-      key: "namaKelas",
-      align: "center",
-      ...getColumnSearchProps("namaKelas", "kelas.namaKelas"),
-      sorter: (a, b) => a.kelas.namaKelas.localeCompare(b.kelas.namaKelas),
-    },
-    {
-      title: "Nama Mapel",
+      title: "Nama Mata Kuliah",
       dataIndex: "name",
       key: "name",
-      align: "center",
       ...getColumnSearchProps("name"),
-      sorter: (a, b) => a.name.localeCompare(b.name),
+      sorter: (a, b) => (a.name || "").localeCompare(b.name || ""),
+    },
+    {
+      title: "Prodi",
+      key: "study_program",
+      render: (_, row) => row.studyProgram?.name || row.study_program?.name || "-",
+      sorter: (a, b) =>
+        (a.studyProgram?.name || a.study_program?.name || "").localeCompare(
+          b.studyProgram?.name || b.study_program?.name || ""
+        ),
+    },
+    {
+      title: "Rumpun",
+      dataIndex: ["subject_group", "name"],
+      key: "subject_group",
+      render: (value) => value || "-",
+      sorter: (a, b) =>
+        (a.subject_group?.name || "").localeCompare(b.subject_group?.name || ""),
+    },
+    {
+      title: "SKS",
+      dataIndex: "credit_point",
+      key: "credit_point",
+      align: "center",
+      sorter: (a, b) => (a.credit_point || 0) - (b.credit_point || 0),
+    },
+    {
+      title: "Tahun Mulai",
+      dataIndex: "year_commenced",
+      key: "year_commenced",
+      align: "center",
+      sorter: (a, b) => (a.year_commenced || 0) - (b.year_commenced || 0),
+    },
+    {
+      title: "Deskripsi",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (value) => value || "-",
     },
     {
       title: "Operasi",
       key: "action",
       align: "center",
-      render: (text, row) => (
+      width: 140,
+      render: (_, row) => (
         <span>
           <Button
             type="primary"
             shape="circle"
             icon={<EditOutlined />}
-            onClick={() => handleEditMapel(row)}
+            onClick={() => {
+              setCurrentRowData(row);
+              setEditModalVisible(true);
+            }}
           />
           <Divider type="vertical" />
           <Button
@@ -313,174 +250,108 @@ const Mapel = () => {
             danger
             shape="circle"
             icon={<DeleteOutlined />}
-            onClick={() => handleDeleteMapel(row)}
+            onClick={() => handleDeleteSubject(row)}
           />
         </span>
       ),
     },
   ];
 
-  const renderTable = () => (
-    <Table
-      rowKey="idMapel"
-      dataSource={getFilteredMapelList()}
-      columns={renderColumns()}
-      pagination={{ pageSize: 10 }}
-    />
-  );
-
-  const renderButtons = () => (
-    <Row gutter={[16, 16]} justify="start">
-      <Col>
-        <Button type="primary" onClick={() => setAddMapelModalVisible(true)}>
-          Tambahkan Mapel
-        </Button>
-      </Col>
-      {/* <Col>
-        <Button
-          icon={<UploadOutlined />}
-          onClick={() => setImportModalVisible(true)}
-        >
-          Import File
-        </Button>
-      </Col> */}
-      <Col>
-        <Select
-          placeholder="Pilih Tahun Ajaran"
-          value={selectedTahunAjaran}
-          style={{ width: 150 }}
-          onChange={(value) => setSelectedTahunAjaran(value)}
-          allowClear
-        >
-          {tahunAjaranList.map((tahunAjaran) => (
-            <Select.Option
-              key={tahunAjaran.idTahun}
-              value={tahunAjaran.idTahun}
-            >
-              {tahunAjaran.tahunAjaran}
-            </Select.Option>
-          ))}
-        </Select>
-      </Col>
-      <Col>
-        <Select
-          placeholder="Pilih Kelas"
-          value={selectedKelas}
-          style={{ width: 150 }}
-          onChange={(value) => setSelectedKelas(value)}
-          allowClear
-        >
-          {kelasList.map((kelas) => (
-            <Select.Option key={kelas.idKelas} value={kelas.idKelas}>
-              {kelas.namaKelas}
-            </Select.Option>
-          ))}
-        </Select>
-      </Col>
-      <Col>
-        <Select
-          placeholder="Pilih Semester"
-          value={selectedSemester}
-          style={{ width: 150 }}
-          onChange={(value) => setSelectedSemester(value)}
-          allowClear
-        >
-          {semesterList.map((semester) => (
-            <Select.Option
-              key={semester.idSemester}
-              value={semester.idSemester}
-            >
-              {semester.namaSemester}
-            </Select.Option>
-          ))}
-        </Select>
-      </Col>
-    </Row>
-  );
+  const cardContent =
+    "Di sini, Anda dapat mengelola mata kuliah sesuai program studi dan rumpun mata kuliah.";
 
   return (
     <div className="app-container">
-      <TypingCard
-        title="Manajemen Mapel"
-        source="Di sini, Anda dapat mengelola mapel di sistem."
-      />
+      <TypingCard title="Manajemen Mata Kuliah" source={cardContent} />
       <br />
       {loading ? (
         <Card>
           <Skeleton active paragraph={{ rows: 10 }} />
         </Card>
       ) : (
-        <Card style={{ overflowX: "scroll" }}>
-          {/* Baris untuk tombol dan pencarian */}
-          <Row
-            justify="space-between"
-            align="middle"
-            style={{ marginBottom: 16 }}
-          >
-            {/* Tombol Tambah & Import */}
-            {renderButtons()}
-
-            {/* Kolom Pencarian */}
+        <Card style={{ overflowX: "auto" }}>
+          <Row gutter={[16, 16]} justify="space-between" align="middle">
+            <Col>
+              <Row gutter={[12, 12]}>
+                <Col>
+                  <Button type="primary" onClick={() => setAddModalVisible(true)}>
+                    Tambahkan Mata Kuliah
+                  </Button>
+                </Col>
+                <Col>
+                  <Select
+                    placeholder="Filter Prodi"
+                    value={selectedStudyProgram}
+                    style={{ width: 220 }}
+                    onChange={setSelectedStudyProgram}
+                    allowClear
+                  >
+                    {studyPrograms.map((program) => (
+                      <Select.Option key={program.id} value={program.id}>
+                        {program.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col>
+                  <Select
+                    placeholder="Filter Rumpun"
+                    value={selectedSubjectGroup}
+                    style={{ width: 220 }}
+                    onChange={setSelectedSubjectGroup}
+                    allowClear
+                  >
+                    {subjectGroups.map((group) => (
+                      <Select.Option key={group.id} value={group.id}>
+                        {group.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+              </Row>
+            </Col>
             <Col>
               <Input.Search
-                key="search"
-                placeholder="Cari tahun ajaran, semester, kelas, atau nama mapel..."
+                placeholder="Cari mata kuliah, prodi, rumpun..."
                 allowClear
                 enterButton
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onSearch={(value) => setSearchQuery(value)}
-                style={{ width: 400 }}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onSearch={setSearchQuery}
+                style={{ width: 360 }}
               />
             </Col>
           </Row>
-
-          {/* Tabel */}
-          {renderTable()}
-
-          <AddMapelForm
-            wrappedComponentRef={addMapelFormRef}
-            visible={addMapelModalVisible}
-            confirmLoading={addMapelModalLoading}
-            onCancel={handleCancel}
-            onOk={handleAddMapelOk}
+          <br />
+          <Table
+            rowKey="id"
+            dataSource={filteredSubjects}
+            columns={columns}
+            pagination={{ pageSize: 10 }}
           />
 
-          <EditMapelForm
-            wrappedComponentRef={editMapelFormRef}
+          <AddSubjectForm
+            visible={addModalVisible}
+            confirmLoading={addModalLoading}
+            onCancel={() => setAddModalVisible(false)}
+            onOk={handleAddSubjectOk}
+            studyPrograms={studyPrograms}
+            subjectGroups={subjectGroups}
+          />
+
+          <EditSubjectForm
             currentRowData={currentRowData}
-            visible={editMapelModalVisible}
-            confirmLoading={editMapelModalLoading}
-            onCancel={handleCancel}
-            onOk={handleEditMapelOk}
+            visible={editModalVisible}
+            confirmLoading={editModalLoading}
+            onCancel={() => setEditModalVisible(false)}
+            onOk={handleEditSubjectOk}
+            studyPrograms={studyPrograms}
+            subjectGroups={subjectGroups}
           />
         </Card>
       )}
-
-      {/* <Modal
-        title="Import File"
-        open={importModalVisible}
-        onCancel={() => setImportModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setImportModalVisible(false)}>
-            Cancel
-          </Button>,
-          <Button
-            key="upload"
-            type="primary"
-            loading={uploading}
-            onClick={() => {}}
-          >
-            Upload
-          </Button>,
-        ]}
-      >
-        <Upload beforeUpload={() => false} accept=".csv,.xlsx,.xls">
-          <Button>Pilih File</Button>
-        </Upload>
-      </Modal> */}
     </div>
   );
 };
 
-export default Mapel;
+export default Subject;

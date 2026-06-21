@@ -533,7 +533,7 @@ export default [
     component: SubjectGroup,
     roles: ["ROLE_OPERATOR"],
   },
-  // { path: "/subject", component: Subject, roles: ["ROLE_OPERATOR"] },
+  { path: "/subject", component: Subject, roles: ["ROLE_OPERATOR"] },
   // {
   //   path: "/jadwal-pelajaran",
   //   component: JadwalPelajaran,

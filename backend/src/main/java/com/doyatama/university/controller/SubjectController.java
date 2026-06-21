@@ -66,6 +66,6 @@ public class SubjectController {
     @DeleteMapping("/{subjectId}")
     public HttpStatus deleteSubject(@PathVariable(value = "subjectId") String subjectId) throws IOException {
         subjectService.deleteSubjectById(subjectId);
-        return HttpStatus.FORBIDDEN;
+        return HttpStatus.OK;
     }
 }

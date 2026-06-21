@@ -125,12 +125,12 @@ const menuList = [
         icon: AuditOutlined,
         roles: ["ROLE_OPERATOR"],
       },
-      // {
-      //   title: "Mata Pelajaran",
-      //   path: "/subject",
-      //   icon: AuditOutlined,
-      //   roles: ["ROLE_OPERATOR"],
-      // },
+      {
+        title: "Mata Kuliah",
+        path: "/subject",
+        icon: AuditOutlined,
+        roles: ["ROLE_OPERATOR"],
+      },
       {
         title: "Dosen",
         path: "/lecture",
