@@ -499,13 +499,29 @@ const ReportNilaiSiswa = () => {
       const idPeserta = getRecordPesertaId(record);
       const idUjian = getRecordUjianId(record);
       let logs = [];
+      const mergeLogs = (currentLogs, nextLogs) => {
+        const seen = new Set();
+        return [...currentLogs, ...nextLogs].filter((log) => {
+          const key =
+            log.idLog ||
+            log.clientEventId ||
+            `${log.eventType || "-"}-${log.eventTime || log.createdAt || "-"}-${
+              log.segmentName || "-"
+            }`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      };
 
       if (sessionId) {
         const response = await getExamClientAuditLogsBySession(sessionId, 1000);
-        logs = extractAuditLogList(response);
-      } else if (idPeserta) {
+        logs = mergeLogs(logs, extractAuditLogList(response));
+      }
+
+      if (idPeserta) {
         const response = await getExamClientAuditLogsByPeserta(idPeserta, 1000);
-        logs = extractAuditLogList(response);
+        logs = mergeLogs(logs, extractAuditLogList(response));
       }
 
       if (idUjian) {

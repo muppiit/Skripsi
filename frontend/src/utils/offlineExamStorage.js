@@ -41,16 +41,30 @@ export const UPLOAD_STATUS = {
 };
 
 const stableStringify = (value) => {
+  if (value === undefined || typeof value === "function" || typeof value === "symbol") {
+    return "null";
+  }
+
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
 
   if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+    return `[${value
+      .map((item) =>
+        item === undefined || typeof item === "function" || typeof item === "symbol"
+          ? "null"
+          : stableStringify(item)
+      )
+      .join(",")}]`;
   }
 
   return `{${Object.keys(value)
     .sort()
+    .filter((key) => {
+      const item = value[key];
+      return item !== undefined && typeof item !== "function" && typeof item !== "symbol";
+    })
     .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
     .join(",")}}`;
 };
@@ -112,21 +126,63 @@ export const createCompletePackageChecksum = (segments) =>
   );
 
 export const validateOfflineExamPackage = async (examPackage) => {
-  if (!examPackage?.downloadManifest) return false;
+  const validation = await validateOfflineExamPackageDetails(examPackage);
+  return validation.valid;
+};
+
+export const validateOfflineExamPackageDetails = async (examPackage) => {
+  if (!examPackage?.downloadManifest) {
+    return { valid: false, reason: "Manifest download tidak ditemukan" };
+  }
+
   const manifest = examPackage.downloadManifest;
 
-  if (manifest.status !== DOWNLOAD_STATUS.complete) return false;
+  if (manifest.status !== DOWNLOAD_STATUS.complete) {
+    return {
+      valid: false,
+      reason: `Status manifest belum complete: ${manifest.status || "-"}`,
+    };
+  }
 
   for (const segmentName of OFFLINE_PACKAGE_SEGMENTS) {
     const segment = manifest.segments?.[segmentName];
-    if (segment?.status !== DOWNLOAD_STATUS.verified) return false;
+    if (segment?.status !== DOWNLOAD_STATUS.verified) {
+      return {
+        valid: false,
+        reason: `Segmen ${segmentName} belum verified`,
+        segmentName,
+        segment,
+      };
+    }
 
     const checksum = await hashOfflinePayload(examPackage[segmentName] ?? null);
-    if (checksum !== segment.checksum) return false;
+    if (checksum !== segment.checksum) {
+      return {
+        valid: false,
+        reason: `Checksum segmen ${segmentName} tidak cocok`,
+        segmentName,
+        expectedChecksum: segment.checksum,
+        actualChecksum: checksum,
+      };
+    }
   }
 
-  const packageChecksum = await createCompletePackageChecksum(examPackage);
-  return packageChecksum === manifest.packageChecksum;
+  const packageChecksum = await createCompletePackageChecksum(
+    OFFLINE_PACKAGE_SEGMENTS.reduce((result, segmentName) => {
+      result[segmentName] = examPackage[segmentName] ?? null;
+      return result;
+    }, {})
+  );
+  if (packageChecksum !== manifest.packageChecksum) {
+    return {
+      valid: false,
+      reason: "Checksum paket lengkap tidak cocok",
+      expectedChecksum: manifest.packageChecksum,
+      actualChecksum: packageChecksum,
+    };
+  }
+
+  return { valid: true };
 };
 
 export const createUploadManifest = async (submission) => {
@@ -260,13 +316,23 @@ const runStoreAction = async (storeName, mode, action) => {
     const transaction = db.transaction(storeName, mode);
     const store = transaction.objectStore(storeName);
     const request = action(store);
+    let requestResult;
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      requestResult = request.result;
+    };
     request.onerror = () => reject(request.error);
-    transaction.oncomplete = () => db.close();
+    transaction.oncomplete = () => {
+      db.close();
+      resolve(requestResult);
+    };
     transaction.onerror = () => {
       db.close();
       reject(transaction.error);
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Transaksi IndexedDB dibatalkan"));
     };
   });
 };

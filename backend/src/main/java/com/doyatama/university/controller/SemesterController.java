@@ -89,4 +89,5 @@ public class SemesterController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new ApiResponse(true, "Semester Deleted Successfully"));
     }
+
 }

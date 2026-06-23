@@ -733,7 +733,9 @@ public class HBaseCustomClient {
 
             Scan s = new Scan();
             s.setCaching(200);
-            s.setLimit(sizeLimit);
+            if (sizeLimit > 0) {
+                s.setLimit(sizeLimit);
+            }
             TableDescriptor tableDescriptor = connection.getAdmin().getDescriptor(TableName.valueOf(tableName));
             ColumnFamilyDescriptor[] columnFamilies = tableDescriptor.getColumnFamilies();
             for (ColumnFamilyDescriptor columnFamily : columnFamilies) {
@@ -841,7 +843,9 @@ public class HBaseCustomClient {
         try (Table table = connection.getTable(TableName.valueOf(tableName))) {
             Scan scan = new Scan();
             scan.setCaching(200);
-            scan.setLimit(sizeLimit);
+            if (sizeLimit > 0) {
+                scan.setLimit(sizeLimit);
+            }
 
             // Add all column families
             TableDescriptor tableDescriptor = connection.getAdmin().getDescriptor(TableName.valueOf(tableName));

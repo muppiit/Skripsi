@@ -2,6 +2,27 @@
     "configurations": [
         {
             "type": "java",
+            "name": "SeederRunner",
+            "request": "launch",
+            "mainClass": "seeder.SeederRunner",
+            "projectName": "university"
+        },
+        {
+            "type": "java",
+            "name": "Seeder2Runner",
+            "request": "launch",
+            "mainClass": "seeder2.Seeder2Runner",
+            "projectName": "university"
+        },
+        {
+            "type": "java",
+            "name": "HBaseClientStructure",
+            "request": "launch",
+            "mainClass": "create_database_structure.HBaseClientStructure",
+            "projectName": "university"
+        },
+        {
+            "type": "java",
             "name": "Spring Boot-UniversityApplication<university>",
             "request": "launch",
             "cwd": "${workspaceFolder}",

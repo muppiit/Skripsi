@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Form, Input, Modal, Select, Row, Col, message } from "antd";
 import { getStudyPrograms } from "@/api/studyProgram";
 import { getTahunAjaran } from "@/api/tahun-ajaran";
+import { reqUserInfo } from "@/api/user";
 
 const { Option } = Select;
 
@@ -20,12 +21,31 @@ const EditKelasForm = ({
   const [loadingPrograms, setLoadingPrograms] = useState(false);
   const [loadingTahun, setLoadingTahun] = useState(false);
 
+  const getUserStudyProgramId = (user) =>
+    user?.school_id ||
+    user?.schoolId ||
+    user?.study_program_id ||
+    user?.studyProgram?.id ||
+    user?.study_program?.id ||
+    user?.study_program?.idSchool ||
+    user?.school?.idSchool;
+
   const fetchStudyProgramList = async () => {
     setLoadingPrograms(true);
     try {
-      const result = await getStudyPrograms();
+      const [result, userResult] = await Promise.all([
+        getStudyPrograms(),
+        reqUserInfo(),
+      ]);
       if (result.data.statusCode === 200) {
-        setStudyProgramList(result.data.content || []);
+        const userStudyProgramId = getUserStudyProgramId(userResult.data);
+        const programs = userStudyProgramId
+          ? (result.data.content || []).filter((item) => item.id === userStudyProgramId)
+          : result.data.content || [];
+        setStudyProgramList(programs);
+        if (programs.length === 1) {
+          form.setFieldsValue({ idStudyProgram: programs[0].id });
+        }
       } else {
         message.error("Gagal mengambil data program studi");
       }

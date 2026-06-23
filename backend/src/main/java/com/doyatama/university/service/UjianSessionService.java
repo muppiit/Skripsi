@@ -578,7 +578,7 @@ public class UjianSessionService {
             }
 
             // Check attempt limits
-            List<HasilUjian> previousAttempts = hasilUjianRepository.findByUjianAndPeserta(idUjian, idPeserta);
+            List<HasilUjian> previousAttempts = findPreviousAttemptsSafely(idUjian, idPeserta);
             if (previousAttempts.size() >= ujian.getMaxAttempts()) {
                 validation.put("canStart", false);
                 validation.put("reason", "Sudah mencapai batas maksimal percobaan");
@@ -601,7 +601,7 @@ public class UjianSessionService {
         } catch (Exception e) {
             logger.error("Error validating can start", e);
             validation.put("canStart", false);
-            validation.put("reason", e instanceof BadRequestException ? e.getMessage() : "Terjadi kesalahan sistem");
+            validation.put("reason", e.getMessage() != null ? e.getMessage() : "Terjadi kesalahan sistem");
         }
 
         return validation;
@@ -966,7 +966,7 @@ public class UjianSessionService {
     }
 
     private void validateAttemptLimits(Ujian ujian, String idPeserta) throws IOException {
-        List<HasilUjian> previousAttempts = hasilUjianRepository.findByUjianAndPeserta(ujian.getIdUjian(), idPeserta);
+        List<HasilUjian> previousAttempts = findPreviousAttemptsSafely(ujian.getIdUjian(), idPeserta);
 
         if (previousAttempts.size() >= ujian.getMaxAttempts()) {
             throw new BadRequestException("Sudah mencapai batas maksimal percobaan (" + ujian.getMaxAttempts() + ")");
@@ -1116,10 +1116,21 @@ public class UjianSessionService {
             if (ujian == null)
                 return false;
 
-            List<HasilUjian> previousAttempts = hasilUjianRepository.findByUjianAndPeserta(idUjian, idPeserta);
+            List<HasilUjian> previousAttempts = findPreviousAttemptsSafely(idUjian, idPeserta);
             return previousAttempts.size() < ujian.getMaxAttempts();
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    private List<HasilUjian> findPreviousAttemptsSafely(String idUjian, String idPeserta) {
+        try {
+            List<HasilUjian> attempts = hasilUjianRepository.findByUjianAndPeserta(idUjian, idPeserta);
+            return attempts != null ? attempts : new ArrayList<>();
+        } catch (Exception e) {
+            logger.warn("Gagal membaca riwayat hasil ujian untuk validasi. idUjian={}, idPeserta={}", idUjian,
+                    idPeserta, e);
+            return new ArrayList<>();
         }
     }
 
@@ -1128,48 +1139,47 @@ public class UjianSessionService {
             throw new BadRequestException("Data ujian/peserta tidak valid");
         }
 
-        if (ujian.getSeasons() == null || ujian.getSeasons().getIdSeason() == null
-                || ujian.getSeasons().getIdSeason().trim().isEmpty()) {
-            validatePesertaClassEnrollment(ujian, peserta);
-            return;
+        validatePesertaClassEnrollment(ujian, peserta);
+    }
+
+    private boolean isPesertaMatchSeasonStudent(Object seasonStudent, User peserta) {
+        if (seasonStudent == null || peserta == null) {
+            return false;
         }
 
-        Season season = seasonRepository.findById(ujian.getSeasons().getIdSeason());
-        if (season == null) {
-            throw new BadRequestException("Seasons untuk ujian tidak ditemukan");
+        if (seasonStudent instanceof Student) {
+            Student student = (Student) seasonStudent;
+            return equalsSafe(peserta.getId(), student.getUser_id())
+                    || equalsSafe(peserta.getId(), student.getId())
+                    || equalsSafe(peserta.getUsername(), student.getNisn());
         }
 
-        if (ujian.getKelas() != null && ujian.getKelas().getIdKelas() != null
-                && season.getKelas() != null && season.getKelas().getIdKelas() != null
-                && !ujian.getKelas().getIdKelas().equals(season.getKelas().getIdKelas())) {
-            throw new BadRequestException("Konfigurasi ujian tidak konsisten dengan kelas pada seasons");
+        if (seasonStudent instanceof Map) {
+            Map<?, ?> studentMap = (Map<?, ?>) seasonStudent;
+            return equalsSafe(peserta.getId(), getMapString(studentMap, "user_id"))
+                    || equalsSafe(peserta.getId(), getMapString(studentMap, "userId"))
+                    || equalsSafe(peserta.getId(), getMapString(studentMap, "id"))
+                    || equalsSafe(peserta.getUsername(), getMapString(studentMap, "nisn"))
+                    || equalsSafe(peserta.getUsername(), getMapString(studentMap, "username"));
         }
 
-        if (ujian.getSemester() != null && ujian.getSemester().getIdSemester() != null
-                && season.getSemester() != null && season.getSemester().getIdSemester() != null
-                && !ujian.getSemester().getIdSemester().equals(season.getSemester().getIdSemester())) {
-            throw new BadRequestException("Konfigurasi ujian tidak konsisten dengan semester pada seasons");
-        }
+        String studentValue = String.valueOf(seasonStudent);
+        return equalsSafe(peserta.getId(), studentValue)
+                || equalsSafe(peserta.getUsername(), studentValue);
+    }
 
-        List<Student> enrolledStudents = season.getStudent();
-        if (enrolledStudents == null || enrolledStudents.isEmpty()) {
-            throw new BadRequestException("Seasons belum memiliki peserta terdaftar");
-        }
+    private String getMapString(Map<?, ?> map, String key) {
+        Object value = map.get(key);
+        return value != null ? String.valueOf(value) : null;
+    }
 
-        boolean terdaftar = enrolledStudents.stream()
-                .filter(student -> student != null)
-                .anyMatch(student -> peserta.getId().equals(student.getUser_id())
-                        || peserta.getId().equals(student.getId())
-                        || (peserta.getUsername() != null && peserta.getUsername().equals(student.getNisn())));
-
-        if (!terdaftar) {
-            throw new BadRequestException("Peserta tidak terdaftar pada seasons ujian ini");
-        }
+    private boolean equalsSafe(String first, String second) {
+        return first != null && second != null && first.equals(second);
     }
 
     private void validatePesertaClassEnrollment(Ujian ujian, User peserta) throws IOException {
         if (ujian.getKelas() == null || ujian.getKelas().getIdKelas() == null) {
-            throw new BadRequestException("Ujian belum dikonfigurasi kelas atau seasons");
+            throw new BadRequestException("Ujian belum dikonfigurasi kelas");
         }
 
         Student student = findStudentByUser(peserta);
@@ -1179,6 +1189,16 @@ public class UjianSessionService {
 
         if (student.getKelas() == null || student.getKelas().getIdKelas() == null) {
             throw new BadRequestException("Data kelas mahasiswa belum lengkap");
+        }
+
+        if (ujian.getStudy_program() != null && ujian.getStudy_program().getId() != null) {
+            if (student.getStudyProgram() == null || student.getStudyProgram().getId() == null) {
+                throw new BadRequestException("Data program studi mahasiswa belum lengkap");
+            }
+
+            if (!ujian.getStudy_program().getId().equals(student.getStudyProgram().getId())) {
+                throw new BadRequestException("Peserta tidak terdaftar pada program studi ujian ini");
+            }
         }
 
         if (!ujian.getKelas().getIdKelas().equals(student.getKelas().getIdKelas())) {

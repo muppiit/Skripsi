@@ -82,6 +82,7 @@ import {
   createUploadManifest,
   hashOfflinePayload,
   validateOfflineExamPackage,
+  validateOfflineExamPackageDetails,
 } from "@/utils/offlineExamStorage";
 
 const { Title, Text } = Typography;
@@ -469,10 +470,35 @@ const UjianCATView = () => {
       if (response.data.statusCode === 200) {
         const ujianList = response.data.content;
 
-        // Cari ujian berdasarkan kode
-        const ujian = ujianList.find(
-          (u) => u.pengaturan?.kodeUjian === kodeToUse
-        );
+        const now = moment();
+        const getUjianSortTime = (ujianItem) =>
+          moment(
+            ujianItem.updatedAt ||
+              ujianItem.createdAt ||
+              ujianItem.waktuMulaiDijadwalkan ||
+              0
+          ).valueOf();
+        const isEndedByTime = (ujianItem) =>
+          ujianItem.waktuSelesaiOtomatis &&
+          now.isAfter(moment(ujianItem.waktuSelesaiOtomatis));
+        const getUjianPriority = (ujianItem) => {
+          if (isEndedByTime(ujianItem)) return 0;
+          if (ujianItem.statusUjian === "BERLANGSUNG" && ujianItem.isLive) return 5;
+          if (ujianItem.statusUjian === "AKTIF" && ujianItem.isLive) return 4;
+          if (ujianItem.statusUjian === "BERLANGSUNG") return 3;
+          if (ujianItem.statusUjian === "AKTIF") return 2;
+          return 1;
+        };
+
+        const kandidatUjian = ujianList
+          .filter((u) => u.pengaturan?.kodeUjian === kodeToUse)
+          .sort((first, second) => {
+            const priorityDiff = getUjianPriority(second) - getUjianPriority(first);
+            if (priorityDiff !== 0) return priorityDiff;
+            return getUjianSortTime(second) - getUjianSortTime(first);
+          });
+
+        const ujian = kandidatUjian[0];
 
         if (!ujian) {
           message.error("Kode ujian tidak ditemukan");
@@ -490,7 +516,6 @@ const UjianCATView = () => {
         }
 
         // Validasi waktu ujian
-        const now = moment();
         const mulai = moment(ujian.waktuMulaiDijadwalkan);
         const selesai = ujian.waktuSelesaiOtomatis
           ? moment(ujian.waktuSelesaiOtomatis)
@@ -887,13 +912,25 @@ const UjianCATView = () => {
       await saveOfflineExamPackage(workingPackage);
 
       const savedPackage = await getOfflineExamPackage(ujianData.idUjian, userInfo.id);
+      const packageValidation = await validateOfflineExamPackageDetails(savedPackage);
+      const savedSoalCount = savedPackage?.soalList?.length || 0;
+      const expectedSoalCount = soalList.length;
 
       if (
         !savedPackage ||
-        savedPackage.soalList?.length !== soalList.length ||
-        !(await validateOfflineExamPackage(savedPackage))
+        savedSoalCount !== expectedSoalCount ||
+        !packageValidation.valid
       ) {
-        throw new Error("Paket ujian lokal tidak lengkap");
+        console.error("Validasi paket ujian lokal gagal:", {
+          savedSoalCount,
+          expectedSoalCount,
+          packageValidation,
+          savedPackage,
+        });
+        throw new Error(
+          packageValidation.reason ||
+            `Jumlah soal lokal tidak sesuai (${savedSoalCount}/${expectedSoalCount})`
+        );
       }
 
       setOfflineDownloadProgress(100);
@@ -946,9 +983,13 @@ const UjianCATView = () => {
         ujianData.idUjian,
         userInfo.id
       );
-      if (!(await validateOfflineExamPackage(localPackage))) {
+      const packageValidation = await validateOfflineExamPackageDetails(localPackage);
+      if (!packageValidation.valid) {
+        console.warn("Paket ujian lokal belum valid saat start:", packageValidation);
         setOfflinePackageReady(false);
-        message.warning("Paket ujian lokal belum lengkap. Download ulang ujian.");
+        message.warning(
+          `Paket ujian lokal belum lengkap. ${packageValidation.reason || "Download ulang ujian."}`
+        );
         return;
       }
 
